@@ -74,7 +74,7 @@ func (s *Server) handleListDocuments() http.HandlerFunc {
 	}
 }
 
-func (s *Server) handleGetDocument() http.HandlerFunc {
+func (s *Server) handleGetDocumentByUUID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 		if uuid == "" {

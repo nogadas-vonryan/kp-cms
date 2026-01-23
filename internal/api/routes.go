@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"main/internal/auth"
 	"main/internal/document"
 
 	"github.com/go-chi/chi/v5"
@@ -15,14 +16,25 @@ type Server struct {
 	Port            string
 	Router          *chi.Mux
 	documentService *document.DocumentService
+	Config          struct {
+		FlagUser string
+		FlagPass string
+	}
 }
 
-func NewServer(host, port string, documentService *document.DocumentService) *Server {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService) *Server {
 	s := &Server{
 		Host:            host,
 		Port:            port,
 		Router:          chi.NewRouter(),
 		documentService: documentService,
+		Config: struct {
+			FlagUser string
+			FlagPass string
+		}{
+			FlagUser: flagUser,
+			FlagPass: flagPass,
+		},
 	}
 
 	s.routes()
@@ -37,21 +49,29 @@ func (s *Server) routes() {
 	s.Router.Use(middleware.Logger)
 	s.Router.Use(middleware.Recoverer)
 
+	// Public Routes
 	s.Router.Get("/", s.handleVersion())
 	s.Router.Get("/health", s.handleHealth())
 
-	// Document routes
-	s.Router.Route("/documents", func(r chi.Router) {
-		r.Post("/", s.handleCreateDocument())
-		r.Get("/", s.handleListDocuments())
-		r.Get("/code/{code}", s.handleGetDocumentByCode())
-		r.Get("/{uuid}", s.handleGetDocument())
-		r.Put("/{uuid}", s.handleUpdateDocument())
-		r.Delete("/{uuid}", s.handleDeleteDocument())
+	s.Router.Group(func(r chi.Router) {
+		// Auth
+		r.Use(auth.AuthMiddleware(s.Config.FlagUser, s.Config.FlagPass))
 
-		// File routes
-		r.Post("/{uuid}/files", s.handleUploadFile())
-		r.Delete("/{uuid}/files/{fileName}", s.handleDeleteFile())
+		r.Route("/documents", func(r chi.Router) {
+			// Standard User routes
+			r.Get("/", s.handleListDocuments())
+			r.Get("/{uuid}", s.handleGetDocumentByUUID())
+			r.Get("/code/{code}", s.handleGetDocumentByCode())
+
+			// Admin-only routes
+			r.Group(func(admin chi.Router) {
+				admin.Use(auth.RequireRole(auth.RoleAdmin))
+
+				admin.Post("/", s.handleCreateDocument())
+				admin.Post("/{uuid}/files", s.handleUploadFile())
+				admin.Delete("/{uuid}", s.handleDeleteDocument())
+			})
+		})
 	})
 }
 
