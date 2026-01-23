@@ -9,20 +9,9 @@ type Document struct {
 	FolderName string         `json:"folder_name"`
 	Title      string         `json:"title"`
 	Fields     map[string]any `json:"fields"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type DocumentResponse struct {
-	UUID       string         `json:"uuid"`
-	Code       string         `json:"code"`
-	FolderName string         `json:"folder_name"`
-	Title      string         `json:"title"`
-	Fields     map[string]any `json:"fields"`
 	Files      []File         `json:"files"`
-
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 type File struct {
