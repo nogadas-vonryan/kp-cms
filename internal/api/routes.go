@@ -4,21 +4,25 @@ import (
 	"fmt"
 	"net/http"
 
+	"main/internal/document"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Server struct {
-	Host   string
-	Port   string
-	Router *chi.Mux
+	Host            string
+	Port            string
+	Router          *chi.Mux
+	documentService *document.DocumentService
 }
 
-func NewServer(host, port string) *Server {
+func NewServer(host, port string, documentService *document.DocumentService) *Server {
 	s := &Server{
-		Host:   host,
-		Port:   port,
-		Router: chi.NewRouter(),
+		Host:            host,
+		Port:            port,
+		Router:          chi.NewRouter(),
+		documentService: documentService,
 	}
 
 	s.routes()
@@ -35,7 +39,20 @@ func (s *Server) routes() {
 
 	s.Router.Get("/", s.handleVersion())
 	s.Router.Get("/health", s.handleHealth())
-	s.Router.Post("/test", s.handleTest())
+
+	// Document routes
+	s.Router.Route("/documents", func(r chi.Router) {
+		r.Post("/", s.handleCreateDocument())
+		r.Get("/", s.handleListDocuments())
+		r.Get("/code/{code}", s.handleGetDocumentByCode())
+		r.Get("/{uuid}", s.handleGetDocument())
+		r.Put("/{uuid}", s.handleUpdateDocument())
+		r.Delete("/{uuid}", s.handleDeleteDocument())
+
+		// File routes
+		r.Post("/{uuid}/files", s.handleUploadFile())
+		r.Delete("/{uuid}/files/{fileName}", s.handleDeleteFile())
+	})
 }
 
 func (s *Server) handleVersion() http.HandlerFunc {

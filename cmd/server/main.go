@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"main/internal/api"
+	"main/internal/document"
 	"net/http"
 )
 
@@ -13,7 +14,16 @@ func main() {
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	flag.Parse()
 
-	server := api.NewServer(*host, *port)
+	documentRepository, err := document.NewFileDocumentRepository(*dataPath)
+	if err != nil {
+		log.Fatalf("Failed to create document repository: %v", err)
+	}
+
+	server := api.NewServer(
+		*host,
+		*port,
+		document.NewDocumentService(documentRepository),
+	)
 
 	log.Printf("Server starting on %s", server.Addr())
 	log.Printf("Using data directory: %s", *dataPath)
