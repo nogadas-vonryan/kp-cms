@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"net/http"
+	"strconv"
 
 	"main/internal/document"
 
@@ -43,18 +44,9 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 			Fields:     req.Fields,
 		}
 
-		if err := s.documentService.Create(r.Context(), doc); err != nil {
-			respondError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		// Fetch the created document to return it with the generated UUID
-		created, err := s.documentService.GetByFolderName(r.Context(), doc.FolderName)
-		if doc.FolderName == "" && doc.Code != "" {
-			created, err = s.documentService.GetByCode(r.Context(), doc.Code)
-		}
+		created, err := s.documentService.Create(r.Context(), doc)
 		if err != nil {
-			respondError(w, http.StatusInternalServerError, "document created but could not retrieve")
+			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -64,7 +56,22 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 
 func (s *Server) handleListDocuments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		docs, err := s.documentService.List(r.Context())
+		offset := 0
+		limit := 15
+
+		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+			if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
+				offset = parsed
+			}
+		}
+
+		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+			if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+				limit = parsed
+			}
+		}
+
+		docs, err := s.documentService.List(r.Context(), offset, limit)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -138,18 +145,13 @@ func (s *Server) handleUpdateDocument() http.HandlerFunc {
 			Fields: req.Fields,
 		}
 
-		if err := s.documentService.Update(r.Context(), uuid, doc); err != nil {
+		updated, err := s.documentService.Update(r.Context(), uuid, doc)
+		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				respondError(w, http.StatusNotFound, "document not found")
 				return
 			}
 			respondError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		updated, err := s.documentService.GetByUUID(r.Context(), uuid)
-		if err != nil {
-			respondError(w, http.StatusInternalServerError, "document updated but could not retrieve")
 			return
 		}
 
