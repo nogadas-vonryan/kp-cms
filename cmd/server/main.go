@@ -19,14 +19,15 @@ func main() {
 	flag.Parse()
 
 	if *pass == "" {
-		generatedPass, err := auth.GenerateSecurePassword(8)
+		generatedPass, err := auth.GenerateSecurePassword(12)
 		if err != nil {
 			log.Fatal("Failed to generate password", err)
 		}
 		*pass = generatedPass
 	}
 
-	documentRepository, err := document.NewFileDocumentRepository(*dataPath)
+	namingStrategy := document.NewNamingStrategyCaseDDDD("case")
+	documentRepository, err := document.NewFileDocumentRepository(*dataPath, namingStrategy)
 	if err != nil {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}
