@@ -5,11 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 type DocumentService struct {
@@ -20,46 +16,15 @@ func NewDocumentService(repo DocumentRepository) *DocumentService {
 	return &DocumentService{repo: repo}
 }
 
-func (s *DocumentService) Create(ctx context.Context, doc Document) error {
+func (s *DocumentService) Create(ctx context.Context, doc Document) (*Document, error) {
 	if err := validateDocumentTitle(doc.Title); err != nil {
-		return err
-	}
-	if doc.Code == "" {
-		return errors.New("document code is required")
-	}
-	if doc.FolderName == "" {
-		return errors.New("document folder name is required")
-	}
-
-	existsByFolder, err := s.repo.GetByFolderName(ctx, doc.FolderName)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-	if existsByFolder != nil {
-		return errors.New("document by that folder name already exists")
-	}
-
-	existsByCode, err := s.repo.GetByCode(ctx, doc.Code)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-	if existsByCode != nil {
-		return errors.New("document by that code already exists")
-	}
-
-	now := time.Now().UTC()
-	doc.UUID = uuid.NewString()
-	doc.CreatedAt = now
-	doc.UpdatedAt = now
-
-	if doc.Fields == nil {
-		doc.Fields = map[string]any{}
+		return nil, err
 	}
 
 	return s.repo.Create(ctx, &doc)
 }
 
-func (s *DocumentService) GetByUUID(ctx context.Context, uuid string) (*DocumentResponse, error) {
+func (s *DocumentService) GetByUUID(ctx context.Context, uuid string) (*Document, error) {
 	if uuid == "" {
 		return nil, errors.New("uuid is required")
 	}
@@ -72,7 +37,7 @@ func (s *DocumentService) GetByUUID(ctx context.Context, uuid string) (*Document
 	return doc, nil
 }
 
-func (s *DocumentService) GetByCode(ctx context.Context, code string) (*DocumentResponse, error) {
+func (s *DocumentService) GetByCode(ctx context.Context, code string) (*Document, error) {
 	if code == "" {
 		return nil, errors.New("code is required")
 	}
@@ -80,7 +45,7 @@ func (s *DocumentService) GetByCode(ctx context.Context, code string) (*Document
 	return s.repo.GetByCode(ctx, code)
 }
 
-func (s *DocumentService) GetByFolderName(ctx context.Context, folderName string) (*DocumentResponse, error) {
+func (s *DocumentService) GetByFolderName(ctx context.Context, folderName string) (*Document, error) {
 	if folderName == "" {
 		return nil, errors.New("folder name is required")
 	}
@@ -88,17 +53,12 @@ func (s *DocumentService) GetByFolderName(ctx context.Context, folderName string
 	return s.repo.GetByFolderName(ctx, folderName)
 }
 
-func (s *DocumentService) Update(ctx context.Context, uuid string, doc Document) error {
+func (s *DocumentService) Update(ctx context.Context, uuid string, doc Document) (*Document, error) {
 	if uuid == "" {
-		return errors.New("uuid is required")
+		return nil, errors.New("uuid is required")
 	}
 	if err := validateDocumentTitle(doc.Title); err != nil {
-		return err
-	}
-
-	doc.UpdatedAt = time.Now().UTC()
-	if doc.Fields == nil {
-		doc.Fields = map[string]any{}
+		return nil, err
 	}
 
 	return s.repo.Update(ctx, uuid, &doc)
@@ -112,8 +72,8 @@ func (s *DocumentService) Delete(ctx context.Context, uuid string) error {
 	return s.repo.Delete(ctx, uuid)
 }
 
-func (s *DocumentService) List(ctx context.Context) ([]*Document, error) {
-	return s.repo.List(ctx)
+func (s *DocumentService) List(ctx context.Context, offset int, limit int) ([]*Document, error) {
+	return s.repo.List(ctx, offset, limit)
 }
 
 func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {
