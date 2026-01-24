@@ -68,6 +68,7 @@ func (s *Server) routes() {
 				admin.Use(auth.RequireRole(auth.RoleAdmin))
 
 				admin.Post("/", s.handleCreateDocument())
+				admin.Put("/{uuid}", s.handleUpdateDocument())
 				admin.Post("/{uuid}/files", s.handleUploadFile())
 				admin.Delete("/{uuid}", s.handleDeleteDocument())
 			})

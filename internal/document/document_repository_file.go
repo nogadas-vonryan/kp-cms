@@ -245,7 +245,7 @@ func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, d
 	r.addToCache(doc)
 	r.mu.Unlock()
 
-	return doc, nil
+	return &updated, nil
 }
 
 func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) error {
