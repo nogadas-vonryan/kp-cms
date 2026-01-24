@@ -25,7 +25,9 @@ type FileDocumentRepository struct {
 	cacheByCode    map[string]*Document
 }
 
-func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (DocumentRepository, error) {
+var _ DocumentRepository = (*FileDocumentRepository)(nil)
+
+func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (*FileDocumentRepository, error) {
 	if basePath == "" {
 		return nil, errors.New("base path is required")
 	}
@@ -41,7 +43,6 @@ func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (
 		basePath:       basePath,
 		namingStrategy: namingStrategy,
 		cacheByUUID:    make(map[string]*Document),
-		cacheByFolder:  make(map[string]*Document),
 		cacheByCode:    make(map[string]*Document),
 		sortedByCode:   make([]string, 0),
 	}
