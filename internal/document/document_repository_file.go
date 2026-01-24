@@ -23,7 +23,6 @@ type FileDocumentRepository struct {
 	sortedByCode   []string
 	cacheByUUID    map[string]*Document
 	cacheByCode    map[string]*Document
-	cacheByFolder  map[string]*Document
 }
 
 func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (DocumentRepository, error) {
@@ -90,7 +89,6 @@ func (r *FileDocumentRepository) reloadCache() error {
 
 	r.cacheByUUID = tempUUID
 	r.cacheByCode = tempCode
-	r.cacheByFolder = tempFolder
 	r.sortedByCode = tempSortedCodes
 
 	log.Printf("[Cache] Reloaded %d documents from %s in %v", len(tempSortedCodes), r.basePath, time.Since(start))
@@ -193,37 +191,6 @@ func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*D
 	defer r.mu.RUnlock()
 
 	doc, exists := r.cacheByCode[code]
-	if !exists {
-		return nil, fs.ErrNotExist
-	}
-
-	files, err := r.readFiles(doc.FolderName)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := &Document{
-		UUID:       doc.UUID,
-		Code:       doc.Code,
-		FolderName: doc.FolderName,
-		Title:      doc.Title,
-		Fields:     doc.Fields,
-		Files:      files,
-		CreatedAt:  doc.CreatedAt,
-	}
-	return resp, nil
-}
-
-func (r *FileDocumentRepository) GetByFolderName(ctx context.Context, folderName string) (*Document, error) {
-	if err := ctxErr(ctx); err != nil {
-		return nil, err
-	}
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	doc, exists := r.cacheByFolder[folderName]
-
 	if !exists {
 		return nil, fs.ErrNotExist
 	}
@@ -532,13 +499,11 @@ func writeFilesMetadata(path string, files []File) error {
 func (r *FileDocumentRepository) addToCache(doc *Document) {
 	r.cacheByUUID[doc.UUID] = doc
 	r.cacheByCode[doc.Code] = doc
-	r.cacheByFolder[doc.FolderName] = doc
 }
 
 func (r *FileDocumentRepository) clearCache() {
 	r.cacheByUUID = make(map[string]*Document)
 	r.cacheByCode = make(map[string]*Document)
-	r.cacheByFolder = make(map[string]*Document)
 }
 
 func (r *FileDocumentRepository) getNextCode() []string {

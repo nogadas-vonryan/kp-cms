@@ -45,14 +45,6 @@ func (s *DocumentService) GetByCode(ctx context.Context, code string) (*Document
 	return s.repo.GetByCode(ctx, code)
 }
 
-func (s *DocumentService) GetByFolderName(ctx context.Context, folderName string) (*Document, error) {
-	if folderName == "" {
-		return nil, errors.New("folder name is required")
-	}
-
-	return s.repo.GetByFolderName(ctx, folderName)
-}
-
 func (s *DocumentService) Update(ctx context.Context, uuid string, doc Document) (*Document, error) {
 	if uuid == "" {
 		return nil, errors.New("uuid is required")

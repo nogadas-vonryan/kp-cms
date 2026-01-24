@@ -168,37 +168,6 @@ func TestDocumentService_GetByCode(t *testing.T) {
 	})
 }
 
-func TestDocumentService_GetByFolderName(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("should fail if folder name is empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
-
-		_, err := service.GetByFolderName(ctx, "")
-		if err == nil || err.Error() != "folder name is required" {
-			t.Errorf("expected folder name required error, got: %v", err)
-		}
-	})
-
-	t.Run("should return document by folder name", func(t *testing.T) {
-		expectedDoc := &Document{UUID: "test-uuid", Code: "0001", FolderName: "case_0001"}
-		mockRepo := &mockRepo{
-			OnGetByFolder: func(ctx context.Context, folder string) (*Document, error) {
-				return expectedDoc, nil
-			},
-		}
-		service := NewDocumentService(mockRepo)
-
-		doc, err := service.GetByFolderName(ctx, "case_0001")
-		if err != nil {
-			t.Errorf("expected no error, got: %v", err)
-		}
-		if doc != expectedDoc {
-			t.Errorf("expected document to match")
-		}
-	})
-}
-
 func TestDocumentService_Update(t *testing.T) {
 	ctx := context.Background()
 
