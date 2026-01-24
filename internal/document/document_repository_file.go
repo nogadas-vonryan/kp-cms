@@ -190,13 +190,14 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 	}
 
 	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	codes := r.getNextCode()
 	nextCode := r.namingStrategy.CalculateNextCode(codes)
 	doc.FolderName = r.namingStrategy.GenerateDirName(nextCode, doc.Title)
-
 	doc.Code = nextCode
-	r.mu.Unlock()
 
+	// All file I/O inside lock to prevent race condition
 	folderPath := filepath.Join(r.basePath, doc.FolderName)
 	metaPath := filepath.Join(folderPath, "meta.json")
 
@@ -219,10 +220,8 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 		return nil, fmt.Errorf("failed to initialize files.json: %w", err)
 	}
 
-	r.mu.Lock()
 	r.addToCache(doc)
 	r.rebuildSortedCodesLocked()
-	r.mu.Unlock()
 
 	return doc, nil
 }
@@ -446,7 +445,13 @@ func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fi
 
 	// Sanitize filename to prevent path traversal attacks
 	safeName := filepath.Base(fileName)
-	if safeName != fileName || safeName == "." || safeName == ".." || filepath.IsAbs(fileName) || strings.Contains(fileName, string(filepath.Separator)) {
+	// Check for path traversal attempts (both Unix and Windows styles)
+	hasPathTraversal := safeName != fileName ||
+		safeName == "." || safeName == ".." ||
+		filepath.IsAbs(fileName) ||
+		strings.ContainsAny(fileName, `/\`)
+
+	if hasPathTraversal {
 		return errors.New("invalid file name: path traversal detected")
 	}
 
@@ -488,13 +493,23 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 		return err
 	}
 
+	safeName := filepath.Base(fileName)
+	hasPathTraversal := safeName != fileName ||
+		safeName == "." || safeName == ".." ||
+		filepath.IsAbs(fileName) ||
+		strings.ContainsAny(fileName, `/\`)
+
+	if hasPathTraversal {
+		return errors.New("invalid file name: path traversal detected")
+	}
+
 	doc, err := r.GetByUUID(ctx, uuid)
 	if err != nil {
 		return err
 	}
 
 	folderPath := r.getDocumentPath(doc.FolderName)
-	filePath := filepath.Join(folderPath, fileName)
+	filePath := filepath.Join(folderPath, safeName)
 
 	// Delete physical file
 	if err := os.Remove(filePath); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -505,23 +520,28 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 	var files []File
 	data, err := os.ReadFile(filesJSONPath)
+
+	// Parse metadata if it exists
 	if err == nil {
 		if err := json.Unmarshal(data, &files); err != nil {
 			return fmt.Errorf("decode files metadata: %w", err)
 		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		// If there's a real error (not just missing file), return it
+		return fmt.Errorf("read files metadata: %w", err)
+	}
+	// If file doesn't exist, continue with empty files slice
 
-		// Remove file from metadata
-		for i, f := range files {
-			if f.FileName == fileName {
-				files = append(files[:i], files[i+1:]...)
-				break
-			}
+	// Remove file from metadata
+	for i, f := range files {
+		if f.FileName == safeName {
+			files = append(files[:i], files[i+1:]...)
+			break
 		}
-
-		return writeFilesMetadata(filesJSONPath, files)
 	}
 
-	return nil
+	// Always write back files.json (even if file wasn't in metadata)
+	return writeFilesMetadata(filesJSONPath, files)
 }
 
 func (r *FileDocumentRepository) scanPhysicalFolder(folderPath string) ([]File, error) {
@@ -574,13 +594,12 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 	folderPath := r.getDocumentPath(folderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	// 1. Always get the ground truth from the disk first
 	physicalFiles, err := r.scanPhysicalFolder(folderPath)
 	if err != nil {
 		return nil, fmt.Errorf("scanning physical folder: %w", err)
 	}
 
-	// 2. Try to read the existing metadata
+	// Try to read the existing metadata
 	var metadataMap = make(map[string]File)
 	jsonData, err := os.ReadFile(filesJSONPath)
 	if err == nil {
@@ -592,7 +611,7 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 		}
 	}
 
-	// 3. Reconcile: Loop through physical files and attach metadata if it exists
+	// Loop through physical files and attach metadata if it exists
 	syncedFiles := make([]File, 0, len(physicalFiles))
 	for _, physFile := range physicalFiles {
 		if meta, exists := metadataMap[physFile.FileName]; exists {
@@ -607,12 +626,6 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 			syncedFiles = append(syncedFiles, physFile)
 		}
 	}
-
-	// 4. (Optional) Update the JSON file so it's fresh for next time
-	// This effectively "auto-heals" the metadata file.
-	go func() {
-		_ = writeFilesMetadata(filesJSONPath, syncedFiles)
-	}()
 
 	return syncedFiles, nil
 }
