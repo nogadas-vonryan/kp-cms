@@ -16,6 +16,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type SyncIssue struct {
+	Type    string
+	Path    string
+	Message string
+}
+
 type FileDocumentRepository struct {
 	basePath       string
 	namingStrategy NamingStrategy
@@ -23,6 +29,7 @@ type FileDocumentRepository struct {
 	sortedByCode   []string
 	cacheByUUID    map[string]*Document
 	cacheByCode    map[string]*Document
+	lastConflicts  []SyncIssue
 }
 
 var _ DocumentRepository = (*FileDocumentRepository)(nil)
@@ -48,53 +55,113 @@ func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (
 	}
 
 	// Warning: Lock first (so multiple users can read/write at once without crashing)
-	err := repo.reloadCache()
+	_, err := repo.ReloadCache(context.Background())
 	return repo, err
 }
 
-func (r *FileDocumentRepository) reloadCache() error {
+func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+
 	log.Printf("[Cache] Starting reload of documents from %s", r.basePath)
 	start := time.Now()
 
 	entries, err := os.ReadDir(r.basePath)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to read base directory: %w", err)
 	}
 
 	tempUUID := make(map[string]*Document)
 	tempCode := make(map[string]*Document)
-	tempFolder := make(map[string]*Document)
 	var tempSortedCodes []string
+	var issues []SyncIssue
 
 	for _, entry := range entries {
+		if err := ctxErr(ctx); err != nil {
+			return nil, err
+		}
+
 		if !entry.IsDir() {
 			continue
 		}
 
-		metaPath := filepath.Join(r.basePath, entry.Name(), "meta.json")
+		folderName := entry.Name()
+		metaPath := filepath.Join(r.basePath, folderName, "meta.json")
+
 		doc, err := readDocument(metaPath)
 		if err != nil {
+			issues = append(issues, SyncIssue{
+				Type:    "MISSING_META",
+				Path:    folderName,
+				Message: fmt.Sprintf("could not read meta.json: %v", err),
+			})
 			continue
 		}
 
+		folderCode, ok := r.namingStrategy.ExtractCode(folderName)
+		if !ok {
+			if doc.Code == "" {
+				issues = append(issues, SyncIssue{
+					Type:    "INVALID_FOLDER",
+					Path:    folderName,
+					Message: "folder name does not match naming strategy and meta.json has no code",
+				})
+				continue
+			}
+			folderCode = doc.Code
+		}
+
+		// If the meta.json code differs from the folder code, fix it
+		if doc.Code != folderCode {
+			log.Printf("[Cache] Fixing code mismatch for %s: meta(%s) -> folder(%s)", folderName, doc.Code, folderCode)
+			doc.Code = folderCode
+
+			// Safety: Capture variables for the goroutine to prevent race conditions
+			go func(path string, d Document) {
+				if err := writeDocument(path, &d); err != nil {
+					log.Printf("[Cache] Auto-heal failed for %s: %v", folderName, err)
+				}
+			}(metaPath, *doc)
+		}
+
+		if existing, exists := tempCode[doc.Code]; exists {
+			issues = append(issues, SyncIssue{
+				Type:    "DUPLICATE_CODE",
+				Path:    folderName,
+				Message: fmt.Sprintf("code '%s' already claimed by folder '%s'", doc.Code, existing.FolderName),
+			})
+			continue
+		}
+
+		if existing, exists := tempUUID[doc.UUID]; exists {
+			issues = append(issues, SyncIssue{
+				Type:    "DUPLICATE_UUID",
+				Path:    folderName,
+				Message: fmt.Sprintf("UUID '%s' already claimed by folder '%s'", doc.UUID, existing.FolderName),
+			})
+			continue
+		}
+
+		doc.FolderName = folderName
 		tempUUID[doc.UUID] = doc
 		tempCode[doc.Code] = doc
-		tempFolder[doc.FolderName] = doc
 		tempSortedCodes = append(tempSortedCodes, doc.Code)
 	}
 
 	sort.Strings(tempSortedCodes)
 
 	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	r.cacheByUUID = tempUUID
 	r.cacheByCode = tempCode
 	r.sortedByCode = tempSortedCodes
+	r.lastConflicts = issues
+	r.mu.Unlock()
 
-	log.Printf("[Cache] Reloaded %d documents from %s in %v", len(tempSortedCodes), r.basePath, time.Since(start))
+	log.Printf("[Cache] Reloaded %d documents from %s in %v (found %d issues)",
+		len(tempSortedCodes), r.basePath, time.Since(start), len(issues))
 
-	return nil
+	return issues, nil
 }
 
 func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Document, error) {
@@ -434,39 +501,45 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 	folderPath := filepath.Join(r.basePath, folderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	data, err := os.ReadFile(filesJSONPath)
-	if errors.Is(err, os.ErrNotExist) {
-		files, err := r.scanPhysicalFolder(folderPath)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := writeFilesMetadata(filesJSONPath, files); err != nil {
-			return nil, err
-		}
-		return files, nil
+	// 1. Always get the ground truth from the disk first
+	physicalFiles, err := r.scanPhysicalFolder(folderPath)
+	if err != nil {
+		return nil, fmt.Errorf("scanning physical folder: %w", err)
 	}
 
-	var metadataList []File
-	if err := json.Unmarshal(data, &metadataList); err != nil {
-		return nil, err
-	}
-
-	syncedFiles := make([]File, 0, len(metadataList))
-	for _, f := range metadataList {
-		physicalPath := filepath.Join(folderPath, f.FileName)
-
-		// Get physical info (Size, ModTime) from the OS
-		info, err := os.Stat(physicalPath)
-		if err == nil {
-			// Merge: Physical info + JSON metadata
-			f.Size = info.Size()
-			f.CreatedAt = info.ModTime()
-			f.Type = filepath.Ext(f.FileName)
-
-			syncedFiles = append(syncedFiles, f)
+	// 2. Try to read the existing metadata
+	var metadataMap = make(map[string]File)
+	jsonData, err := os.ReadFile(filesJSONPath)
+	if err == nil {
+		var metadataList []File
+		if err := json.Unmarshal(jsonData, &metadataList); err == nil {
+			for _, f := range metadataList {
+				metadataMap[f.FileName] = f
+			}
 		}
 	}
+
+	// 3. Reconcile: Loop through physical files and attach metadata if it exists
+	syncedFiles := make([]File, 0, len(physicalFiles))
+	for _, physFile := range physicalFiles {
+		if meta, exists := metadataMap[physFile.FileName]; exists {
+			// Keep existing metadata (like custom tags/names)
+			// but update physical stats from the scan
+			meta.Size = physFile.Size
+			meta.CreatedAt = physFile.CreatedAt
+			meta.Type = physFile.Type
+			syncedFiles = append(syncedFiles, meta)
+		} else {
+			// It's a brand new file found on disk
+			syncedFiles = append(syncedFiles, physFile)
+		}
+	}
+
+	// 4. (Optional) Update the JSON file so it's fresh for next time
+	// This effectively "auto-heals" the metadata file.
+	go func() {
+		_ = writeFilesMetadata(filesJSONPath, syncedFiles)
+	}()
 
 	return syncedFiles, nil
 }

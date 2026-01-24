@@ -71,6 +71,8 @@ func (s *Server) routes() {
 				admin.Put("/{uuid}", s.handleUpdateDocument())
 				admin.Post("/{uuid}/files", s.handleUploadFile())
 				admin.Delete("/{uuid}", s.handleDeleteDocument())
+
+				admin.Post("/reload", s.handleReloadDocuments())
 			})
 		})
 	})

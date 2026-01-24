@@ -250,6 +250,22 @@ func (s *Server) handleDeleteFile() http.HandlerFunc {
 	}
 }
 
+func (s *Server) handleReloadDocuments() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conflicts, err := s.documentService.ReloadCache(r.Context())
+		if err != nil {
+			http.Error(w, "Failed to initiate reload", 500)
+			return
+		}
+
+		response := map[string]interface{}{
+			"status":    "success",
+			"conflicts": conflicts, // User sees these in the JSON
+		}
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
 func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
