@@ -72,6 +72,7 @@ func (s *Server) routes() {
 				admin.Post("/{uuid}/files", s.handleUploadFile())
 				admin.Delete("/{uuid}", s.handleDeleteDocument())
 
+				admin.Get("/conflicts", s.handleGetConflicts())
 				admin.Post("/reload", s.handleReloadDocuments())
 			})
 		})

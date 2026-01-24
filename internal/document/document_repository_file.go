@@ -164,6 +164,10 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 	return issues, nil
 }
 
+func (r *FileDocumentRepository) GetConflicts(ctx context.Context) ([]SyncIssue, error) {
+	return r.lastConflicts, nil
+}
+
 func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err

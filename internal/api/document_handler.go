@@ -250,6 +250,18 @@ func (s *Server) handleDeleteFile() http.HandlerFunc {
 	}
 }
 
+func (s *Server) handleGetConflicts() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conflicts, err := s.documentService.GetConflicts(r.Context())
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, conflicts)
+	}
+}
+
 func (s *Server) handleReloadDocuments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conflicts, err := s.documentService.ReloadCache(r.Context())

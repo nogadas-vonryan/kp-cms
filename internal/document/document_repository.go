@@ -15,5 +15,6 @@ type DocumentRepository interface {
 	AddFile(ctx context.Context, uuid string, file File) error
 	DeleteFile(ctx context.Context, uuid string, fileName string) error
 
+	GetConflicts(ctx context.Context) ([]SyncIssue, error)
 	ReloadCache(ctx context.Context) ([]SyncIssue, error)
 }

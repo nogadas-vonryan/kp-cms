@@ -129,6 +129,10 @@ func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName 
 	return s.repo.DeleteFile(ctx, uuid, fileName)
 }
 
+func (s *DocumentService) GetConflicts(ctx context.Context) ([]SyncIssue, error) {
+	return s.repo.GetConflicts(ctx)
+}
+
 func (s *DocumentService) ReloadCache(ctx context.Context) ([]SyncIssue, error) {
 	return s.repo.ReloadCache(ctx)
 }
