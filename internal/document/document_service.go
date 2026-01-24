@@ -5,9 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 type DocumentService struct {
@@ -81,49 +78,8 @@ func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName 
 		return errors.New("file content is required")
 	}
 
-	// Sanitize filename to prevent path traversal attacks
-	safeName := filepath.Base(fileName)
-	if safeName != fileName || safeName == "." || safeName == ".." || strings.Contains(safeName, string(filepath.Separator)) {
-		return errors.New("invalid file name: path traversal detected")
-	}
-
-	doc, err := s.repo.GetByUUID(ctx, uuid)
-	if err != nil {
-		return fmt.Errorf("fetching document: %w", err)
-	}
-
-	fileRepo, ok := s.repo.(*FileDocumentRepository)
-	if !ok {
-		return errors.New("repository does not support file operations")
-	}
-
-	folderPath := filepath.Join(fileRepo.basePath, doc.FolderName)
-	filePath := filepath.Join(folderPath, safeName)
-
-	outFile, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("create file: %w", err)
-	}
-	defer outFile.Close()
-
-	writtenBytes, err := io.Copy(outFile, content)
-	if err != nil {
-		return fmt.Errorf("write file content: %w", err)
-	}
-
-	fileInfo, err := outFile.Stat()
-	if err != nil {
-		return fmt.Errorf("get file info: %w", err)
-	}
-
-	file := File{
-		FileName:  safeName,
-		Type:      getFileExtension(safeName),
-		Size:      writtenBytes,
-		CreatedAt: fileInfo.ModTime(),
-	}
-
-	return s.repo.AddFile(ctx, uuid, file)
+	// Delegate to repository which handles path construction, security, and file I/O
+	return s.repo.UploadFile(ctx, uuid, fileName, content)
 }
 
 func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName string) error {

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -394,7 +396,7 @@ func (r *FileDocumentRepository) AddFile(ctx context.Context, uuid string, file 
 		return err
 	}
 
-	folderPath := filepath.Join(r.basePath, doc.FolderName)
+	folderPath := r.getDocumentPath(doc.FolderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
 	var files []File
@@ -418,6 +420,69 @@ func (r *FileDocumentRepository) AddFile(ctx context.Context, uuid string, file 
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
+func (r *FileDocumentRepository) GetDocumentFolderPath(ctx context.Context, uuid string) (string, error) {
+	if err := ctxErr(ctx); err != nil {
+		return "", err
+	}
+
+	doc, err := r.GetByUUID(ctx, uuid)
+	if err != nil {
+		return "", fmt.Errorf("get document: %w", err)
+	}
+
+	return r.getDocumentPath(doc.FolderName), nil
+}
+
+func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {
+	if err := ctxErr(ctx); err != nil {
+		return err
+	}
+	if fileName == "" {
+		return errors.New("file name is required")
+	}
+	if content == nil {
+		return errors.New("file content is required")
+	}
+
+	// Sanitize filename to prevent path traversal attacks
+	safeName := filepath.Base(fileName)
+	if safeName != fileName || safeName == "." || safeName == ".." || filepath.IsAbs(fileName) || strings.Contains(fileName, string(filepath.Separator)) {
+		return errors.New("invalid file name: path traversal detected")
+	}
+
+	doc, err := r.GetByUUID(ctx, uuid)
+	if err != nil {
+		return fmt.Errorf("fetching document: %w", err)
+	}
+
+	filePath := r.getDocumentFilePath(doc.FolderName, safeName)
+
+	outFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
+	if err != nil {
+		return fmt.Errorf("create file: %w", err)
+	}
+	defer outFile.Close()
+
+	writtenBytes, err := io.Copy(outFile, content)
+	if err != nil {
+		return fmt.Errorf("write file content: %w", err)
+	}
+
+	fileInfo, err := outFile.Stat()
+	if err != nil {
+		return fmt.Errorf("get file info: %w", err)
+	}
+
+	file := File{
+		FileName:  safeName,
+		Type:      getFileExtension(safeName),
+		Size:      writtenBytes,
+		CreatedAt: fileInfo.ModTime(),
+	}
+
+	return r.AddFile(ctx, uuid, file)
+}
+
 func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fileName string) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
@@ -428,7 +493,7 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 		return err
 	}
 
-	folderPath := filepath.Join(r.basePath, doc.FolderName)
+	folderPath := r.getDocumentPath(doc.FolderName)
 	filePath := filepath.Join(folderPath, fileName)
 
 	// Delete physical file
@@ -506,7 +571,7 @@ func readDocument(metaPath string) (*Document, error) {
 }
 
 func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
-	folderPath := filepath.Join(r.basePath, folderName)
+	folderPath := r.getDocumentPath(folderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
 	// 1. Always get the ground truth from the disk first
@@ -586,6 +651,14 @@ func (r *FileDocumentRepository) addToCache(doc *Document) {
 func (r *FileDocumentRepository) clearCache() {
 	r.cacheByUUID = make(map[string]*Document)
 	r.cacheByCode = make(map[string]*Document)
+}
+
+func (r *FileDocumentRepository) getDocumentPath(folderName string) string {
+	return filepath.Join(r.basePath, folderName)
+}
+
+func (r *FileDocumentRepository) getDocumentFilePath(folderName, fileName string) string {
+	return filepath.Join(r.basePath, folderName, fileName)
 }
 
 func (r *FileDocumentRepository) getNextCode() []string {
