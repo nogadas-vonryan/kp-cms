@@ -118,11 +118,11 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 			doc.Code = folderCode
 
 			// Safety: Capture variables for the goroutine to prevent race conditions
-			go func(path string, d Document) {
+			go func(path string, d Document, folder string) {
 				if err := writeDocument(path, &d); err != nil {
-					log.Printf("[Cache] Auto-heal failed for %s: %v", folderName, err)
+					log.Printf("[Cache] Auto-heal failed for %s: %v", folder, err)
 				}
-			}(metaPath, *doc)
+			}(metaPath, *doc, folderName)
 		}
 
 		if existing, exists := tempCode[doc.Code]; exists {
@@ -219,6 +219,7 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 
 	r.mu.Lock()
 	r.addToCache(doc)
+	r.rebuildSortedCodesLocked()
 	r.mu.Unlock()
 
 	return doc, nil
@@ -313,7 +314,8 @@ func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, d
 	}
 
 	r.mu.Lock()
-	r.addToCache(doc)
+	r.addToCache(&updated)
+	r.rebuildSortedCodesLocked()
 	r.mu.Unlock()
 
 	return &updated, nil
@@ -336,6 +338,8 @@ func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) e
 
 	r.mu.Lock()
 	delete(r.cacheByUUID, uuidValue)
+	delete(r.cacheByCode, doc.Code)
+	r.rebuildSortedCodesLocked()
 	r.mu.Unlock()
 
 	return nil
@@ -591,6 +595,17 @@ func (r *FileDocumentRepository) getNextCode() []string {
 	}
 
 	return codes
+}
+
+// rebuildSortedCodesLocked recalculates the sorted codes slice.
+// Caller must hold the write lock.
+func (r *FileDocumentRepository) rebuildSortedCodesLocked() {
+	codes := make([]string, 0, len(r.cacheByCode))
+	for code := range r.cacheByCode {
+		codes = append(codes, code)
+	}
+	sort.Strings(codes)
+	r.sortedByCode = codes
 }
 
 func ctxErr(ctx context.Context) error {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type DocumentService struct {
@@ -79,6 +81,12 @@ func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName 
 		return errors.New("file content is required")
 	}
 
+	// Sanitize filename to prevent path traversal attacks
+	safeName := filepath.Base(fileName)
+	if safeName != fileName || safeName == "." || safeName == ".." || strings.Contains(safeName, string(filepath.Separator)) {
+		return errors.New("invalid file name: path traversal detected")
+	}
+
 	doc, err := s.repo.GetByUUID(ctx, uuid)
 	if err != nil {
 		return fmt.Errorf("fetching document: %w", err)
@@ -89,8 +97,8 @@ func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName 
 		return errors.New("repository does not support file operations")
 	}
 
-	folderPath := fileRepo.basePath + "/" + doc.FolderName
-	filePath := folderPath + "/" + fileName
+	folderPath := filepath.Join(fileRepo.basePath, doc.FolderName)
+	filePath := filepath.Join(folderPath, safeName)
 
 	outFile, err := os.Create(filePath)
 	if err != nil {
@@ -109,8 +117,8 @@ func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName 
 	}
 
 	file := File{
-		FileName:  fileName,
-		Type:      getFileExtension(fileName),
+		FileName:  safeName,
+		Type:      getFileExtension(safeName),
 		Size:      writtenBytes,
 		CreatedAt: fileInfo.ModTime(),
 	}
