@@ -8,15 +8,43 @@
       </UiButton>
     </div>
 
-    <!-- Search -->
+    <!-- Search & Filters -->
     <UiCard>
-      <div class="flex gap-2">
-        <UiInput
-          v-model="searchQuery"
-          placeholder="Search by code or title..."
-          class="flex-1"
-        />
-        <UiButton @click="loadDocuments">Search</UiButton>
+      <div class="space-y-3">
+        <div class="flex gap-2">
+          <UiInput
+            v-model="searchQuery"
+            placeholder="Search by code..."
+            class="flex-1"
+          />
+          <UiInput
+            v-model="filters.folder_name"
+            placeholder="Filter by folder..."
+            class="flex-1"
+            />
+          <UiButton @click="performSearch">Search</UiButton>
+          <UiButton @click="resetSearch" variant="secondary">Reset</UiButton>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <UiInput
+            v-model="filters.date_from"
+            type="date"
+            placeholder="From date"
+          />
+          <UiInput
+            v-model="filters.date_to"
+            type="date"
+            placeholder="To date"
+          />
+        </div>
+        <div class="grid grid-cols-1 gap-3">
+          <UiSelect
+            v-model="filters.sort_by"
+            :options="sortOptions"
+            placeholder="Sort by..."
+          />
+        </div>
       </div>
     </UiCard>
 
@@ -33,7 +61,7 @@
       <UiTable
         v-else-if="documents.length > 0"
         :columns="columns"
-        :rows="documents as any"
+        :rows="documents"
       >
         <template #cell:code="{ value }">
           <span class="font-mono text-sm">{{ value }}</span>
@@ -159,6 +187,7 @@ import UiButton from '@/core/ui/components/UiButton.vue';
 import UiTable from '@/core/ui/components/UiTable.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
+import UiSelect from '@/core/ui/components/UiSelect.vue';
 
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
@@ -169,6 +198,19 @@ const error = ref('');
 const searchQuery = ref('');
 const offset = ref(0);
 const limit = ref(15);
+
+const filters = ref({
+  folder_name: '',
+  date_from: '',
+  date_to: '',
+  sort_by: ''
+});
+
+const sortOptions = [
+  { value: 'created_at', label: 'Created Date' },
+  { value: 'code', label: 'Code' },
+  { value: 'title', label: 'Title' }
+];
 
 const showCreateModal = ref(false);
 const showViewModal = ref(false);
@@ -202,6 +244,42 @@ async function loadDocuments() {
   } finally {
     loading.value = false;
   }
+}
+
+async function performSearch() {
+  loading.value = true;
+  error.value = '';
+  offset.value = 0;
+  
+  try {
+    const response = await DocumentService.search({
+      code: searchQuery.value || undefined,
+      folder_name: filters.value.folder_name || undefined,
+      date_from: filters.value.date_from || undefined,
+      date_to: filters.value.date_to || undefined,
+      sort_by: filters.value.sort_by || undefined,
+      sort_desc: filters.value.sort_by ? true : undefined,
+      offset: offset.value,
+      limit: limit.value
+    });
+    documents.value = response.data;
+  } catch (err: any) {
+    error.value = err.response?.data?.error || 'Failed to search documents';
+  } finally {
+    loading.value = false;
+  }
+}
+
+function resetSearch() {
+  searchQuery.value = '';
+  filters.value = {
+    folder_name: '',
+    date_from: '',
+    date_to: '',
+    sort_by: ''
+  };
+  offset.value = 0;
+  loadDocuments();
 }
 
 function formatDate(dateStr: string) {
@@ -258,12 +336,22 @@ async function handleCreate() {
 
 function nextPage() {
   offset.value += limit.value;
-  loadDocuments();
+  isSearchActive() ? performSearch() : loadDocuments();
 }
 
 function prevPage() {
   offset.value = Math.max(0, offset.value - limit.value);
-  loadDocuments();
+  isSearchActive() ? performSearch() : loadDocuments();
+}
+
+function isSearchActive(): boolean {
+  return (
+    searchQuery.value !== '' ||
+    filters.value.folder_name !== '' ||
+    filters.value.date_from !== '' ||
+    filters.value.date_to !== '' ||
+    filters.value.sort_by !== ''
+  );
 }
 
 onMounted(() => {

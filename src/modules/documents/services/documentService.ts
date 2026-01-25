@@ -11,6 +11,28 @@ export const DocumentService = {
   getAll: (offset = 0, limit = 15) => 
     api.get<Document[]>('/documents', { params: { offset, limit } }),
 
+  search: (params: {
+    uuid?: string;
+    code?: string;
+    folder_name?: string;
+    field_key?: string;
+    date_from?: string;
+    date_to?: string;
+    [key: string]: any;
+    sort_by?: string;
+    sort_desc?: boolean;
+    offset?: number;
+    limit?: number;
+  }) => {
+    const cleanParams: any = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== null) {
+        cleanParams[key] = value;
+      }
+    });
+    return api.get<Document[]>('/documents/search', { params: cleanParams });
+  },
+
   getOne: (uuid: string) => 
     api.get<Document>(`/documents/${uuid}`),
 
