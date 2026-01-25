@@ -96,6 +96,9 @@
             <template #cell:title="{ value }">
               <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
             </template>
+            <template #cell:status="{ row }">
+              <span class="text-sm text-gray-600 truncate block max-w-50">{{ ((row as unknown) as Document).fields?.status || 'none' }}</span>
+            </template>
             <template #cell:folder_name="{ value }">
               <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
             </template>
@@ -154,15 +157,15 @@
             
             <div class="rounded p-3 border border-gray-200">
               <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-gray-900 text-sm">Status</span>
+                <span class="font-medium text-gray-900 text-sm">Nature</span>
               </div>
               <UiSelect 
-                v-model="form.fields.status" 
+                v-model="form.fields.nature" 
                 :options="[
                   { label: 'Civil', value: 'civil' }, 
                   { label: 'Criminal', value: 'criminal' } 
                 ]"
-                placeholder="Select a status" 
+                placeholder="Select nature" 
               />
             </div>
 
@@ -225,11 +228,12 @@
 
           </div>
         </div>
-
-        <UiAlert v-if="formError" type="error" class="mt-4">{{ formError }}</UiAlert>
       </form>
 
       <template #footer>
+        <div class="flex w-full">
+          <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
+        </div>
         <UiButton @click="showCreateModal = false" variant="secondary">Cancel</UiButton>
         <UiButton @click="handleCreate" :loading="submitting">Create</UiButton>
       </template>
@@ -273,10 +277,11 @@ const filters = ref({
 });
 
 // ComboBox Search relationship
-const fieldOptions = ['Status', 'Complainants', 'Respondents'];
+const fieldOptions = ['Nature', 'Status', 'Complainants', 'Respondents'];
 
 const valueOptionsMap: any = {
-  'Status': ['Mediation', 'Arbitration', 'Completed', 'Pending'],
+  'Nature': ['Civil', 'Criminal'],
+  'Status': ['Case Filed', 'Mediation', 'Arbitration', 'Conciliation', 'Pending', 'Resolved'],
 };
 
 // Computed property to handle the dynamic list for the second ComboBox Search
@@ -305,7 +310,8 @@ const form = ref<CreateDocumentRequest>({
   code: '',
   folder_name: '',
   fields: {
-    status: 'civil',
+    nature: 'civil',
+    status: 'case_filed', 
     complainants: [],
     respondents: [],
     complaint: '',
@@ -315,6 +321,7 @@ const form = ref<CreateDocumentRequest>({
 const columns = [
   { key: 'code', label: 'Code' },
   { key: 'title', label: 'Title' },
+  { key: 'status', label: 'Status'},
   { key: 'folder_name', label: 'Folder Name' },
   { key: 'files', label: 'Files' },
   { key: 'created_at', label: 'Created' },
