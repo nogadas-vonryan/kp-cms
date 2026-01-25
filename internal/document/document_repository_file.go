@@ -755,6 +755,12 @@ func matchesCriteria(doc *Document, criteria SearchCriteria) bool {
 		return false
 	}
 
+	if criteria.Title != "" {
+		if !strings.Contains(strings.ToLower(doc.Title), strings.ToLower(criteria.Title)) {
+			return false
+		}
+	}
+
 	// Code filter (prefix match)
 	if criteria.Code != "" && !strings.HasPrefix(doc.Code, criteria.Code) {
 		return false

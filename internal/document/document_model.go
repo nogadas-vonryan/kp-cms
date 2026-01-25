@@ -25,6 +25,7 @@ type File struct {
 
 type SearchCriteria struct {
 	UUID         string         // exact match for UUID
+    Title        string         // match for title
 	Code         string         // prefix match for code
 	FolderName   string         // substring match for folder name (case-insensitive)
 	FieldKey     string         // search for presence of a field

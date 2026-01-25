@@ -287,6 +287,7 @@ func (s *Server) handleSearchDocuments() http.HandlerFunc {
 
 		criteria := document.SearchCriteria{
 			UUID:       q.Get("uuid"),
+			Title:      q.Get("title"),
 			Code:       q.Get("code"),
 			FolderName: q.Get("folder_name"),
 			FieldKey:   q.Get("field_key"),
