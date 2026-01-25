@@ -10,52 +10,54 @@
 
     <!-- Search & Filters -->
     <UiCard>
-      <div class="space-y-3">
-        <div class="flex gap-2">
-          <UiInput
-            v-model="searchQuery"
-            placeholder="Search by code..."
-            class="flex-1"
-          />
-          <UiInput
-            v-model="filters.folder_name"
-            placeholder="Filter by folder..."
-            class="flex-1"
+      <form @submit.prevent="performSearch">
+        <div class="space-y-3">
+          <div class="flex gap-2">
+            <UiInput
+              v-model="searchQuery"
+              placeholder="Search by code..."
+              class="flex-1"
             />
-          <UiButton @click="performSearch">Search</UiButton>
-          <UiButton @click="resetSearch" variant="secondary">Reset</UiButton>
+            <UiInput
+              v-model="filters.folder_name"
+              placeholder="Filter by folder..."
+              class="flex-1"
+            />
+            <UiButton type="submit">Search</UiButton>
+            <UiButton type="button" @click="resetSearch" variant="secondary">Reset</UiButton>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <UiInput
+              v-model="filters.date_from"
+              type="date"
+              placeholder="From date"
+            />
+            <UiInput
+              v-model="filters.date_to"
+              type="date"
+              placeholder="To date"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <UiInput
+              v-model="filters.field_key"
+              placeholder="Field name (e.g. status)"
+            />
+            <UiInput
+              v-model="filters.field_value"
+              placeholder="Field value (optional)"
+            />
+          </div>
+          <div class="grid grid-cols-1 gap-3">
+            <UiSelect
+              v-model="filters.sort_by"
+              :options="sortOptions"
+              placeholder="Sort by..."
+            />
+          </div>
         </div>
-        
-        <div class="grid grid-cols-2 gap-3">
-          <UiInput
-            v-model="filters.date_from"
-            type="date"
-            placeholder="From date"
-          />
-          <UiInput
-            v-model="filters.date_to"
-            type="date"
-            placeholder="To date"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <UiInput
-            v-model="filters.field_key"
-            placeholder="Field name (e.g. status)"
-          />
-          <UiInput
-            v-model="filters.field_value"
-            placeholder="Field value (optional)"
-          />
-        </div>
-        <div class="grid grid-cols-1 gap-3">
-          <UiSelect
-            v-model="filters.sort_by"
-            :options="sortOptions"
-            placeholder="Sort by..."
-          />
-        </div>
-      </div>
+      </form>
     </UiCard>
 
     <!-- Documents Table -->
