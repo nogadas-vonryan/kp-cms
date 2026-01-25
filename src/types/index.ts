@@ -1,0 +1,64 @@
+export type UserRole = 'RoleAdmin' | 'RoleUser';
+
+export type { PermissionAction } from '@/core/auth/usePermission';
+
+export interface AuthUser {
+  id?: string;
+  email?: string;
+  name?: string;
+  role: UserRole;
+  tokenExpiresAt?: string;
+}
+
+export type DocumentFields = Record<string, string>;
+
+export interface DocumentFile {
+  file_name: string;
+  type: string;
+  size: number;
+  created_at: string;
+}
+
+export interface Document {
+  uuid: string;
+  code: string;
+  folder_name: string;
+  title: string;
+  fields: DocumentFields;
+  files: DocumentFile[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateDocumentRequest {
+  code?: string | null;
+  folder_name?: string | null;
+  title: string;
+  fields: DocumentFields;
+}
+
+export interface UpdateDocumentRequest {
+  code?: string;
+  title?: string;
+  fields?: DocumentFields;
+}
+
+export interface ApiErrorResponse {
+  error: string;
+}
+
+export interface SyncIssue {
+  type: string;
+  path: string;
+  message: string;
+}
+
+export interface ReloadResponse {
+  status: string;
+  conflicts: SyncIssue[];
+}
+
+export interface AuthResponse {
+  token: string;
+  user: AuthUser;
+}
