@@ -8,7 +8,12 @@ export interface AuthUser {
   role: UserRole;
 }
 
-export type DocumentFields = Record<string, string>;
+export type DocumentFields = {
+  status?: string;
+  complainants?: string[];
+  respondents?: string[];
+  [key: string]: any;
+};
 
 export interface DocumentFile {
   file_name: string;

@@ -134,21 +134,81 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
           <UiInput v-model="form.title" required />
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
-          <UiInput v-model="form.code" placeholder="Auto-generated if empty" />
+
+        <div class="pt-4 border-t border-gray-200">
+          <h3 class="font-semibold text-gray-900 mb-3">Document Details</h3>
+          
+          <div class="space-y-4">
+            
+            <div class="rounded p-3 border border-gray-200">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-900 text-sm">Status</span>
+              </div>
+              <UiInput v-model="form.fields.status" placeholder="Enter status..." />
+            </div>
+
+            <div class="rounded p-3 border border-gray-200">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-900 text-sm">Complainants</span>
+              </div>
+              <div class="space-y-2">
+                <div v-for="(_, index) in form.fields.complainants" :key="index" class="flex gap-2 items-start">
+                  <UiInput v-model="form.fields.complainants![index]" class="flex-1" placeholder="Name" />
+                  <button 
+                    type="button" 
+                    @click="form.fields.complainants?.splice(index, 1)" 
+                    class="text-red-600 hover:text-red-800 text-sm px-2 mt-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  @click="form.fields.complainants?.push('')"
+                  class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2"
+                >
+                  + Add Item
+                </button>
+              </div>
+            </div>
+
+            <div class="rounded p-3 border border-gray-200">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-900 text-sm">Respondents</span>
+              </div>
+              <div class="space-y-2">
+                <div v-for="(_, index) in form.fields.respondents" :key="index" class="flex gap-2 items-start">
+                  <UiInput v-model="form.fields.respondents![index]" class="flex-1" placeholder="Name" />
+                  <button 
+                    type="button" 
+                    @click="form.fields.respondents?.splice(index, 1)" 
+                    class="text-red-600 hover:text-red-800 text-sm px-2 mt-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  @click="form.fields.respondents?.push('')"
+                  class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2"
+                >
+                  + Add Item
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Folder Name</label>
-          <UiInput v-model="form.folder_name" />
-        </div>
-        <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
+
+        <UiAlert v-if="formError" type="error" class="mt-4">{{ formError }}</UiAlert>
       </form>
+
       <template #footer>
-        <UiButton @click="showCreateModal = false">Cancel</UiButton>
+        <UiButton @click="showCreateModal = false" variant="secondary">Cancel</UiButton>
         <UiButton @click="handleCreate" :loading="submitting">Create</UiButton>
       </template>
     </UiModal>
+
   </div>
 </template>
 
@@ -198,7 +258,11 @@ const form = ref<CreateDocumentRequest>({
   title: '',
   code: '',
   folder_name: '',
-  fields: {}
+  fields: {
+    status: '',
+    complainants: [],
+    respondents: []
+  }
 });
 
 const columns = [
