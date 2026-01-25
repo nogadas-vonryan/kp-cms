@@ -7,13 +7,14 @@ import { createAppError } from './errorHandler';
 const api = axios.create({
   baseURL: config.apiUrl,
   timeout: config.apiTimeout,
+  withCredentials: true, // Enable sending session cookies
 });
 
-// Request Interceptor: Auto-attach Token
+// Request Interceptor: Auto-attach CSRF Token
 api.interceptors.request.use((config) => {
   const authStore = useAuthStore();
-  if (authStore.token) {
-    config.headers.Authorization = `Bearer ${authStore.token}`;
+  if (authStore.csrfToken) {
+    config.headers['X-CSRF-Token'] = authStore.csrfToken;
   }
   return config;
 });
