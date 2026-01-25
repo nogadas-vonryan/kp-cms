@@ -122,7 +122,7 @@
               </div>
 
               <div v-if="Object.keys(editForm.fields).length > 0" class="space-y-4">
-                <div v-for="(value, key) in editForm.fields" :key="key" :class="[
+                <div v-for="([key, value]) in sortedFields" :key="key" :class="[
                   'rounded p-3',
                   editMode ? 'border border-gray-200' : 'border-l-4 border-gray-300 bg-gray-50'
                 ]">
@@ -667,6 +667,34 @@ function toSnakeCase(str: string): string {
     .replace(/[^\w]/g, '')          // Remove all non-word chars (except _)
     .replace(/__+/g, '_');          // Replace multiple underscores with one
 }
+
+const FIELD_DISPLAY_ORDER = [
+  'nature',
+  'status',
+  'complaint',
+  'complainants',
+  'respondents'
+];
+
+const sortedFields = computed(() => {
+  // Explicitly type the entries to ensure 'key' is seen as string
+  const fieldsArray = Object.entries(editForm.value.fields) as [string, any][];
+  
+  return fieldsArray.sort(([keyA], [keyB]) => {
+    const indexA = FIELD_DISPLAY_ORDER.indexOf(keyA);
+    const indexB = FIELD_DISPLAY_ORDER.indexOf(keyB);
+    
+    // Using a simple index-based priority
+    const priorityA = indexA === -1 ? FIELD_DISPLAY_ORDER.length : indexA;
+    const priorityB = indexB === -1 ? FIELD_DISPLAY_ORDER.length : indexB;
+    
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    return keyA.localeCompare(keyB);
+  });
+});
 
 onMounted(() => {
   loadDocument();
