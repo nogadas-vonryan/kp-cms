@@ -151,7 +151,7 @@
 import { ref, computed, watch } from 'vue';
 import type { Document } from '@/types';
 import { DocumentService } from '@/modules/documents/services/documentService';
-import { useDocumentFields } from '@/modules/documents/components/useDocumentFields';
+import { useDocumentFields } from '@/modules/documents/composables/useDocumentFields';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
 import UiTextarea from '@/core/ui/components/UiTextarea.vue';

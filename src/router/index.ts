@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
 import LoginPage from '@/pages/LoginPage.vue';
-import DocumentsPage from '@/pages/DocumentsPage.vue';
+import DocumentsPage from '@/modules/documents/pages/DocumentsPage.vue';
 import DocumentDetailPage from '@/modules/documents/pages/DocumentDetailPage.vue';
 import AdminDashboard from '@/pages/AdminDashboard.vue';
 import NotFound from '@/pages/NotFound.vue';
