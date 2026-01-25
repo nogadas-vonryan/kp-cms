@@ -15,8 +15,22 @@
           Code: <span class="font-mono">{{ document?.code }}</span>
         </p>
       </div>
-      <div v-if="isAdmin" class="flex gap-2">
-        <UiButton @click="showDeleteConfirm = true" variant="danger">
+      <div class="flex gap-2">
+        <UiButton
+          v-if="isAdmin && !editMode"
+          @click="enterEditMode"
+          variant="secondary"
+        >
+          Edit
+        </UiButton>
+        <UiButton
+          v-if="isAdmin && editMode"
+          @click="cancelEdit"
+          variant="secondary"
+        >
+          Cancel
+        </UiButton>
+        <UiButton v-if="isAdmin" @click="showDeleteConfirm = true" variant="danger">
           Delete
         </UiButton>
       </div>
@@ -56,10 +70,12 @@
       <div v-if="activeTab === 'details'" class="space-y-4">
         <UiCard>
           <div class="space-y-4">
-            <!-- Title (editable) -->
+            <!-- Title -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-              <div v-if="!isAdmin" class="text-sm">{{ document.title }}</div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              <div v-if="!editMode" class="text-lg font-semibold text-gray-900">
+                {{ document.title }}
+              </div>
               <UiInput
                 v-else
                 v-model="editForm.title"
@@ -69,14 +85,14 @@
             </div>
 
             <!-- Document Info -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
-                <div class="text-sm font-mono">{{ document.code }}</div>
+                <div class="text-sm font-mono text-gray-600">{{ document.code }}</div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Folder</label>
-                <div class="text-sm">{{ document.folder_name || 'N/A' }}</div>
+                <div class="text-sm text-gray-600">{{ document.folder_name || 'N/A' }}</div>
               </div>
             </div>
 
@@ -92,11 +108,11 @@
             </div>
 
             <!-- Custom Fields -->
-            <div v-if="Object.keys(document.fields).length > 0 || isAdmin">
+            <div v-if="Object.keys(document.fields).length > 0 || editMode" class="pt-2 border-t border-gray-200">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-semibold text-gray-900">Custom Fields</h3>
                 <UiButton
-                  v-if="isAdmin"
+                  v-if="editMode"
                   @click="showAddFieldModal = true"
                   variant="secondary"
                   class="text-sm"
@@ -106,11 +122,14 @@
               </div>
 
               <div v-if="Object.keys(editForm.fields).length > 0" class="space-y-4">
-                <div v-for="(value, key) in editForm.fields" :key="key" class="border border-gray-200 rounded p-3">
+                <div v-for="(value, key) in editForm.fields" :key="key" :class="[
+                  'rounded p-3',
+                  editMode ? 'border border-gray-200' : 'border-l-4 border-gray-300 bg-gray-50'
+                ]">
                   <!-- Field Header -->
                   <div class="flex items-center justify-between mb-2">
                     <span class="font-medium text-gray-900">{{ key }}</span>
-                    <div v-if="isAdmin" class="flex gap-2">
+                    <div v-if="editMode" class="flex gap-2">
                       <button
                         v-if="!Array.isArray(value)"
                         @click="convertToArray(key)"
@@ -128,34 +147,41 @@
                     </div>
                   </div>
 
-                  <!-- Text Field -->
-                  <div v-if="!Array.isArray(value)" class="space-y-2">
+                  <!-- Text Field (Read-only) -->
+                  <div v-if="!editMode && !Array.isArray(value)" class="text-sm text-gray-700">
+                    {{ value || '—' }}
+                  </div>
+
+                  <!-- Text Field (Editable) -->
+                  <div v-else-if="editMode && !Array.isArray(value)" class="space-y-2">
                     <UiInput
-                      v-if="isAdmin"
                       :value="value"
                       @update:model-value="(v) => editForm.fields[key] = v"
                       placeholder="Field value"
                     />
-                    <div v-else class="text-sm">{{ value }}</div>
                   </div>
 
-                  <!-- Array Field -->
-                  <div v-else class="space-y-2">
+                  <!-- Array Field (Read-only) -->
+                  <div v-else-if="!editMode && Array.isArray(value)" class="space-y-1">
+                    <div v-for="(item, index) in value" :key="index" class="text-sm text-gray-700">
+                      {{ index + 1 }}. {{ item || '—' }}
+                    </div>
+                  </div>
+
+                  <!-- Array Field (Editable) -->
+                  <div v-else-if="editMode && Array.isArray(value)" class="space-y-2">
                     <div
                       v-for="(item, index) in value"
                       :key="index"
                       class="flex gap-2 items-center"
                     >
                       <UiInput
-                        v-if="isAdmin"
                         :model-value="item"
                         @update:model-value="(v) => (editForm.fields[key] as any[])[index] = v"
                         placeholder="Item value"
                         class="flex-1"
                       />
-                      <div v-else class="flex-1 text-sm">{{ item }}</div>
                       <button
-                        v-if="isAdmin"
                         @click="removeArrayItem(key, index)"
                         class="text-red-600 hover:text-red-800 text-sm px-2"
                       >
@@ -163,7 +189,6 @@
                       </button>
                     </div>
                     <button
-                      v-if="isAdmin"
                       @click="addArrayItem(key)"
                       class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2"
                     >
@@ -173,19 +198,22 @@
                 </div>
               </div>
 
-              <div v-else class="text-sm text-gray-600 text-center py-4">
+              <div v-else-if="!editMode" class="text-sm text-gray-600 text-center py-4">
                 No custom fields
               </div>
             </div>
 
-            <!-- Edit Form -->
-            <div v-if="isAdmin" class="pt-4 border-t border-gray-200">
+            <!-- Edit Form Footer -->
+            <div v-if="editMode" class="pt-4 border-t border-gray-200 flex gap-2">
               <UiButton 
                 @click="saveChanges" 
                 :loading="saving" 
                 :disabled="!hasChanges || !editForm.title.trim()"
               >
                 Save Changes
+              </UiButton>
+              <UiButton @click="cancelEdit" variant="secondary">
+                Cancel
               </UiButton>
             </div>
           </div>
@@ -324,6 +352,7 @@ const saving = ref(false);
 const deleting = ref(false);
 const activeTab = ref('details');
 const showDeleteConfirm = ref(false);
+const editMode = ref(false);
 
 const tabs = computed(() => [
   { id: 'details', label: 'Details' },
@@ -441,6 +470,23 @@ function handleAddField() {
   // Reset form
   newField.value = { name: '', isArray: false, initialValue: '' };
   showAddFieldModal.value = false;
+}
+
+function enterEditMode() {
+  editMode.value = true;
+}
+
+function cancelEdit() {
+  editMode.value = false;
+  // Reset form to original document state
+  if (document.value) {
+    editForm.value = {
+      title: document.value.title,
+      code: document.value.code,
+      folder_name: document.value.folder_name,
+      fields: JSON.parse(JSON.stringify(document.value.fields))
+    };
+  }
 };
 
 async function loadDocument() {
@@ -478,6 +524,7 @@ async function saveChanges() {
       fields: editForm.value.fields
     });
     await loadDocument();
+    editMode.value = false;
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to save changes';
   } finally {
