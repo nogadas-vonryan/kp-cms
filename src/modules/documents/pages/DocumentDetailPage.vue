@@ -108,7 +108,7 @@
             </div>
 
             <!-- Custom Fields -->
-            <div v-if="Object.keys(document.fields).length > 0 || editMode" class="pt-2 border-t border-gray-200">
+            <div v-if="Object.keys(document?.fields || {}).length > 0 || editMode" class="pt-2 border-t border-gray-200">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-semibold text-gray-900">Custom Fields</h3>
                 <UiButton
@@ -580,15 +580,18 @@ async function loadDocument() {
   try {
     const documentId = router.currentRoute.value.params.documentId as string;
     const response = await DocumentService.getById(documentId);
-    document.value = response.data;
     
-    // Initialize edit form
+    // Defensive check: if response.data is null, default to an empty object
+    const data = response.data || {};
+    document.value = data;
+    
+    // Initialize edit form with safe fallbacks
     editForm.value = {
-      title: response.data.title,
-      code: response.data.code,
-      folder_name: response.data.folder_name,
-      // Deep clone to avoid sharing array/object references with document.value
-      fields: JSON.parse(JSON.stringify(response.data.fields))
+      title: data.title || '',
+      code: data.code || '',
+      folder_name: data.folder_name || '',
+      // If data.fields is null, we clone an empty object instead to prevent JSON.parse(null) error
+      fields: JSON.parse(JSON.stringify(data.fields || {}))
     };
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to load document';
@@ -681,14 +684,14 @@ const FIELD_DISPLAY_ORDER = [
 ];
 
 const sortedFields = computed(() => {
-  // Explicitly type the entries to ensure 'key' is seen as string
-  const fieldsArray = Object.entries(editForm.value.fields) as [string, any][];
+  // Safeguard: Ensure editForm.value.fields is at least an empty object
+  const fields = editForm.value?.fields || {};
+  const fieldsArray = Object.entries(fields) as [string, any][];
   
   return fieldsArray.sort(([keyA], [keyB]) => {
     const indexA = FIELD_DISPLAY_ORDER.indexOf(keyA);
     const indexB = FIELD_DISPLAY_ORDER.indexOf(keyB);
     
-    // Using a simple index-based priority
     const priorityA = indexA === -1 ? FIELD_DISPLAY_ORDER.length : indexA;
     const priorityB = indexB === -1 ? FIELD_DISPLAY_ORDER.length : indexB;
     
