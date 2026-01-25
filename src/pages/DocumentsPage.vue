@@ -78,6 +78,10 @@
         <template #cell:code="{ value }">
           <span class="font-mono text-sm">{{ value }}</span>
         </template>
+
+        <template #cell:folder_name="{ value }">
+          <span class="text-sm text-gray-600">{{ value }}</span>
+        </template>
         
         <template #cell:files="{ row }">
           <span class="text-sm text-gray-600">{{ ((row as unknown) as Document).files.length }} file(s)</span>
@@ -95,13 +99,6 @@
             >
               View
             </router-link>
-            <button
-              v-if="isAdmin"
-              @click="deleteDocument((row as unknown) as Document)"
-              class="text-red-600 hover:text-red-800 text-sm"
-            >
-              Delete
-            </button>
           </div>
         </template>
       </UiTable>
@@ -203,6 +200,7 @@ const form = ref<CreateDocumentRequest>({
 const columns = [
   { key: 'code', label: 'Code' },
   { key: 'title', label: 'Title' },
+  { key: 'folder_name', label: 'Folder Name' },
   { key: 'files', label: 'Files' },
   { key: 'created_at', label: 'Created' },
   { key: 'actions', label: 'Actions' }
@@ -267,17 +265,6 @@ function resetSearch() {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
-}
-
-async function deleteDocument(doc: Document) {
-  if (!confirm(`Delete document "${doc.title}"?`)) return;
-  
-  try {
-    await DocumentService.remove(doc.uuid);
-    loadDocuments();
-  } catch (err: any) {
-    alert(err.response?.data?.error || 'Failed to delete document');
-  }
 }
 
 async function handleCreate() {
