@@ -19,9 +19,9 @@ import (
 )
 
 type SyncIssue struct {
-	Type    string
-	Path    string
-	Message string
+	Type    string `json:"type"`
+	Path    string `json:"path"`
+	Message string `json:"message"`
 }
 
 type FileDocumentRepository struct {
