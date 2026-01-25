@@ -166,7 +166,7 @@
                       :model-value="value"
                       @update:model-value="(v) => editForm.fields[key] = v"
                       placeholder="Field value"
-                      :rows="2"
+                      :rows="getTextareaRows(value)"
                     />
                   </div>
 
@@ -188,7 +188,7 @@
                         :model-value="item"
                         @update:model-value="(v) => (editForm.fields[key] as any[])[index] = v"
                         placeholder="Item value"
-                        :rows="2"
+                        :rows="getTextareaRows(item)"
                         class="flex-1"
                       />
                       <button
@@ -311,7 +311,7 @@
           <UiTextarea
             v-model="newField.initialValue"
             placeholder="Field value"
-            :rows="4"
+            :rows="3"
           />
         </div>
       </form>
@@ -424,6 +424,16 @@ const hasChanges = computed(() => {
     JSON.stringify(editForm.value.fields) !== JSON.stringify(document.value.fields)
   );
 });
+
+function getTextareaRows(value: any): number {
+  if (!value) return 1;
+  const text = value.toString();
+  // Use 2 rows if text contains newlines or is longer than 60 characters
+  if (text.includes('\n') || text.length > 60) {
+    return 2;
+  }
+  return 1;
+}
 
 function convertToArray(fieldName: string) {
   const current = editForm.value.fields[fieldName];
