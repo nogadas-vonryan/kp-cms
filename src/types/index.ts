@@ -3,11 +3,8 @@ export type UserRole = 'RoleAdmin' | 'RoleUser';
 export type { PermissionAction } from '@/core/auth/usePermission';
 
 export interface AuthUser {
-  id?: string;
-  email?: string;
-  name?: string;
+  id: string;
   role: UserRole;
-  tokenExpiresAt?: string;
 }
 
 export type DocumentFields = Record<string, string>;
@@ -59,6 +56,16 @@ export interface ReloadResponse {
 }
 
 export interface AuthResponse {
-  token: string;
   user: AuthUser;
+  csrf_token: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
 }

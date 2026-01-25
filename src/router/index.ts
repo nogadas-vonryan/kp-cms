@@ -1,15 +1,15 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-import { defineComponent, h } from 'vue';
 import { useAuthStore } from '@/modules/auth/store';
-
-const makePlaceholder = (name: string) =>
-  defineComponent({ name, setup: () => () => h('div', `${name} placeholder`) });
+import LoginPage from '@/pages/LoginPage.vue';
+import DocumentsPage from '@/pages/DocumentsPage.vue';
+import AdminDashboard from '@/pages/AdminDashboard.vue';
+import NotFound from '@/pages/NotFound.vue';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
-    component: makePlaceholder('LoginPage'),
+    component: LoginPage,
     meta: { public: true },
   },
   {
@@ -19,19 +19,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/documents',
     name: 'documents',
-    component: makePlaceholder('DocumentsPage'),
+    component: DocumentsPage,
     meta: { requiresAuth: true },
   },
   {
     path: '/admin',
     name: 'admin',
-    component: makePlaceholder('AdminDashboard'),
+    component: AdminDashboard,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    component: makePlaceholder('NotFound'),
+    component: NotFound,
     meta: { public: true },
   },
 ];
