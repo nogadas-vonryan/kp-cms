@@ -32,20 +32,20 @@ func main() {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}
 
-	server := api.NewServer(
+	server, err := api.NewServer(
 		*host,
 		*port,
 		*user,
 		*pass,
 		document.NewDocumentService(documentRepository),
 	)
+	if err != nil {
+		log.Fatalf("Failed to set up server: %v", err)
+	}
 
 	log.Printf("Server starting on %s", server.Addr())
 	log.Printf("Using data directory: %s", *dataPath)
 	log.Printf("Password generated: %s", *pass)
-
-	// Create the admin account
-	auth.AddUser(*user, *pass, auth.RoleAdmin)
 
 	if err := http.ListenAndServe(server.Addr(), server.Router); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

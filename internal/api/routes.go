@@ -3,12 +3,14 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"main/internal/auth"
 	"main/internal/document"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 type Server struct {
@@ -16,29 +18,29 @@ type Server struct {
 	Port            string
 	Router          *chi.Mux
 	documentService *document.DocumentService
-	Config          struct {
-		FlagUser string
-		FlagPass string
-	}
+	userStore       *auth.UserStore
+	sessionManager  *auth.SessionManager
+	sessionTTL      time.Duration
 }
 
-func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService) *Server {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService) (*Server, error) {
+	userStore := auth.NewUserStore()
+	if err := userStore.AddUser(flagUser, flagPass, auth.RoleAdmin); err != nil {
+		return nil, fmt.Errorf("failed to create admin user: %w", err)
+	}
+
 	s := &Server{
 		Host:            host,
 		Port:            port,
 		Router:          chi.NewRouter(),
 		documentService: documentService,
-		Config: struct {
-			FlagUser string
-			FlagPass string
-		}{
-			FlagUser: flagUser,
-			FlagPass: flagPass,
-		},
+		userStore:       userStore,
+		sessionManager:  auth.NewSessionManager(24 * time.Hour),
+		sessionTTL:      24 * time.Hour,
 	}
 
 	s.routes()
-	return s
+	return s, nil
 }
 
 func (s *Server) Addr() string {
@@ -46,24 +48,46 @@ func (s *Server) Addr() string {
 }
 
 func (s *Server) routes() {
+	s.Router.Use(middleware.RequestID)
+	s.Router.Use(middleware.RealIP)
 	s.Router.Use(middleware.Logger)
 	s.Router.Use(middleware.Recoverer)
+
+	s.Router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	// Public Routes
 	s.Router.Get("/", s.handleVersion())
 	s.Router.Get("/health", s.handleHealth())
+	s.Router.Post("/auth/login", s.handleLogin())
+	s.Router.Post("/auth/register", s.handleRegister())
+	s.Router.Post("/auth/logout", s.handleLogout())
 
 	s.Router.Group(func(r chi.Router) {
-		// Auth
-		r.Use(auth.AuthMiddleware(s.Config.FlagUser, s.Config.FlagPass))
+		// Authenticated routes
+		r.Use(auth.SessionMiddleware(s.sessionManager))
+		r.Use(auth.CSRFMiddleware())
+
+		r.Get("/auth/me", s.handleMe())
+
+		r.Route("/auth/admin", func(admin chi.Router) {
+			admin.Use(auth.RequireRole(auth.RoleAdmin))
+			admin.Get("/users", s.handleListUsers())
+			admin.Post("/users", s.handleCreateUser())
+			admin.Post("/users/{username}/role", s.handleUpdateUserRole())
+			admin.Delete("/users/{username}", s.handleDeleteUser())
+		})
 
 		r.Route("/documents", func(r chi.Router) {
-			// Standard User routes
 			r.Get("/", s.handleListDocuments())
 			r.Get("/{uuid}", s.handleGetDocumentByUUID())
 			r.Get("/code/{code}", s.handleGetDocumentByCode())
 
-			// Admin-only routes
 			r.Group(func(admin chi.Router) {
 				admin.Use(auth.RequireRole(auth.RoleAdmin))
 
