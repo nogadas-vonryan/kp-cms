@@ -4,13 +4,13 @@
     <div class="flex items-center gap-2 text-sm text-gray-600">
       <router-link to="/documents" class="hover:text-gray-900">Documents</router-link>
       <span>/</span>
-      <span class="text-gray-900 font-medium">{{ document?.title || 'Loading...' }}</span>
+      <span class="text-gray-900 font-medium truncate block max-w-4xl">{{ document?.title || 'Loading...' }}</span>
     </div>
 
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">{{ document?.title }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 truncate block max-w-4xl">{{ document?.title }}</h1>
         <p class="text-sm text-gray-600 mt-1">
           Code: <span class="font-mono">{{ document?.code }}</span>
         </p>
@@ -73,7 +73,7 @@
             <!-- Title -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-              <div v-if="!editMode" class="text-lg font-semibold text-gray-900">
+              <div v-if="!editMode" class="text-lg font-semibold text-gray-900 truncate block max-w-4xl">
                 {{ document.title }}
               </div>
               <UiInput
@@ -154,7 +154,7 @@
                       </button>
                     </div>
                   </div>
-
+                  
                   <!-- Text Field (Read-only) -->
                   <div v-if="!editMode && !Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap">
                     {{ value || '—' }}
@@ -268,13 +268,30 @@
 
     <!-- Delete Confirmation Modal -->
     <UiModal v-model:open="showDeleteConfirm" title="Delete Document">
-      <p class="text-gray-700">
+      <p class="text-gray-700 truncate block max-w-xl mb-2">
         Are you sure you want to delete "<strong>{{ document?.title }}</strong>"?
       </p>
-      <p class="text-sm text-gray-600 mt-2">This action cannot be undone.</p>
+      <div class="bg-red-50 p-3 rounded border border-red-100">
+      <p class="text-sm text-red-800 font-medium">This action is permanent.</p>
+      <p class="text-sm text-red-700 mt-1 mb-2">
+        To confirm, please type <span class="font-mono font-bold">"I want to delete it"</span> below:
+      </p>
+      <UiInput 
+        v-model="deleteConfirmationInput" 
+        placeholder="Type the confirmation phrase"
+        @keyup.enter="canDelete && handleDelete()"
+      />
+    </div>
       <template #footer>
-        <UiButton @click="showDeleteConfirm = false">Cancel</UiButton>
-        <UiButton @click="handleDelete" :loading="deleting" variant="danger">Delete</UiButton>
+        <UiButton @click="showDeleteConfirm = false" variant="secondary">Cancel</UiButton>
+        <UiButton 
+          @click="handleDelete" 
+          :loading="deleting" 
+          variant="danger"
+          :disabled="!canDelete" 
+        >
+          Delete Permanently
+        </UiButton>
       </template>
     </UiModal>
 
@@ -336,7 +353,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
@@ -565,6 +582,20 @@ async function saveChanges() {
     saving.value = false;
   }
 }
+
+// Delete confirmation
+const deleteConfirmationInput = ref('');
+const REQUIRED_PHRASE = 'i want to delete it';
+
+const canDelete = computed(() => {
+  return deleteConfirmationInput.value.toLowerCase() === REQUIRED_PHRASE;
+});
+
+watch(showDeleteConfirm, (isOpen) => {
+  if (!isOpen) {
+    deleteConfirmationInput.value = '';
+  }
+});
 
 async function handleDelete() {
   if (!document.value) return;

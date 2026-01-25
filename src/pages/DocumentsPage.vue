@@ -131,7 +131,7 @@
     <UiModal v-model:open="showCreateModal" title="Create Document">
       <form @submit.prevent="handleCreate" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
           <UiInput v-model="form.title" required />
         </div>
 
@@ -144,7 +144,14 @@
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900 text-sm">Status</span>
               </div>
-              <UiInput v-model="form.fields.status" placeholder="Enter status..." />
+              <UiSelect 
+                v-model="form.fields.status" 
+                :options="[
+                  { label: 'Civil', value: 'civil' }, 
+                  { label: 'Criminal', value: 'criminal' } 
+                ]"
+                placeholder="Select a status" 
+              />
             </div>
 
             <div class="rounded p-3 border border-gray-200">
@@ -259,7 +266,7 @@ const form = ref<CreateDocumentRequest>({
   code: '',
   folder_name: '',
   fields: {
-    status: '',
+    status: 'civil',
     complainants: [],
     respondents: []
   }
@@ -342,9 +349,7 @@ async function handleCreate() {
   try {
     await DocumentService.create({
       title: form.value.title,
-      code: form.value.code || null,
-      folder_name: form.value.folder_name || null,
-      fields: {}
+      fields: form.value.fields
     });
     showCreateModal.value = false;
     form.value = { title: '', code: '', folder_name: '', fields: {} };
