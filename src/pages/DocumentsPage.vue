@@ -38,6 +38,16 @@
             placeholder="To date"
           />
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <UiInput
+            v-model="filters.field_key"
+            placeholder="Field name (e.g. status)"
+          />
+          <UiInput
+            v-model="filters.field_value"
+            placeholder="Field value (optional)"
+          />
+        </div>
         <div class="grid grid-cols-1 gap-3">
           <UiSelect
             v-model="filters.sort_by"
@@ -203,7 +213,9 @@ const filters = ref({
   folder_name: '',
   date_from: '',
   date_to: '',
-  sort_by: ''
+  sort_by: '',
+  field_key: '',
+  field_value: ''
 });
 
 const sortOptions = [
@@ -252,7 +264,7 @@ async function performSearch() {
   offset.value = 0;
   
   try {
-    const response = await DocumentService.search({
+    const params: Record<string, any> = {
       code: searchQuery.value || undefined,
       folder_name: filters.value.folder_name || undefined,
       date_from: filters.value.date_from || undefined,
@@ -261,7 +273,13 @@ async function performSearch() {
       sort_desc: filters.value.sort_by ? true : undefined,
       offset: offset.value,
       limit: limit.value
-    });
+    };
+
+    if (filters.value.field_key) {
+      params[`field_${filters.value.field_key}`] = filters.value.field_value ?? '';
+    }
+
+    const response = await DocumentService.search(params);
     documents.value = response.data;
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to search documents';
@@ -276,7 +294,9 @@ function resetSearch() {
     folder_name: '',
     date_from: '',
     date_to: '',
-    sort_by: ''
+    sort_by: '',
+    field_key: '',
+    field_value: ''
   };
   offset.value = 0;
   loadDocuments();
@@ -350,7 +370,9 @@ function isSearchActive(): boolean {
     filters.value.folder_name !== '' ||
     filters.value.date_from !== '' ||
     filters.value.date_to !== '' ||
-    filters.value.sort_by !== ''
+    filters.value.sort_by !== '' ||
+    filters.value.field_key !== '' ||
+    filters.value.field_value !== ''
   );
 }
 
