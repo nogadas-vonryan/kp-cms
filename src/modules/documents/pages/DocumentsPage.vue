@@ -14,8 +14,13 @@
         <div class="space-y-3">
           <div class="flex gap-2">
             <UiInput
-              v-model="searchQuery"
+              v-model="uuidSearchQuery"
               placeholder="Search by code..."
+              class="flex-1"
+            />
+            <UiInput
+              v-model="titleSearchQuery"
+              placeholder="Filter by title..."
               class="flex-1"
             />
             <UiInput
@@ -263,7 +268,8 @@ const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 const documents = ref<Document[]>([]);
 const loading = ref(false);
 const error = ref('');
-const searchQuery = ref('');
+const uuidSearchQuery = ref('');
+const titleSearchQuery = ref('');
 const offset = ref(0);
 const limit = ref(15);
 
@@ -352,7 +358,8 @@ async function performSearch(resetOffset = true) {
   
   try {
     const params: Record<string, any> = {
-      code: searchQuery.value || undefined,
+      code: uuidSearchQuery.value || undefined,
+      title: titleSearchQuery.value || undefined,
       folder_name: filters.value.folder_name || undefined,
       date_from: filters.value.date_from || undefined,
       date_to: filters.value.date_to || undefined,
@@ -378,7 +385,8 @@ async function performSearch(resetOffset = true) {
 }
 
 function resetSearch() {
-  searchQuery.value = '';
+  uuidSearchQuery.value = '';
+  titleSearchQuery.value = '';
   filters.value = {
     folder_name: '',
     date_from: '',
@@ -426,7 +434,8 @@ function prevPage() {
 
 function isSearchActive(): boolean {
   return (
-    searchQuery.value !== '' ||
+    uuidSearchQuery.value !== '' ||
+    titleSearchQuery.value !== '' ||
     filters.value.folder_name !== '' ||
     filters.value.date_from !== '' ||
     filters.value.date_to !== '' ||
