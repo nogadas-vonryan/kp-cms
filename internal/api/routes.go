@@ -85,6 +85,7 @@ func (s *Server) routes() {
 
 		r.Route("/documents", func(r chi.Router) {
 			r.Get("/", s.handleListDocuments())
+			r.Get("/search", s.handleSearchDocuments())
 			r.Get("/{uuid}", s.handleGetDocumentByUUID())
 			r.Get("/code/{code}", s.handleGetDocumentByCode())
 

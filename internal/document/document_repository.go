@@ -12,6 +12,7 @@ type DocumentStore interface {
 	Update(ctx context.Context, uuid string, doc *Document) (*Document, error)
 	Delete(ctx context.Context, uuid string) error
 	List(ctx context.Context, offset int, limit int) ([]*Document, error)
+	Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error)
 }
 
 type FileStore interface {

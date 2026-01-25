@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"net/http"
 	"strconv"
+	"time"
 
 	"main/internal/document"
 
@@ -57,7 +58,7 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 func (s *Server) handleListDocuments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		offset := 0
-		limit := 15
+		limit := 10
 
 		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 			if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
@@ -276,6 +277,87 @@ func (s *Server) handleReloadDocuments() http.HandlerFunc {
 		}
 		json.NewEncoder(w).Encode(response)
 	}
+}
+
+func (s *Server) handleSearchDocuments() http.HandlerFunc {
+	const MaxLimit = 100
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+
+		criteria := document.SearchCriteria{
+			UUID:       q.Get("uuid"),
+			Code:       q.Get("code"),
+			FolderName: q.Get("folder_name"),
+			FieldKey:   q.Get("field_key"),
+			SortBy:     q.Get("sort_by"),
+			SortDesc:   q.Get("sort_desc") == "true",
+		}
+
+		// Parse date range
+		if dateFrom := q.Get("date_from"); dateFrom != "" {
+			if t, err := parseDate(dateFrom); err == nil {
+				criteria.DateFrom = &t
+			}
+		}
+		if dateTo := q.Get("date_to"); dateTo != "" {
+			if t, err := parseDate(dateTo); err == nil {
+				criteria.DateTo = &t
+			}
+		}
+
+		// Parse field filters from query params like field_status=mediation
+		criteria.FieldFilters = make(map[string]any)
+		for key, values := range q {
+			if len(values) > 0 && len(key) > 6 && key[:6] == "field_" {
+				fieldName := key[6:]
+				criteria.FieldFilters[fieldName] = values[0]
+			}
+		}
+
+		// Parse pagination
+		offset := 0
+		limit := 10
+		if offsetStr := q.Get("offset"); offsetStr != "" {
+			if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
+				offset = parsed
+			}
+		}
+		if limitStr := q.Get("limit"); limitStr != "" {
+			if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+				limit = parsed
+
+				if limit > MaxLimit {
+					limit = MaxLimit
+				}
+			}
+		}
+		criteria.Offset = offset
+		criteria.Limit = limit
+
+		docs, err := s.documentService.Search(r.Context(), criteria)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, docs)
+	}
+}
+
+func parseDate(dateStr string) (time.Time, error) {
+	// Try multiple date formats
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05Z",
+		"2006-01-02",
+	}
+	for _, format := range formats {
+		if t, err := time.Parse(format, dateStr); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, errors.New("invalid date format")
 }
 
 func respondJSON(w http.ResponseWriter, status int, data any) {

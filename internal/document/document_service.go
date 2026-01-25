@@ -101,6 +101,10 @@ func (s *DocumentService) ReloadCache(ctx context.Context) ([]SyncIssue, error) 
 	return s.repo.ReloadCache(ctx)
 }
 
+func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error) {
+	return s.repo.Search(ctx, criteria)
+}
+
 func validateDocumentTitle(title string) error {
 	if title == "" {
 		return errors.New("document title is required")

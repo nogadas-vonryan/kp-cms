@@ -22,3 +22,17 @@ type File struct {
 	Size        int64     `json:"size"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+type SearchCriteria struct {
+	UUID         string         // exact match for UUID
+	Code         string         // prefix match for code
+	FolderName   string         // substring match for folder name (case-insensitive)
+	FieldKey     string         // search for presence of a field
+	FieldFilters map[string]any // search for field key-value pairs
+	DateFrom     *time.Time     // filter documents created after this date
+	DateTo       *time.Time     // filter documents created before this date
+	SortBy       string         // sort by: code, created_at, updated_at, title, folder_name
+	SortDesc     bool           // sort descending when true
+	Offset       int            // pagination offset
+	Limit        int            // pagination limit
+}
