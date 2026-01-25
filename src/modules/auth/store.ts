@@ -2,11 +2,11 @@ import { defineStore } from 'pinia';
 import type { AuthUser } from '@/types';
 import { logger } from '@/core/utils/logger';
 
-const TOKEN_KEY = 'archivist-token';
+const CSRF_TOKEN_KEY = 'archivist-csrf-token';
 const USER_KEY = 'archivist-user';
 
 interface AuthState {
-  token: string | null;
+  csrfToken: string | null;
   user: AuthUser | null;
 }
 
@@ -24,25 +24,26 @@ function readFromStorage<T>(key: string): T | null {
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    token: typeof localStorage === 'undefined' ? null : localStorage.getItem(TOKEN_KEY),
+    csrfToken: typeof localStorage === 'undefined' ? null : localStorage.getItem(CSRF_TOKEN_KEY),
     user: readFromStorage<AuthUser>(USER_KEY),
   }),
   getters: {
-    isAuthenticated: (state) => Boolean(state.token && state.user),
+    isAuthenticated: (state) => Boolean(state.csrfToken && state.user),
     role: (state) => state.user?.role ?? null,
+    username: (state) => state.user?.id ?? null,
   },
   actions: {
-    setAuth(payload: { token: string; user: AuthUser }) {
-      this.setToken(payload.token);
+    setAuth(payload: { csrf_token: string; user: AuthUser }) {
+      this.setCsrfToken(payload.csrf_token);
       this.setUser(payload.user);
     },
-    setToken(token: string | null) {
-      this.token = token;
+    setCsrfToken(token: string | null) {
+      this.csrfToken = token;
       if (typeof localStorage === 'undefined') return;
       if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(CSRF_TOKEN_KEY, token);
       } else {
-        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(CSRF_TOKEN_KEY);
       }
     },
     setUser(user: AuthUser | null) {
@@ -55,7 +56,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     logout() {
-      this.setToken(null);
+      this.setCsrfToken(null);
       this.setUser(null);
     },
   },
