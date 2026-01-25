@@ -165,7 +165,7 @@
                   <!-- Array Field (Read-only) -->
                   <div v-else-if="!editMode && Array.isArray(value)" class="space-y-1">
                     <div v-for="(item, index) in value" :key="index" class="text-sm text-gray-700 whitespace-pre-wrap">
-                      {{ index + 1 }}. {{ item || '—' }}
+                      - {{ item || '—' }}
                     </div>
                   </div>
 
