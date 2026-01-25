@@ -340,21 +340,6 @@
             :rows="3"
           />
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Quick Add</label>
-          <div class="flex gap-2 mb-4">
-            <button 
-              type="button"
-              @click="newField.name = 'nature'; newField.isArray = false"
-              class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
-            >+ Nature</button>
-            <button 
-              type="button"
-              @click="newField.name = 'status'; newField.isArray = false"
-              class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
-            >+ Status</button>
-          </div>
-        </div>
       </form>
       <template #footer>
         <UiButton @click="showAddFieldModal = false">Cancel</UiButton>
