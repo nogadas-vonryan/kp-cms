@@ -79,8 +79,12 @@
           <span class="font-mono text-sm">{{ value }}</span>
         </template>
 
+        <template #cell:title="{ value }">
+          <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
+        </template>
+
         <template #cell:folder_name="{ value }">
-          <span class="text-sm text-gray-600">{{ value }}</span>
+          <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
         </template>
         
         <template #cell:files="{ row }">
