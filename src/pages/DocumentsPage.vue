@@ -10,7 +10,7 @@
 
     <!-- Search & Filters -->
     <UiCard>
-      <form @submit.prevent="performSearch">
+      <form @submit.prevent="performSearch()">
         <div class="space-y-3">
           <div class="flex gap-2">
             <UiInput
@@ -73,54 +73,54 @@
     </UiCard>
 
     <!-- Documents Table -->
-    <UiCard :padded="false">
-      <div v-if="loading" class="p-8 text-center text-gray-600">
-        Loading documents...
+    <UiCard :padded="false" class="relative min-h-125">
+      <div 
+        v-if="loading" 
+        class="absolute inset-0 z-20 flex items-center justify-center bg-white/60 backdrop-blur-[1px]"
+      >
+        <div class="flex flex-col items-center gap-2">
+          <span class="text-sm font-medium text-gray-600">Loading documents...</span>
+        </div>
       </div>
       
-      <UiAlert v-else-if="error" type="error" class="m-4">
-        {{ error }}
-      </UiAlert>
+      <div class="w-full">
+        <UiAlert v-if="error" type="error" class="m-4">
+          {{ error }}
+        </UiAlert>
 
-      <UiTable
-        v-else-if="documents.length > 0"
-        :columns="columns"
-        :rows="documents"
-      >
-        <template #cell:code="{ value }">
-          <span class="font-mono text-sm">{{ value }}</span>
+        <template v-if="documents.length > 0">
+          <UiTable :columns="columns" :rows="documents">
+            <template #cell:code="{ value }">
+              <span class="font-mono text-sm">{{ value }}</span>
+            </template>
+            <template #cell:title="{ value }">
+              <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
+            </template>
+            <template #cell:folder_name="{ value }">
+              <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
+            </template>
+            <template #cell:files="{ row }">
+              <span class="text-sm text-gray-600">{{ ((row as unknown) as Document).files.length }} file(s)</span>
+            </template>
+            <template #cell:created_at="{ value }">
+              <span class="text-sm text-gray-600">{{ formatDate(value as string) }}</span>
+            </template>
+            <template #cell:actions="{ row }">
+              <div class="flex gap-2">
+                <router-link
+                  :to="`/documents/${(row as unknown as Document).uuid}`"
+                  class="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  View
+                </router-link>
+              </div>
+            </template>
+          </UiTable>
         </template>
 
-        <template #cell:title="{ value }">
-          <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
-        </template>
-
-        <template #cell:folder_name="{ value }">
-          <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
-        </template>
-        
-        <template #cell:files="{ row }">
-          <span class="text-sm text-gray-600">{{ ((row as unknown) as Document).files.length }} file(s)</span>
-        </template>
-        
-        <template #cell:created_at="{ value }">
-          <span class="text-sm text-gray-600">{{ formatDate(value as string) }}</span>
-        </template>
-        
-        <template #cell:actions="{ row }">
-          <div class="flex gap-2">
-            <router-link
-              :to="`/documents/${(row as unknown as Document).uuid}`"
-              class="text-blue-600 hover:text-blue-800 text-sm"
-            >
-              View
-            </router-link>
-          </div>
-        </template>
-      </UiTable>
-
-      <div v-else class="p-8 text-center text-gray-600">
-        No documents found
+        <div v-else-if="!loading" class="p-8 text-center text-gray-600">
+          No documents found
+        </div>
       </div>
     </UiCard>
 
@@ -334,10 +334,14 @@ async function loadDocuments() {
   }
 }
 
-async function performSearch() {
+async function performSearch(resetOffset = true) {
   loading.value = true;
   error.value = '';
-  offset.value = 0;
+
+  // Only reset to page 1 if we are starting a brand new search
+  if (resetOffset) {
+    offset.value = 0;
+  }
   
   try {
     const params: Record<string, any> = {
@@ -347,7 +351,7 @@ async function performSearch() {
       date_to: filters.value.date_to || undefined,
       sort_by: filters.value.sort_by || undefined,
       sort_desc: filters.value.sort_by ? true : undefined,
-      offset: offset.value,
+      offset: offset.value, // This will now correctly use the incremented value
       limit: limit.value
     };
 
@@ -405,12 +409,12 @@ async function handleCreate() {
 
 function nextPage() {
   offset.value += limit.value;
-  isSearchActive() ? performSearch() : loadDocuments();
+  isSearchActive() ? performSearch(false) : loadDocuments();
 }
 
 function prevPage() {
   offset.value = Math.max(0, offset.value - limit.value);
-  isSearchActive() ? performSearch() : loadDocuments();
+  isSearchActive() ? performSearch(false) : loadDocuments();
 }
 
 function isSearchActive(): boolean {
