@@ -148,22 +148,23 @@
                   </div>
 
                   <!-- Text Field (Read-only) -->
-                  <div v-if="!editMode && !Array.isArray(value)" class="text-sm text-gray-700">
+                  <div v-if="!editMode && !Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap">
                     {{ value || '—' }}
                   </div>
 
                   <!-- Text Field (Editable) -->
                   <div v-else-if="editMode && !Array.isArray(value)" class="space-y-2">
-                    <UiInput
-                      :value="value"
+                    <UiTextarea
+                      :model-value="value"
                       @update:model-value="(v) => editForm.fields[key] = v"
                       placeholder="Field value"
+                      :rows="2"
                     />
                   </div>
 
                   <!-- Array Field (Read-only) -->
                   <div v-else-if="!editMode && Array.isArray(value)" class="space-y-1">
-                    <div v-for="(item, index) in value" :key="index" class="text-sm text-gray-700">
+                    <div v-for="(item, index) in value" :key="index" class="text-sm text-gray-700 whitespace-pre-wrap">
                       {{ index + 1 }}. {{ item || '—' }}
                     </div>
                   </div>
@@ -173,17 +174,18 @@
                     <div
                       v-for="(item, index) in value"
                       :key="index"
-                      class="flex gap-2 items-center"
+                      class="flex gap-2 items-start"
                     >
-                      <UiInput
+                      <UiTextarea
                         :model-value="item"
                         @update:model-value="(v) => (editForm.fields[key] as any[])[index] = v"
                         placeholder="Item value"
+                        :rows="2"
                         class="flex-1"
                       />
                       <button
                         @click="removeArrayItem(key, index)"
-                        class="text-red-600 hover:text-red-800 text-sm px-2"
+                        class="text-red-600 hover:text-red-800 text-sm px-2 mt-2"
                       >
                         Remove
                       </button>
@@ -298,9 +300,10 @@
         </div>
         <div v-else>
           <label class="block text-sm font-medium text-gray-700 mb-1">Initial Value (optional)</label>
-          <UiInput
+          <UiTextarea
             v-model="newField.initialValue"
             placeholder="Field value"
+            :rows="4"
           />
         </div>
       </form>
@@ -334,6 +337,7 @@ import type { Document, PluginContext } from '@/types';
 import PluginHost from '@/core/plugins/pluginHost';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
+import UiTextarea from '@/core/ui/components/UiTextarea.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
@@ -502,7 +506,8 @@ async function loadDocument() {
       title: response.data.title,
       code: response.data.code,
       folder_name: response.data.folder_name,
-      fields: { ...response.data.fields }
+      // Deep clone to avoid sharing array/object references with document.value
+      fields: JSON.parse(JSON.stringify(response.data.fields))
     };
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to load document';
