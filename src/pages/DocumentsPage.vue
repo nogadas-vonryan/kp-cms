@@ -23,39 +23,51 @@
               placeholder="Filter by folder..."
               class="flex-1"
             />
-            <UiButton type="submit">Search</UiButton>
-            <UiButton type="button" @click="resetSearch" variant="secondary">Reset</UiButton>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-3">
-            <UiInput
-              v-model="filters.date_from"
-              type="date"
-              placeholder="From date"
-            />
-            <UiInput
-              v-model="filters.date_to"
-              type="date"
-              placeholder="To date"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <UiInput
-              v-model="filters.field_key"
-              placeholder="Field name (e.g. status)"
-            />
-            <UiInput
-              v-model="filters.field_value"
-              placeholder="Field value (optional)"
-            />
-          </div>
-          <div class="grid grid-cols-1 gap-3">
             <UiSelect
               v-model="filters.sort_by"
               :options="sortOptions"
               placeholder="Sort by..."
+              class="flex-1"
             />
+            <UiButton type="submit">Search</UiButton>
+            <UiButton type="button" @click="resetSearch" variant="secondary">Reset</UiButton>
           </div>
+          
+          <details class="group">
+            <summary class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium list-none flex items-center gap-1 select-none">
+              <span class="group-open:rotate-90 transition-transform">▶</span>
+              Advanced Filters
+            </summary>
+            
+            <div class="pt-3 space-y-3 border-t border-gray-100 mt-2">
+              <div class="grid grid-cols-2 gap-3">
+                <UiInput
+                  v-model="filters.date_from"
+                  type="date"
+                  placeholder="From date"
+                />
+                <UiInput
+                  v-model="filters.date_to"
+                  type="date"
+                  placeholder="To date"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <UiComboBox 
+                  v-model="filters.field_key" 
+                  placeholder="Select field..." 
+                  :options="fieldOptions" 
+                />
+
+                <UiComboBox 
+                  v-model="filters.field_value" 
+                  :placeholder="filters.field_key ? `Select ${filters.field_key}...` : 'Select value...'" 
+                  :options="dynamicValueOptions"
+                  :disabled="!filters.field_key" 
+                />
+              </div>
+            </div>
+          </details>
         </div>
       </form>
     </UiCard>
@@ -156,6 +168,13 @@
 
             <div class="rounded p-3 border border-gray-200">
               <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-900 text-sm">Complaint</span>
+              </div>
+              <UiTextarea v-model="form.fields.complaint" :rows="3" />
+            </div>
+
+            <div class="rounded p-3 border border-gray-200">
+              <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900 text-sm">Complainants</span>
               </div>
               <div class="space-y-2">
@@ -220,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import type { Document, CreateDocumentRequest } from '@/types';
@@ -231,6 +250,8 @@ import UiTable from '@/core/ui/components/UiTable.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiSelect from '@/core/ui/components/UiSelect.vue';
+import UiComboBox from '@/core/ui/components/UiComboBox.vue';
+import UiTextarea from '@/core/ui/components/UiTextarea.vue';
 
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
@@ -251,6 +272,24 @@ const filters = ref({
   field_value: ''
 });
 
+// ComboBox Search relationship
+const fieldOptions = ['Status', 'Complainants', 'Respondents'];
+
+const valueOptionsMap: any = {
+  'Status': ['Mediation', 'Arbitration', 'Completed', 'Pending'],
+};
+
+// Computed property to handle the dynamic list for the second ComboBox Search
+const dynamicValueOptions = computed(() => {
+  const selectedKey = filters.value.field_key;
+  return valueOptionsMap[selectedKey] || [];
+});
+
+// Reset the second box if the first one changes
+watch(() => filters.value.field_key, () => {
+  filters.value.field_value = '';
+});
+
 const sortOptions = [
   { value: 'created_at', label: 'Created Date' },
   { value: 'code', label: 'Code' },
@@ -268,7 +307,8 @@ const form = ref<CreateDocumentRequest>({
   fields: {
     status: 'civil',
     complainants: [],
-    respondents: []
+    respondents: [],
+    complaint: '',
   }
 });
 
@@ -312,7 +352,9 @@ async function performSearch() {
     };
 
     if (filters.value.field_key) {
-      params[`field_${filters.value.field_key}`] = filters.value.field_value ?? '';
+      const key = filters.value.field_key.toLowerCase();
+      const val = filters.value.field_value?.toLowerCase() ?? '';
+      params[`field_${key}`] = val;
     }
 
     const response = await DocumentService.search(params);
