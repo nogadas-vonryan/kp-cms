@@ -545,7 +545,8 @@ function confirmDeleteField() {
 function handleAddField() {
   if (!newField.value.name.trim()) return;
 
-  const fieldName = newField.value.name.trim();
+  const fieldName = toSnakeCase(newField.value.name);
+  
   if (editForm.value.fields.hasOwnProperty(fieldName)) {
     alert('Field already exists');
     return;
@@ -670,6 +671,16 @@ function formatLabel(key: string): string {
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function toSnakeCase(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')           // Replace spaces with _
+    .replace(/-+/g, '_')            // Replace hyphens with _
+    .replace(/[^\w]/g, '')          // Remove all non-word chars (except _)
+    .replace(/__+/g, '_');          // Replace multiple underscores with one
 }
 
 onMounted(() => {
