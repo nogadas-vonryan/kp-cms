@@ -157,7 +157,11 @@
                   
                   <!-- Text Field (Read-only) -->
                   <div v-if="!editMode && !Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap">
-                    {{ value || '—' }}
+                    {{ 
+                      getFieldOptions(key as string)?.find(opt => opt.value === value)?.label || 
+                      formatLabel(value?.toString() || '') || 
+                      '—' 
+                    }}
                   </div>
 
                   <!-- Text Field (Editable) -->
