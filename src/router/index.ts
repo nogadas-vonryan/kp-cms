@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/modules/auth/store';
 import LoginPage from '@/pages/LoginPage.vue';
 import DocumentsPage from '@/pages/DocumentsPage.vue';
+import DocumentDetailPage from '@/modules/documents/pages/DocumentDetailPage.vue';
 import AdminDashboard from '@/pages/AdminDashboard.vue';
 import NotFound from '@/pages/NotFound.vue';
 
@@ -20,6 +21,12 @@ const routes: RouteRecordRaw[] = [
     path: '/documents',
     name: 'documents',
     component: DocumentsPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/documents/:documentId',
+    name: 'document-detail',
+    component: DocumentDetailPage,
     meta: { requiresAuth: true },
   },
   {

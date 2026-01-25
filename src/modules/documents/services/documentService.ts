@@ -36,6 +36,9 @@ export const DocumentService = {
   getOne: (uuid: string) => 
     api.get<Document>(`/documents/${uuid}`),
 
+  getById: (uuid: string) =>
+    api.get<Document>(`/documents/${uuid}`),
+
   getByCode: (code: string) =>
     api.get<Document>(`/documents/code/${code}`),
 

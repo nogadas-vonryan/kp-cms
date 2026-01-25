@@ -89,19 +89,12 @@
         
         <template #cell:actions="{ row }">
           <div class="flex gap-2">
-            <button
-              @click="viewDocument((row as unknown) as Document)"
+            <router-link
+              :to="`/documents/${(row as unknown as Document).uuid}`"
               class="text-blue-600 hover:text-blue-800 text-sm"
             >
               View
-            </button>
-            <button
-              v-if="isAdmin"
-              @click="editDocument((row as unknown) as Document)"
-              class="text-gray-600 hover:text-gray-800 text-sm"
-            >
-              Edit
-            </button>
+            </router-link>
             <button
               v-if="isAdmin"
               @click="deleteDocument((row as unknown) as Document)"
@@ -133,7 +126,7 @@
       </div>
     </div>
 
-    <!-- Create/Edit Modal -->
+    <!-- Create Modal -->
     <UiModal v-model:open="showCreateModal" title="Create Document">
       <form @submit.prevent="handleCreate" class="space-y-4">
         <div>
@@ -154,36 +147,6 @@
         <UiButton @click="showCreateModal = false">Cancel</UiButton>
         <UiButton @click="handleCreate" :loading="submitting">Create</UiButton>
       </template>
-    </UiModal>
-
-    <!-- View Modal -->
-    <UiModal v-model:open="showViewModal" :title="selectedDoc?.title || 'Document Details'">
-      <div v-if="selectedDoc" class="space-y-3">
-        <div>
-          <span class="text-sm font-medium text-gray-700">Code:</span>
-          <span class="ml-2 font-mono text-sm">{{ selectedDoc.code }}</span>
-        </div>
-        <div>
-          <span class="text-sm font-medium text-gray-700">Folder:</span>
-          <span class="ml-2 text-sm">{{ selectedDoc.folder_name }}</span>
-        </div>
-        <div>
-          <span class="text-sm font-medium text-gray-700">Files:</span>
-          <ul class="ml-2 mt-1 space-y-1">
-            <li v-for="file in selectedDoc.files" :key="file.file_name" class="text-sm">
-              {{ file.file_name }} ({{ formatSize(file.size) }})
-            </li>
-          </ul>
-        </div>
-        <div v-if="Object.keys(selectedDoc.fields).length > 0">
-          <span class="text-sm font-medium text-gray-700">Fields:</span>
-          <ul class="ml-2 mt-1 space-y-1">
-            <li v-for="(value, key) in selectedDoc.fields" :key="key" class="text-sm">
-              <span class="font-medium">{{ key }}:</span> {{ value }}
-            </li>
-          </ul>
-        </div>
-      </div>
     </UiModal>
   </div>
 </template>
@@ -227,8 +190,6 @@ const sortOptions = [
 ];
 
 const showCreateModal = ref(false);
-const showViewModal = ref(false);
-const selectedDoc = ref<Document | null>(null);
 const submitting = ref(false);
 const formError = ref('');
 
@@ -308,22 +269,6 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-function formatSize(bytes: number) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function viewDocument(doc: Document) {
-  selectedDoc.value = doc;
-  showViewModal.value = true;
-}
-
-function editDocument(doc: Document) {
-  // Simplified - could open edit modal
-  alert('Edit functionality: ' + doc.title);
-}
-
 async function deleteDocument(doc: Document) {
   if (!confirm(`Delete document "${doc.title}"?`)) return;
   
@@ -382,3 +327,4 @@ onMounted(() => {
   loadDocuments();
 });
 </script>
+

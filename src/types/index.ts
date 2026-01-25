@@ -1,6 +1,7 @@
 export type UserRole = 'RoleAdmin' | 'RoleUser';
 
 export type { PermissionAction } from '@/core/auth/usePermission';
+export type { ArchivistPlugin, PluginLocations, PluginContext } from '@/core/plugins/pluginRegistry';
 
 export interface AuthUser {
   id: string;
