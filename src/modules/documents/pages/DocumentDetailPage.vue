@@ -162,9 +162,17 @@
 
                   <!-- Text Field (Editable) -->
                   <div v-else-if="editMode && !Array.isArray(value)" class="space-y-2">
-                    <UiTextarea
+                    <UiSelect
+                      v-if="getFieldOptions(key)"
                       :model-value="value"
-                      @update:model-value="(v) => editForm.fields[key] = v"
+                      @update:model-value="(v: any) => editForm.fields[key] = v"
+                      :options="getFieldOptions(key)"
+                    />
+                    
+                    <UiTextarea
+                      v-else
+                      :model-value="value"
+                      @update:model-value="(v: any) => editForm.fields[key] = v"
                       placeholder="Field value"
                       :rows="getTextareaRows(value)"
                     />
@@ -309,10 +317,11 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
           <UiSelect
-            v-model="newField.isArray"
+            :model-value="newField.isArray ? '1' : '0'"
+            @update:model-value="(v) => (newField.isArray = v === '1')"
             :options="[
-              { value: false, label: 'Text' },
-              { value: true, label: 'Array' }
+              { value: '0', label: 'Text' },
+              { value: '1', label: 'Array' }
             ]"
           />
         </div>
@@ -330,6 +339,21 @@
             placeholder="Field value"
             :rows="3"
           />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Quick Add</label>
+          <div class="flex gap-2 mb-4">
+            <button 
+              type="button"
+              @click="newField.name = 'nature'; newField.isArray = false"
+              class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+            >+ Nature</button>
+            <button 
+              type="button"
+              @click="newField.name = 'status'; newField.isArray = false"
+              class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+            >+ Status</button>
+          </div>
         </div>
       </form>
       <template #footer>
@@ -366,6 +390,7 @@ import UiTextarea from '@/core/ui/components/UiTextarea.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
+import UiSelect from '@/core/ui/components/UiSelect.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -408,6 +433,26 @@ const newField = ref({
   isArray: false,
   initialValue: ''
 });
+
+// Define predefined options for specific fields
+const FIELD_OPTIONS = {
+  nature: [
+    { value: 'civil', label: 'Civil' },
+    { value: 'criminal', label: 'Criminal' }
+  ],
+  status: [
+    { value: 'case_filed', label: 'Case Filed' },
+    { value: 'arbitration', label: 'Arbitration' },
+    { value: 'mediation', label: 'Mediation' },
+    { value: 'conciliation', label: 'Conciliation' },
+    { value: 'repudiation', label: 'Repudiation' }
+  ]
+};
+
+function getFieldOptions(key: string) {
+  const opts = FIELD_OPTIONS[key as keyof typeof FIELD_OPTIONS] as { value: string; label: string }[] | undefined;
+  return opts ? [...opts] : undefined;
+}
 
 const pluginsWithLocation = computed(() => {
   return pluginStore.plugins.filter(p => {
