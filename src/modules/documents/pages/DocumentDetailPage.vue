@@ -56,6 +56,18 @@
       <div v-if="activeTab === 'details'" class="space-y-4">
         <UiCard>
           <div class="space-y-4">
+            <!-- Title (editable) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+              <div v-if="!isAdmin" class="text-sm">{{ document.title }}</div>
+              <UiInput
+                v-else
+                v-model="editForm.title"
+                required
+                placeholder="Document title"
+              />
+            </div>
+
             <!-- Document Info -->
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -79,25 +91,100 @@
               </div>
             </div>
 
-            <!-- Fields -->
-            <div v-if="Object.keys(document.fields).length > 0">
-              <h3 class="font-semibold text-gray-900 mb-3">Custom Fields</h3>
-              <div class="space-y-3">
-                <div v-for="(value, key) in document.fields" :key="key" class="grid grid-cols-2 gap-4">
-                  <label class="block text-sm font-medium text-gray-700">{{ key }}</label>
-                  <div v-if="!isAdmin" class="text-sm">{{ value }}</div>
-                  <UiInput
-                    v-else
-                    v-model="editForm.fields[key]"
-                    class="col-span-1"
-                  />
+            <!-- Custom Fields -->
+            <div v-if="Object.keys(document.fields).length > 0 || isAdmin">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-900">Custom Fields</h3>
+                <UiButton
+                  v-if="isAdmin"
+                  @click="showAddFieldModal = true"
+                  variant="secondary"
+                  class="text-sm"
+                >
+                  + Add Field
+                </UiButton>
+              </div>
+
+              <div v-if="Object.keys(editForm.fields).length > 0" class="space-y-4">
+                <div v-for="(value, key) in editForm.fields" :key="key" class="border border-gray-200 rounded p-3">
+                  <!-- Field Header -->
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-medium text-gray-900">{{ key }}</span>
+                    <div v-if="isAdmin" class="flex gap-2">
+                      <button
+                        v-if="!Array.isArray(value)"
+                        @click="convertToArray(key)"
+                        class="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
+                        title="Convert to array field"
+                      >
+                        Make Array
+                      </button>
+                      <button
+                        @click="deleteFieldConfirm(key)"
+                        class="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Text Field -->
+                  <div v-if="!Array.isArray(value)" class="space-y-2">
+                    <UiInput
+                      v-if="isAdmin"
+                      :value="value"
+                      @update:model-value="(v) => editForm.fields[key] = v"
+                      placeholder="Field value"
+                    />
+                    <div v-else class="text-sm">{{ value }}</div>
+                  </div>
+
+                  <!-- Array Field -->
+                  <div v-else class="space-y-2">
+                    <div
+                      v-for="(item, index) in value"
+                      :key="index"
+                      class="flex gap-2 items-center"
+                    >
+                      <UiInput
+                        v-if="isAdmin"
+                        :model-value="item"
+                        @update:model-value="(v) => (editForm.fields[key] as any[])[index] = v"
+                        placeholder="Item value"
+                        class="flex-1"
+                      />
+                      <div v-else class="flex-1 text-sm">{{ item }}</div>
+                      <button
+                        v-if="isAdmin"
+                        @click="removeArrayItem(key, index)"
+                        class="text-red-600 hover:text-red-800 text-sm px-2"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <button
+                      v-if="isAdmin"
+                      @click="addArrayItem(key)"
+                      class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2"
+                    >
+                      + Add Item
+                    </button>
+                  </div>
                 </div>
+              </div>
+
+              <div v-else class="text-sm text-gray-600 text-center py-4">
+                No custom fields
               </div>
             </div>
 
             <!-- Edit Form -->
             <div v-if="isAdmin" class="pt-4 border-t border-gray-200">
-              <UiButton @click="saveChanges" :loading="saving" :disabled="!hasChanges">
+              <UiButton 
+                @click="saveChanges" 
+                :loading="saving" 
+                :disabled="!hasChanges || !editForm.title.trim()"
+              >
                 Save Changes
               </UiButton>
             </div>
@@ -152,6 +239,60 @@
         <UiButton @click="handleDelete" :loading="deleting" variant="danger">Delete</UiButton>
       </template>
     </UiModal>
+
+    <!-- Add Field Modal -->
+    <UiModal v-model:open="showAddFieldModal" title="Add Custom Field">
+      <form @submit.prevent="handleAddField" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Field Name *</label>
+          <UiInput
+            v-model="newField.name"
+            placeholder="e.g., status, category"
+            required
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
+          <UiSelect
+            v-model="newField.isArray"
+            :options="[
+              { value: false, label: 'Text' },
+              { value: true, label: 'Array' }
+            ]"
+          />
+        </div>
+        <div v-if="newField.isArray">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Initial Items (comma-separated, optional)</label>
+          <UiInput
+            v-model="newField.initialValue"
+            placeholder="item1, item2, item3"
+          />
+        </div>
+        <div v-else>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Initial Value (optional)</label>
+          <UiInput
+            v-model="newField.initialValue"
+            placeholder="Field value"
+          />
+        </div>
+      </form>
+      <template #footer>
+        <UiButton @click="showAddFieldModal = false">Cancel</UiButton>
+        <UiButton @click="handleAddField">Add Field</UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Delete Field Confirmation Modal -->
+    <UiModal v-model:open="showDeleteFieldConfirm" title="Delete Field">
+      <p class="text-gray-700">
+        Are you sure you want to delete the field "<strong>{{ fieldToDelete }}</strong>"?
+      </p>
+      <p class="text-sm text-gray-600 mt-2">This action cannot be undone.</p>
+      <template #footer>
+        <UiButton @click="showDeleteFieldConfirm = false">Cancel</UiButton>
+        <UiButton @click="confirmDeleteField" variant="danger">Delete</UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>
 
@@ -197,7 +338,17 @@ const editForm = ref({
   title: '',
   code: '',
   folder_name: '',
-  fields: {} as Record<string, string>
+  fields: {} as Record<string, any>
+});
+
+const showAddFieldModal = ref(false);
+const showDeleteFieldConfirm = ref(false);
+const fieldToDelete = ref('');
+
+const newField = ref({
+  name: '',
+  isArray: false,
+  initialValue: ''
 });
 
 const pluginsWithLocation = computed(() => {
@@ -232,6 +383,65 @@ const hasChanges = computed(() => {
     JSON.stringify(editForm.value.fields) !== JSON.stringify(document.value.fields)
   );
 });
+
+function convertToArray(fieldName: string) {
+  const current = editForm.value.fields[fieldName];
+  if (!Array.isArray(current)) {
+    editForm.value.fields[fieldName] = current ? [current] : [''];
+  }
+}
+
+function addArrayItem(fieldName: string) {
+  const field = editForm.value.fields[fieldName];
+  if (Array.isArray(field)) {
+    field.push('');
+  }
+}
+
+function removeArrayItem(fieldName: string, index: number) {
+  const field = editForm.value.fields[fieldName];
+  if (Array.isArray(field)) {
+    field.splice(index, 1);
+  }
+}
+
+function deleteFieldConfirm(fieldName: string) {
+  fieldToDelete.value = fieldName;
+  showDeleteFieldConfirm.value = true;
+}
+
+function confirmDeleteField() {
+  if (fieldToDelete.value) {
+    delete editForm.value.fields[fieldToDelete.value];
+    fieldToDelete.value = '';
+    showDeleteFieldConfirm.value = false;
+  }
+}
+
+function handleAddField() {
+  if (!newField.value.name.trim()) return;
+
+  const fieldName = newField.value.name.trim();
+  if (editForm.value.fields.hasOwnProperty(fieldName)) {
+    alert('Field already exists');
+    return;
+  }
+
+  if (newField.value.isArray) {
+    // Parse comma-separated values
+    const items = newField.value.initialValue
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+    editForm.value.fields[fieldName] = items.length > 0 ? items : [''];
+  } else {
+    editForm.value.fields[fieldName] = newField.value.initialValue;
+  }
+
+  // Reset form
+  newField.value = { name: '', isArray: false, initialValue: '' };
+  showAddFieldModal.value = false;
+};
 
 async function loadDocument() {
   loading.value = true;
