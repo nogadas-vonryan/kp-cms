@@ -139,6 +139,14 @@
                         Make Array
                       </button>
                       <button
+                        v-else
+                        @click="convertToText(key)"
+                        class="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
+                        title="Convert to text field"
+                      >
+                        Make Text
+                      </button>
+                      <button
                         @click="deleteFieldConfirm(key)"
                         class="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded"
                       >
@@ -421,6 +429,17 @@ function convertToArray(fieldName: string) {
   const current = editForm.value.fields[fieldName];
   if (!Array.isArray(current)) {
     editForm.value.fields[fieldName] = current ? [current] : [''];
+  }
+}
+
+function convertToText(fieldName: string) {
+  const current = editForm.value.fields[fieldName];
+  if (Array.isArray(current)) {
+    const joined = current
+      .map((item) => (item ?? '').toString())
+      .filter((item) => item.length > 0)
+      .join('\n');
+    editForm.value.fields[fieldName] = joined;
   }
 }
 
