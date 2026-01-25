@@ -226,7 +226,7 @@
             </div>
 
             <!-- Edit Form Footer -->
-            <div v-if="editMode" class="pt-4 border-t border-gray-200 flex gap-2">
+            <div v-if="editMode" class="sticky bottom-0 z-10 -mx-6 -mb-6 mt-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 p-4 flex gap-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               <UiButton 
                 @click="saveChanges" 
                 :loading="saving" 
