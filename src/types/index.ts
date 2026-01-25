@@ -60,6 +60,17 @@ export interface AuthResponse {
   csrf_token: string;
 }
 
+// Server returns capitalized keys; we map these to AuthResponse before storing
+export interface ServerAuthUser {
+  ID: string;
+  Role: string;
+}
+
+export interface ServerAuthResponse {
+  user: ServerAuthUser;
+  csrf_token: string;
+}
+
 export interface RegisterRequest {
   username: string;
   password: string;
