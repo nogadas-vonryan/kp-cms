@@ -128,7 +128,7 @@
                 ]">
                   <!-- Field Header -->
                   <div class="flex items-center justify-between mb-2">
-                    <span class="font-medium text-gray-900">{{ key }}</span>
+                    <span class="font-medium text-gray-900">{{ formatLabel(key) }}</span>
                     <div v-if="editMode" class="flex gap-2">
                       <button
                         v-if="!Array.isArray(value)"
@@ -365,7 +365,7 @@
     <!-- Delete Field Confirmation Modal -->
     <UiModal v-model:open="showDeleteFieldConfirm" title="Delete Field">
       <p class="text-gray-700">
-        Are you sure you want to delete the field "<strong>{{ fieldToDelete }}</strong>"?
+        Are you sure you want to delete the field "<strong>{{ formatLabel(fieldToDelete) }}</strong>"?
       </p>
       <p class="text-sm text-gray-600 mt-2">This action cannot be undone.</p>
       <template #footer>
@@ -663,6 +663,13 @@ function formatSize(bytes: number) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function formatLabel(key: string): string {
+  return key
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 onMounted(() => {
