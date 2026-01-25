@@ -4,17 +4,18 @@ import (
 	"testing"
 )
 
-func TestAddUserAndAuthenticate_Success(t *testing.T) {
+func TestUserStore_AddUserAndAuthenticate_Success(t *testing.T) {
+	store := NewUserStore()
 	username := "testuser"
 	password := "testpass"
 	role := RoleUser
 
-	err := AddUser(username, password, role)
+	err := store.AddUser(username, password, role)
 	if err != nil {
 		t.Fatalf("AddUser failed: %v", err)
 	}
 
-	user, err := Authenticate(username, password)
+	user, err := store.Authenticate(username, password)
 	if err != nil {
 		t.Fatalf("Authenticate failed: %v", err)
 	}
@@ -26,29 +27,70 @@ func TestAddUserAndAuthenticate_Success(t *testing.T) {
 	}
 }
 
-func TestAuthenticate_InvalidPassword(t *testing.T) {
+func TestUserStore_Authenticate_InvalidPassword(t *testing.T) {
+	store := NewUserStore()
 	username := "user2"
 	password := "pass2"
-	AddUser(username, password, RoleUser)
+	store.AddUser(username, password, RoleUser)
 
-	_, err := Authenticate(username, "wrongpass")
-	if err == nil {
-		t.Error("expected error for invalid password, got nil")
+	_, err := store.Authenticate(username, "wrongpass")
+	if err != ErrInvalidCredentials {
+		t.Errorf("expected ErrInvalidCredentials, got %v", err)
 	}
 }
 
-func TestAuthenticate_UserNotFound(t *testing.T) {
-	_, err := Authenticate("nouser", "nopass")
-	if err == nil {
-		t.Error("expected error for user not found, got nil")
+func TestUserStore_Authenticate_UserNotFound(t *testing.T) {
+	store := NewUserStore()
+	_, err := store.Authenticate("nouser", "nopass")
+	if err != ErrUserNotFound {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
 	}
 }
 
-func TestRequireRole(t *testing.T) {
-	// This is a basic test for the RequireRole middleware logic.
-	// Full HTTP middleware tests would require httptest, but we can check the function signature here.
-	mw := RequireRole(RoleAdmin)
-	if mw == nil {
-		t.Error("RequireRole should return a middleware function")
+func TestUserStore_AddUser_Duplicate(t *testing.T) {
+	store := NewUserStore()
+	username := "dupuser"
+	password := "pass"
+
+	err := store.AddUser(username, password, RoleUser)
+	if err != nil {
+		t.Fatalf("first AddUser failed: %v", err)
+	}
+
+	err = store.AddUser(username, password, RoleUser)
+	if err != ErrUserExists {
+		t.Errorf("expected ErrUserExists, got %v", err)
+	}
+}
+
+func TestUserStore_UpdateRole(t *testing.T) {
+	store := NewUserStore()
+	username := "roleuser"
+	store.AddUser(username, "pass", RoleUser)
+
+	err := store.UpdateRole(username, RoleAdmin)
+	if err != nil {
+		t.Fatalf("UpdateRole failed: %v", err)
+	}
+
+	user, _ := store.GetUser(username)
+	if user.Role != RoleAdmin {
+		t.Errorf("expected role %s, got %s", RoleAdmin, user.Role)
+	}
+}
+
+func TestUserStore_DeleteUser(t *testing.T) {
+	store := NewUserStore()
+	username := "deluser"
+	store.AddUser(username, "pass", RoleUser)
+
+	err := store.DeleteUser(username)
+	if err != nil {
+		t.Fatalf("DeleteUser failed: %v", err)
+	}
+
+	_, err = store.GetUser(username)
+	if err != ErrUserNotFound {
+		t.Errorf("expected ErrUserNotFound after delete, got %v", err)
 	}
 }
