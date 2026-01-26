@@ -1,8 +1,6 @@
 package document
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestRegexStrategy_ExtractCode(t *testing.T) {
 	tests := []struct {
@@ -12,6 +10,20 @@ func TestRegexStrategy_ExtractCode(t *testing.T) {
 		wantCode  string
 		wantFound bool
 	}{
+		{
+			name:      "DDDYY valid",
+			strategy:  NewNamingStrategyDDDYY(2026),
+			dirName:   "001-26",
+			wantCode:  "001-26",
+			wantFound: true,
+		},
+		{
+			name:      "PrefixDDDYY valid",
+			strategy:  NewNamingStrategyPrefixDDDYY("case", 2023),
+			dirName:   "case-099-23",
+			wantCode:  "099-23",
+			wantFound: true,
+		},
 		{
 			name:      "CaseDDDD valid",
 			strategy:  NewNamingStrategyCaseDDDD("case"),
@@ -113,6 +125,20 @@ func TestRegexStrategy_GenerateDirName(t *testing.T) {
 		want     string
 	}{
 		{
+			name:     "DDDYY generates correct format",
+			strategy: NewNamingStrategyDDDYY(2026),
+			code:     "001-26",
+			title:    "My Document",
+			want:     "001-26",
+		},
+		{
+			name:     "PrefixDDDYY generates correct format",
+			strategy: NewNamingStrategyPrefixDDDYY("case", 2023),
+			code:     "099-23",
+			title:    "My Document",
+			want:     "case-099-23",
+		},
+		{
 			name:     "CaseDDDD generates correct format",
 			strategy: NewNamingStrategyCaseDDDD("case"),
 			code:     "0042",
@@ -166,6 +192,30 @@ func TestRegexStrategy_CalculateNextCode(t *testing.T) {
 		existingCode []string
 		want         string
 	}{
+		{
+			name:         "DDDYY empty list",
+			strategy:     NewNamingStrategyDDDYY(2026),
+			existingCode: []string{},
+			want:         "001-26",
+		},
+		{
+			name:         "DDDYY with codes",
+			strategy:     NewNamingStrategyDDDYY(2026),
+			existingCode: []string{"001-26", "010-26", "009-26"},
+			want:         "011-26",
+		},
+		{
+			name:         "PrefixDDDYY empty list",
+			strategy:     NewNamingStrategyPrefixDDDYY("case", 2023),
+			existingCode: []string{},
+			want:         "001-23",
+		},
+		{
+			name:         "PrefixDDDYY with codes",
+			strategy:     NewNamingStrategyPrefixDDDYY("case", 2023),
+			existingCode: []string{"099-23", "100-23", "010-23"},
+			want:         "101-23",
+		},
 		{
 			name:         "CaseDDDD empty list",
 			strategy:     NewNamingStrategyCaseDDDD("case"),
@@ -252,6 +302,18 @@ func TestNamingStrategyConstructors(t *testing.T) {
 		expectedCode string
 	}{
 		{
+			name:         "NewNamingStrategyDDDYY",
+			constructor:  func() *RegexStrategy { return NewNamingStrategyDDDYY(2026) },
+			testDirName:  "001-26",
+			expectedCode: "001-26",
+		},
+		{
+			name:         "NewNamingStrategyPrefixDDDYY",
+			constructor:  func() *RegexStrategy { return NewNamingStrategyPrefixDDDYY("case", 2023) },
+			testDirName:  "case-099-23",
+			expectedCode: "099-23",
+		},
+		{
 			name:         "NewNamingStrategyCaseDDDD",
 			constructor:  func() *RegexStrategy { return NewNamingStrategyCaseDDDD("case") },
 			testDirName:  "case_0050",
@@ -301,6 +363,16 @@ func TestRegexStrategy_RoundTrip(t *testing.T) {
 		strategy *RegexStrategy
 		code     string
 	}{
+		{
+			name:     "DDDYY round trip",
+			strategy: NewNamingStrategyDDDYY(2026),
+			code:     "001-26",
+		},
+		{
+			name:     "PrefixDDDYY round trip",
+			strategy: NewNamingStrategyPrefixDDDYY("case", 2023),
+			code:     "099-23",
+		},
 		{
 			name:     "CaseDDDD round trip",
 			strategy: NewNamingStrategyCaseDDDD("case"),
