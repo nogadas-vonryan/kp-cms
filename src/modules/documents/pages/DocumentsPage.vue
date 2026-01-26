@@ -273,6 +273,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
+import { extractErrorMessage } from '@/core/api';
 import type { Document, CreateDocumentRequest } from '@/types';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
@@ -359,14 +360,15 @@ const columns = [
 ];
 
 const parseSystemError = (err: any): string => {
-  const rawError = err.response?.data?.error || '';
-  
-  // Specific check for physical folder mismatch
+  const extracted = extractErrorMessage(err);
+  const rawError = err?.response?.data?.error || '';
+
+  // Specific check for physical folder mismatch (prefer this specific message)
   if (rawError.includes('no such file or directory') || rawError.includes('scanning physical folder')) {
     return 'Physical directory mismatch detected. Please reload documents in the admin dashboard.';
   }
-  
-  return rawError || 'An unexpected system error occurred.';
+
+  return extracted || rawError || 'An unexpected system error occurred.';
 };
 
 async function loadDocuments() {
@@ -452,7 +454,7 @@ async function handleCreate() {
     form.value = { title: '', code: '', folder_name: '', fields: {} };
     loadDocuments();
   } catch (err: any) {
-    formError.value = err.response?.data?.error || 'Failed to create document';
+    formError.value = extractErrorMessage(err) || 'Failed to create document';
   } finally {
     submitting.value = false;
   }

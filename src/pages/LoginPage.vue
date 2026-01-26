@@ -60,6 +60,7 @@
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { AuthService } from '@/modules/auth/services/authService';
+import { extractErrorMessage } from '@/core/api';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
@@ -82,7 +83,7 @@ async function handleSubmit() {
     const redirect = (route.query.redirect as string) || '/documents';
     router.push(redirect);
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Login failed. Please try again.';
+    error.value = extractErrorMessage(err) || 'Login failed. Please try again.';
   } finally {
     loading.value = false;
   }
