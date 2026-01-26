@@ -77,6 +77,7 @@
           v-bind="currentTabProps"
           @saved="onDocumentSaved"
           @cancel="editMode = false"
+          @refresh="loadDocument"
         />
       </KeepAlive>
       
