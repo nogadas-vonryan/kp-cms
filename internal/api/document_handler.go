@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"io/fs"
 	"net/http"
 	"strconv"
@@ -221,6 +222,68 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 			"message":   "file uploaded successfully",
 			"file_name": fileName,
 		})
+	}
+}
+
+type UpdateFileMetadataRequest struct {
+	Description string `json:"description"`
+	Note        string `json:"note"`
+}
+
+func (s *Server) handleDownloadFile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := chi.URLParam(r, "uuid")
+		fileName := chi.URLParam(r, "fileName")
+
+		if uuid == "" || fileName == "" {
+			respondError(w, http.StatusBadRequest, "uuid and file name are required")
+			return
+		}
+
+		fileReader, err := s.documentService.DownloadFile(r.Context(), uuid, fileName)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				respondError(w, http.StatusNotFound, "file or document not found")
+				return
+			}
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer fileReader.Close()
+
+		// Set headers to trigger a download in the browser
+		w.Header().Set("Content-Disposition", "attachment; filename="+fileName)
+		w.Header().Set("Content-Type", "application/octet-stream")
+
+		if _, err := io.Copy(w, fileReader); err != nil {
+			// Headers are already sent, so we can't respond with JSON here
+			return
+		}
+	}
+}
+
+func (s *Server) handleUpdateFileMetadata() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := chi.URLParam(r, "uuid")
+		fileName := chi.URLParam(r, "fileName")
+
+		var req UpdateFileMetadataRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, req.Description, req.Note)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				respondError(w, http.StatusNotFound, "file or document not found")
+				return
+			}
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{"message": "metadata updated successfully"})
 	}
 }
 

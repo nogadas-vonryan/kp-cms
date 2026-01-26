@@ -82,6 +82,20 @@ func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName 
 	return s.repo.UploadFile(ctx, uuid, fileName, content)
 }
 
+func (s *DocumentService) DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error) {
+	if uuid == "" || fileName == "" {
+		return nil, errors.New("uuid and fileName are required")
+	}
+	return s.repo.DownloadFile(ctx, uuid, fileName)
+}
+
+func (s *DocumentService) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, description string, note string) error {
+	if uuid == "" || fileName == "" {
+		return errors.New("uuid and fileName are required")
+	}
+	return s.repo.UpdateFileMetadata(ctx, uuid, fileName, description, note)
+}
+
 func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName string) error {
 	if uuid == "" {
 		return errors.New("uuid is required")

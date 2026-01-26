@@ -89,13 +89,18 @@ func (s *Server) routes() {
 			r.Get("/{uuid}", s.handleGetDocumentByUUID())
 			r.Get("/code/{code}", s.handleGetDocumentByCode())
 
+			r.Get("/{uuid}/files/{fileName}", s.handleDownloadFile())
+
 			r.Group(func(admin chi.Router) {
 				admin.Use(auth.RequireRole(auth.RoleAdmin))
 
 				admin.Post("/", s.handleCreateDocument())
 				admin.Put("/{uuid}", s.handleUpdateDocument())
-				admin.Post("/{uuid}/files", s.handleUploadFile())
 				admin.Delete("/{uuid}", s.handleDeleteDocument())
+
+				admin.Post("/{uuid}/files", s.handleUploadFile())
+				admin.Put("/{uuid}/files/{fileName}", s.handleUpdateFileMetadata())
+				admin.Delete("/{uuid}/files/{fileName}", s.handleDeleteFile())
 
 				admin.Get("/conflicts", s.handleGetConflicts())
 				admin.Post("/reload", s.handleReloadDocuments())
