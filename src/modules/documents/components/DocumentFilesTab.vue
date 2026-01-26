@@ -221,18 +221,25 @@ const filteredFiles = computed(() => {
 });
 
 /**
- * FIXED DOWNLOAD LOGIC
- * Creates a temporary link to force the browser to recognize the download stream.
+ * Downloads file with proper authentication using blob.
  */
-function downloadFile(fileName: string) {
-  const url = DocumentService.getFileDownloadUrl(props.document.uuid, fileName);
-  const link = document.createElement('a');
-  link.href = url;
-  // This attribute hints to the browser to download instead of navigate
-  link.setAttribute('download', fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+async function downloadFile(fileName: string) {
+  try {
+    const blob = await DocumentService.downloadFile(props.document.uuid, fileName);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error: any) {
+    statusMessage.value = {
+      type: 'error',
+      text: getErrorMessage(error)
+    };
+  }
 }
 
 function startEdit(file: any) {

@@ -61,12 +61,14 @@ export const DocumentService = {
   },
 
   /**
-   * Triggers a browser download for a specific file.
-   * Instead of a standard API call, this constructs the URL for the user to open.
+   * Downloads a file with proper authentication.
+   * Returns the file as a blob so it can be downloaded with auth headers.
    */
-  getFileDownloadUrl: (uuid: string, fileName: string) => {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || '';
-    return `${baseURL}/documents/${uuid}/files/${fileName}`;
+  downloadFile: async (uuid: string, fileName: string) => {
+    const response = await api.get(`/documents/${uuid}/files/${fileName}`, {
+      responseType: 'blob'
+    });
+    return response.data;
   },
 
   /**
