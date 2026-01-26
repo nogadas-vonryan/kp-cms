@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -261,7 +262,14 @@ type UpdateFileMetadataRequest struct {
 func (s *Server) handleDownloadFile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
-		fileName := chi.URLParam(r, "fileName")
+		fileNameParam := chi.URLParam(r, "fileName")
+
+		// Chi parameters may still contain percent-encoding; normalize to the actual filename on disk
+		fileName, err := url.PathUnescape(fileNameParam)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
 
 		if uuid == "" || fileName == "" {
 			respondError(w, http.StatusBadRequest, "uuid and file name are required")
@@ -293,7 +301,12 @@ func (s *Server) handleDownloadFile() http.HandlerFunc {
 func (s *Server) handleUpdateFileMetadata() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
-		fileName := chi.URLParam(r, "fileName")
+		fileNameParam := chi.URLParam(r, "fileName")
+		fileName, err := url.PathUnescape(fileNameParam)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
 
 		var req UpdateFileMetadataRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -311,7 +324,7 @@ func (s *Server) handleUpdateFileMetadata() http.HandlerFunc {
 			updates.Tags = req.Tags
 		}
 
-		err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, updates)
+		err = s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, updates)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				respondError(w, http.StatusNotFound, "file or document not found")
@@ -333,7 +346,12 @@ func (s *Server) handleDeleteFile() http.HandlerFunc {
 			return
 		}
 
-		fileName := chi.URLParam(r, "fileName")
+		fileNameParam := chi.URLParam(r, "fileName")
+		fileName, err := url.PathUnescape(fileNameParam)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
 		if fileName == "" {
 			respondError(w, http.StatusBadRequest, "file name is required")
 			return
