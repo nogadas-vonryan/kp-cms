@@ -18,7 +18,7 @@ type File struct {
 	FileName    string    `json:"file_name"`
 	Description string    `json:"description"`
 	Note        string    `json:"note"`
-	KPFormType  KPForm    `json:"kp_form_type"`
+	Tags        []string  `json:"tags"`
 	Type        string    `json:"type"`
 	Size        int64     `json:"size"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -27,9 +27,9 @@ type File struct {
 // FileMetadataUpdate carries optional updates to a file's metadata.
 // A nil field means "leave as-is"; non-nil values overwrite existing data.
 type FileMetadataUpdate struct {
-	Description *string `json:"description,omitempty"`
-	Note        *string `json:"note,omitempty"`
-	KPFormType  *KPForm `json:"kp_form_type,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	Note        *string   `json:"note,omitempty"`
+	Tags        *[]string `json:"tags,omitempty"`
 }
 
 type SearchCriteria struct {
@@ -45,10 +45,4 @@ type SearchCriteria struct {
 	SortDesc     bool           // sort descending when true
 	Offset       int            // pagination offset
 	Limit        int            // pagination limit
-}
-
-type KPForm uint8
-
-func (k KPForm) IsValid() bool {
-	return k <= 27
 }

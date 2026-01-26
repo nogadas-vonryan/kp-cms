@@ -206,21 +206,8 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 				note := noteVals[0]
 				metadataUpdate.Note = &note
 			}
-			if kpVals, ok := r.MultipartForm.Value["kp_form_type"]; ok && len(kpVals) > 0 {
-				kpFormStr := kpVals[0]
-				if kpFormStr != "" {
-					kpParsed, err := strconv.Atoi(kpFormStr)
-					if err != nil {
-						respondError(w, http.StatusBadRequest, "kp_form_type must be a number")
-						return
-					}
-					kpForm := document.KPForm(kpParsed)
-					if !kpForm.IsValid() {
-						respondError(w, http.StatusBadRequest, "invalid kp_form_type")
-						return
-					}
-					metadataUpdate.KPFormType = &kpForm
-				}
+			if tagVals, ok := r.MultipartForm.Value["tags[]"]; ok && len(tagVals) > 0 {
+				metadataUpdate.Tags = &tagVals
 			}
 		}
 
@@ -246,7 +233,7 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 			return
 		}
 
-		hasMetadataUpdate := metadataUpdate.Description != nil || metadataUpdate.Note != nil || metadataUpdate.KPFormType != nil
+		hasMetadataUpdate := metadataUpdate.Description != nil || metadataUpdate.Note != nil || metadataUpdate.Tags != nil
 		if hasMetadataUpdate {
 			if err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, metadataUpdate); err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
@@ -266,9 +253,9 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 }
 
 type UpdateFileMetadataRequest struct {
-	Description *string `json:"description"`
-	Note        *string `json:"note"`
-	KPFormType  *uint8  `json:"kp_form_type"`
+	Description *string   `json:"description"`
+	Note        *string   `json:"note"`
+	Tags        *[]string `json:"tags"`
 }
 
 func (s *Server) handleDownloadFile() http.HandlerFunc {
@@ -320,13 +307,8 @@ func (s *Server) handleUpdateFileMetadata() http.HandlerFunc {
 		if req.Note != nil {
 			updates.Note = req.Note
 		}
-		if req.KPFormType != nil {
-			kpForm := document.KPForm(*req.KPFormType)
-			if !kpForm.IsValid() {
-				respondError(w, http.StatusBadRequest, "invalid kp_form_type")
-				return
-			}
-			updates.KPFormType = &kpForm
+		if req.Tags != nil {
+			updates.Tags = req.Tags
 		}
 
 		err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, updates)

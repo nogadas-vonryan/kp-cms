@@ -78,11 +78,8 @@ func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid st
 			if updates.Note != nil {
 				files[i].Note = *updates.Note
 			}
-			if updates.KPFormType != nil {
-				if !updates.KPFormType.IsValid() {
-					return errors.New("invalid kp form type")
-				}
-				files[i].KPFormType = *updates.KPFormType
+			if updates.Tags != nil {
+				files[i].Tags = *updates.Tags
 			}
 			found = true
 			break
