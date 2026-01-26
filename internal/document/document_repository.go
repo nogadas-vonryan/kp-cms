@@ -29,6 +29,7 @@ type FileStore interface {
 type CacheStore interface {
 	GetConflicts(ctx context.Context) ([]SyncIssue, error)
 	ReloadCache(ctx context.Context) ([]SyncIssue, error)
+	ReloadCacheForFolder(ctx context.Context, folderName string) ([]SyncIssue, error)
 }
 
 type DocumentRepository interface {

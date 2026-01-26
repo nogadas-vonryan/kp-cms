@@ -398,6 +398,28 @@ func (s *Server) handleReloadDocuments() http.HandlerFunc {
 	}
 }
 
+func (s *Server) handleReloadDocument() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		folderName := chi.URLParam(r, "folderName")
+		if folderName == "" {
+			respondError(w, http.StatusBadRequest, "folder name is required")
+			return
+		}
+
+		conflicts, err := s.documentService.ReloadCacheForFolder(r.Context(), folderName)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		response := map[string]interface{}{
+			"status":    "success",
+			"conflicts": conflicts,
+		}
+		respondJSON(w, http.StatusOK, response)
+	}
+}
+
 func (s *Server) handleSearchDocuments() http.HandlerFunc {
 	const MaxLimit = 100
 

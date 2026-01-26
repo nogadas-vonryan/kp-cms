@@ -104,6 +104,7 @@ func (s *Server) routes() {
 
 				admin.Get("/conflicts", s.handleGetConflicts())
 				admin.Post("/reload", s.handleReloadDocuments())
+				admin.Post("/reload/{folderName}", s.handleReloadDocument())
 			})
 		})
 	})

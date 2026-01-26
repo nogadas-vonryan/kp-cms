@@ -166,6 +166,110 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 	return issues, nil
 }
 
+func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folderName string) ([]SyncIssue, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+
+	log.Printf("[Cache] Starting reload of single document folder: %s", folderName)
+	start := time.Now()
+
+	var issues []SyncIssue
+	metaPath := filepath.Join(r.basePath, folderName, "meta.json")
+
+	// Check if folder exists
+	folderPath := filepath.Join(r.basePath, folderName)
+	if stat, err := os.Stat(folderPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("folder does not exist: %s", folderName)
+		}
+		return nil, fmt.Errorf("failed to access folder: %w", err)
+	} else if !stat.IsDir() {
+		return nil, fmt.Errorf("path is not a directory: %s", folderName)
+	}
+
+	// Read document metadata
+	doc, err := readDocument(metaPath)
+	if err != nil {
+		issues = append(issues, SyncIssue{
+			Type:    "MISSING_META",
+			Path:    folderName,
+			Message: fmt.Sprintf("could not read meta.json: %v", err),
+		})
+		return issues, fmt.Errorf("failed to read meta.json: %w", err)
+	}
+
+	// Extract and validate folder code
+	folderCode, ok := r.namingStrategy.ExtractCode(folderName)
+	if !ok {
+		if doc.Code == "" {
+			issues = append(issues, SyncIssue{
+				Type:    "INVALID_FOLDER",
+				Path:    folderName,
+				Message: "folder name does not match naming strategy and meta.json has no code",
+			})
+			return issues, errors.New("invalid folder name and missing code in meta.json")
+		}
+		folderCode = doc.Code
+	}
+
+	// Fix code mismatch if needed
+	if doc.Code != folderCode {
+		log.Printf("[Cache] Fixing code mismatch for %s: meta(%s) -> folder(%s)", folderName, doc.Code, folderCode)
+		oldCode := doc.Code
+		doc.Code = folderCode
+
+		// Write the fix synchronously for single folder reload
+		if err := writeDocument(metaPath, doc); err != nil {
+			log.Printf("[Cache] Auto-heal failed for %s: %v", folderName, err)
+			issues = append(issues, SyncIssue{
+				Type:    "AUTO_HEAL_FAILED",
+				Path:    folderName,
+				Message: fmt.Sprintf("failed to fix code mismatch: %v", err),
+			})
+		}
+
+		// Update cache - need to remove old code entry if it exists
+		r.mu.Lock()
+		if oldCode != "" && oldCode != folderCode {
+			delete(r.cacheByCode, oldCode)
+		}
+		r.mu.Unlock()
+	}
+
+	// Check for conflicts with existing cache entries
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if existing, exists := r.cacheByCode[doc.Code]; exists && existing.FolderName != folderName {
+		issues = append(issues, SyncIssue{
+			Type:    "DUPLICATE_CODE",
+			Path:    folderName,
+			Message: fmt.Sprintf("code '%s' already claimed by folder '%s'", doc.Code, existing.FolderName),
+		})
+		return issues, fmt.Errorf("duplicate code conflict: %s", doc.Code)
+	}
+
+	if existing, exists := r.cacheByUUID[doc.UUID]; exists && existing.FolderName != folderName {
+		issues = append(issues, SyncIssue{
+			Type:    "DUPLICATE_UUID",
+			Path:    folderName,
+			Message: fmt.Sprintf("UUID '%s' already claimed by folder '%s'", doc.UUID, existing.FolderName),
+		})
+		return issues, fmt.Errorf("duplicate UUID conflict: %s", doc.UUID)
+	}
+
+	// Update cache
+	doc.FolderName = folderName
+	r.addToCache(doc)
+	r.rebuildSortedCodesLocked()
+
+	log.Printf("[Cache] Reloaded document folder %s in %v (found %d issues)",
+		folderName, time.Since(start), len(issues))
+
+	return issues, nil
+}
+
 func (r *FileDocumentRepository) GetConflicts(ctx context.Context) ([]SyncIssue, error) {
 	return r.lastConflicts, nil
 }

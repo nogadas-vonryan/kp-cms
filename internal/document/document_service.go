@@ -115,6 +115,10 @@ func (s *DocumentService) ReloadCache(ctx context.Context) ([]SyncIssue, error) 
 	return s.repo.ReloadCache(ctx)
 }
 
+func (s *DocumentService) ReloadCacheForFolder(ctx context.Context, folderName string) ([]SyncIssue, error) {
+	return s.repo.ReloadCacheForFolder(ctx, folderName)
+}
+
 func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error) {
 	return s.repo.Search(ctx, criteria)
 }
