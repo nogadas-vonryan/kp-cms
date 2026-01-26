@@ -127,7 +127,7 @@ func TestFix3_DeleteFileMetadataAlwaysUpdated(t *testing.T) {
 	}
 
 	// Add file to metadata
-	err = repo.AddFile(ctx, created.UUID, File{
+	err = repo.AddFileMetadata(ctx, created.UUID, File{
 		FileName:  "testfile.txt",
 		Type:      ".txt",
 		Size:      12,
