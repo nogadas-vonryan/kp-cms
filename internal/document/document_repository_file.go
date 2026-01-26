@@ -185,9 +185,6 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 	if doc.Fields == nil {
 		doc.Fields = map[string]any{}
 	}
-	if doc.CreatedAt.IsZero() {
-		doc.CreatedAt = time.Now().UTC()
-	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
