@@ -252,6 +252,7 @@ func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string
 		Fields:     doc.Fields,
 		Files:      files,
 		CreatedAt:  doc.CreatedAt,
+		UpdatedAt:  doc.UpdatedAt,
 	}
 	return resp, nil
 }
@@ -282,6 +283,7 @@ func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*D
 		Fields:     doc.Fields,
 		Files:      files,
 		CreatedAt:  doc.CreatedAt,
+		UpdatedAt:  doc.UpdatedAt,
 	}
 	return resp, nil
 }
