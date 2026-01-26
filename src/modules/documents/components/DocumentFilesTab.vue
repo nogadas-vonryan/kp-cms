@@ -31,7 +31,7 @@
         />
       </div>
 
-      <UiSystemNotice v-model="statusMessage" />
+      <UiSystemNotice v-model="statusMessage" :type="(statusMessage && statusMessage.type) ? statusMessage.type : 'success'" />
 
       <div class="space-y-0 divide-y divide-gray-200 border-t border-gray-200">
         <div v-if="filteredFiles.length === 0" class="py-12 text-center text-sm text-gray-500 italic">
@@ -111,6 +111,7 @@
 import { ref, computed } from 'vue';
 import { UiCard } from '@/core/ui';
 import { DocumentService } from '@/modules/documents/services/documentService';
+import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 
 const props = defineProps<{
   document: any;

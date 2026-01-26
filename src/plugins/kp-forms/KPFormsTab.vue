@@ -1,0 +1,214 @@
+<template>
+	<div class="space-y-4">
+		<div class="flex items-center justify-between gap-3">
+			<div>
+				<h2 class="text-xl font-semibold text-gray-900">Katarungang Pambarangay Forms</h2>
+				<p class="text-sm text-gray-600">Select a template, fill the fields, and generate a PDF.</p>
+			</div>
+			<UiButton variant="ghost" @click="resetForm" :disabled="!selectedTemplate">Reset</UiButton>
+		</div>
+
+		<div class="grid gap-4 lg:grid-cols-3">
+			<!-- Template Picker -->
+			<div class="space-y-3">
+				<div class="flex gap-2">
+					<UiInput v-model="search" placeholder="Search templates" class="flex-1" />
+					<UiButton variant="ghost" @click="search = ''" :disabled="!search">Clear</UiButton>
+				</div>
+
+			<div class="rounded-lg overflow-hidden bg-white shadow-sm max-h-140 overflow-y-auto">
+					<button
+						v-for="template in filteredTemplates"
+						:key="template.id"
+						type="button"
+						class="w-full text-left px-4 py-3 hover:bg-gray-50 transition flex flex-col gap-1"
+						:class="template.id === selectedTemplateId ? 'bg-blue-50' : ''"
+						@click="selectTemplate(template.id)"
+					>
+						<div class="flex items-center justify-between gap-2">
+							<span class="font-medium text-gray-900">{{ template.name }}</span>
+							<span class="text-xs text-gray-500">{{ template.fields.length }} fields</span>
+						</div>
+						<p class="text-sm text-gray-600 line-clamp-2">{{ template.description }}</p>
+					</button>
+				</div>
+			</div>
+
+			<!-- Form Renderer -->
+			<div class="lg:col-span-2">
+				<div v-if="!selectedTemplate" class="p-6 rounded-lg bg-white shadow-sm text-gray-600">
+					No templates available.
+				</div>
+
+				<div v-else class="p-6 rounded-lg bg-white shadow-sm space-y-4">
+					<div>
+						<h3 class="text-lg font-semibold text-gray-900">{{ selectedTemplate.name }}</h3>
+						<p class="text-sm text-gray-600">{{ selectedTemplate.description }}</p>
+					</div>
+
+					<form class="space-y-4" @submit.prevent="onGenerate">
+						<div v-for="field in selectedTemplate.fields" :key="field.key" class="space-y-1">
+							<label class="text-sm font-medium text-gray-800 flex items-center gap-1">
+								<span>{{ field.label }}</span>
+								<span v-if="field.required" class="text-red-500">*</span>
+							</label>
+
+							<UiInput
+								v-if="field.type === 'text' || field.type === 'date'"
+								v-model="formData[field.key]"
+								:type="field.type === 'date' ? 'date' : 'text'"
+								:placeholder="field.placeholder"
+								:required="field.required"
+							/>
+
+							<UiTextarea
+								v-else-if="field.type === 'textarea'"
+								v-model="formData[field.key]"
+								:placeholder="field.placeholder"
+								:required="field.required"
+								:rows="4"
+							/>
+
+							<UiSelect
+								v-else-if="field.type === 'select'"
+								v-model="formData[field.key]"
+								:options="(field.options || []).map((opt) => ({ label: opt, value: opt }))"
+								:placeholder="field.placeholder || 'Select'"
+							/>
+
+							<input v-else v-model="formData[field.key]" class="hidden" />
+
+							<p v-if="field.helpText" class="text-xs text-gray-500">{{ field.helpText }}</p>
+							<p v-if="errors[field.key]" class="text-xs text-red-600">{{ errors[field.key] }}</p>
+						</div>
+
+						<div class="flex items-center gap-3">
+							<UiButton type="submit" variant="primary" :loading="isGenerating" :disabled="!selectedTemplate">
+								Generate PDF
+							</UiButton>
+							<UiButton type="button" variant="ghost" @click="resetForm">Reset</UiButton>
+						</div>
+					</form>
+
+					<UiAlert v-if="statusMessage" :type="statusMessage.type" class="mt-2">
+						{{ statusMessage.text }}
+					</UiAlert>
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script setup lang="ts">
+import { computed, reactive, ref, watch } from 'vue';
+import UiAlert from '@/core/ui/components/UiAlert.vue';
+import UiButton from '@/core/ui/components/UiButton.vue';
+import UiInput from '@/core/ui/components/UiInput.vue';
+import UiSelect from '@/core/ui/components/UiSelect.vue';
+import UiTextarea from '@/core/ui/components/UiTextarea.vue';
+import type { ArchivistPlugin, PluginContext } from '@/core/plugins/pluginRegistry';
+import type { KPTemplate } from './types';
+import { kpTemplates } from './templates';
+
+const pdfMake = window.pdfMake;
+
+const props = defineProps<{ plugin?: ArchivistPlugin; context?: PluginContext; documentId?: string; uuid?: string }>();
+
+const search = ref('');
+const selectedTemplateId = ref(kpTemplates[0]?.id || '');
+const formData = reactive<Record<string, any>>({});
+const errors = reactive<Record<string, string>>({});
+const isGenerating = ref(false);
+const statusMessage = ref<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+
+const filteredTemplates = computed(() => {
+	const term = search.value.toLowerCase().trim();
+	if (!term) return kpTemplates;
+	return kpTemplates.filter(
+		(t) => t.name.toLowerCase().includes(term) || t.description.toLowerCase().includes(term)
+	);
+});
+
+const selectedTemplate = computed<KPTemplate | undefined>(() =>
+	kpTemplates.find((t) => t.id === selectedTemplateId.value)
+);
+
+watch(selectedTemplate, (tpl) => {
+	if (tpl) initForm(tpl);
+}, { immediate: true });
+
+function derivePrefill(key: string): string {
+  const doc = props.context?.document;
+  if (!doc) return '';
+  if (key === 'caseNo') return doc.code || '';
+  if ((key === 'complainant' || key === 'complainants') && Array.isArray(doc.fields?.complainants)) {
+    return (doc.fields.complainants as string[]).join(', ');
+  }
+  if ((key === 'respondent' || key === 'respondents') && Array.isArray(doc.fields?.respondents)) {
+    return (doc.fields.respondents as string[]).join(', ');
+  }
+  if (key === 'title' || key === 'subject') return doc.title || '';
+  return '';
+}
+
+function initForm(tpl: KPTemplate) {
+	statusMessage.value = null;
+	Object.keys(formData).forEach((k) => delete formData[k]);
+	Object.keys(errors).forEach((k) => delete errors[k]);
+
+	const today = new Date().toISOString().split('T')[0];
+
+	tpl.fields.forEach((field) => {
+		const prefill = derivePrefill(field.key);
+		const baseValue = field.type === 'date' && !field.defaultValue ? today : field.defaultValue || '';
+		formData[field.key] = prefill || baseValue;
+	});
+}
+
+function selectTemplate(id: string) {
+	selectedTemplateId.value = id;
+}
+
+function validate(): boolean {
+	if (!selectedTemplate.value) return false;
+	Object.keys(errors).forEach((k) => delete errors[k]);
+
+	selectedTemplate.value.fields.forEach((field) => {
+		const value = formData[field.key];
+		if (field.required && (!value || String(value).trim() === '')) {
+			errors[field.key] = 'This field is required';
+		}
+	});
+
+	return Object.keys(errors).length === 0;
+}
+
+function fileName(): string {
+	const tpl = selectedTemplate.value;
+	const slug = tpl ? tpl.id : 'kp-form';
+	const docRef = props.context?.document?.code || props.documentId || props.uuid || 'document';
+	return `${slug}-${docRef}.pdf`;
+}
+
+async function onGenerate() {
+	if (!selectedTemplate.value) return;
+	if (!validate()) return;
+
+	try {
+		isGenerating.value = true;
+		const docDef = selectedTemplate.value.generatePdf({ ...formData });
+		pdfMake.createPdf(docDef).download(fileName());
+		statusMessage.value = { type: 'success', text: 'PDF generated and downloaded.' };
+		props.context?.events.onFileAdd?.(null);
+	} catch (err: any) {
+		console.error('Failed to generate PDF', err);
+		statusMessage.value = { type: 'error', text: err?.message || 'Failed to generate PDF.' };
+	} finally {
+		isGenerating.value = false;
+	}
+}
+
+function resetForm() {
+	if (selectedTemplate.value) initForm(selectedTemplate.value);
+}
+</script>
