@@ -26,7 +26,7 @@ func main() {
 		*pass = generatedPass
 	}
 
-	namingStrategy := document.NewNamingStrategyCaseDDDD("case")
+	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
 	documentRepository, err := document.NewFileDocumentRepository(*dataPath, namingStrategy)
 	if err != nil {
 		log.Fatalf("Failed to create document repository: %v", err)

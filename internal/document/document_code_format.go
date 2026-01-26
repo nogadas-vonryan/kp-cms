@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type CodeFormat interface {
@@ -57,8 +58,15 @@ func (y *YearlyDecimalFormat) Format(val int64) string {
 
 // YearSuffixDecimalFormat formats codes like "001-26" where the suffix is a two-digit year.
 type YearSuffixDecimalFormat struct {
-	Year    int
-	Padding int
+	Padding      int
+	YearProvider func() int
+}
+
+func (y *YearSuffixDecimalFormat) currentYear() int {
+	if y.YearProvider != nil {
+		return y.YearProvider()
+	}
+	return time.Now().Year()
 }
 
 func (y *YearSuffixDecimalFormat) Parse(s string) (int64, error) {
@@ -67,17 +75,13 @@ func (y *YearSuffixDecimalFormat) Parse(s string) (int64, error) {
 	if len(parts) != 2 {
 		return 0, fmt.Errorf("invalid format")
 	}
-	// Validate the year suffix matches the configured year to avoid mixing years.
-	suffixYear, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
+	// Parse numeric parts to ensure validity, but allow any year suffix.
+	if _, err := strconv.ParseInt(parts[1], 10, 64); err != nil {
 		return 0, err
-	}
-	if int(suffixYear) != y.Year%100 {
-		return 0, fmt.Errorf("year suffix mismatch")
 	}
 	return strconv.ParseInt(parts[0], 10, 64)
 }
 
 func (y *YearSuffixDecimalFormat) Format(val int64) string {
-	return fmt.Sprintf("%0*d-%02d", y.Padding, val, y.Year%100)
+	return fmt.Sprintf("%0*d-%02d", y.Padding, val, y.currentYear()%100)
 }

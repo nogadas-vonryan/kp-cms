@@ -65,25 +65,47 @@ func NewNamingStrategyCaseYYYYDDDD(prefix string, year int) *RegexStrategy {
 }
 
 // NewNamingStrategyDDDYY: "001-26", "099-23"
-func NewNamingStrategyDDDYY(year int) *RegexStrategy {
+func NewNamingStrategyDDDYY() *RegexStrategy {
 	return &RegexStrategy{
 		Pattern: regexp.MustCompile(`^([0-9]{3}-[0-9]{2})$`),
 		Format:  "%s",
 		CodeFmt: &YearSuffixDecimalFormat{
-			Year:    year,
 			Padding: 3,
 		},
 	}
 }
 
 // NewNamingStrategyPrefixDDDYY: "case-001-26", "case-099-23"
-func NewNamingStrategyPrefixDDDYY(prefix string, year int) *RegexStrategy {
+func NewNamingStrategyPrefixDDDYY(prefix string) *RegexStrategy {
 	return &RegexStrategy{
 		Pattern: regexp.MustCompile(fmt.Sprintf(`^%s-([0-9]{3}-[0-9]{2})$`, prefix)),
 		Format:  prefix + "-%s",
 		CodeFmt: &YearSuffixDecimalFormat{
-			Year:    year,
 			Padding: 3,
+		},
+	}
+}
+
+// NewNamingStrategyDDDYYWithYear is a deterministic variant useful for tests.
+func NewNamingStrategyDDDYYWithYear(year int) *RegexStrategy {
+	return &RegexStrategy{
+		Pattern: regexp.MustCompile(`^([0-9]{3}-[0-9]{2})$`),
+		Format:  "%s",
+		CodeFmt: &YearSuffixDecimalFormat{
+			Padding:      3,
+			YearProvider: func() int { return year },
+		},
+	}
+}
+
+// NewNamingStrategyPrefixDDDYYWithYear is a deterministic variant useful for tests.
+func NewNamingStrategyPrefixDDDYYWithYear(prefix string, year int) *RegexStrategy {
+	return &RegexStrategy{
+		Pattern: regexp.MustCompile(fmt.Sprintf(`^%s-([0-9]{3}-[0-9]{2})$`, prefix)),
+		Format:  prefix + "-%s",
+		CodeFmt: &YearSuffixDecimalFormat{
+			Padding:      3,
+			YearProvider: func() int { return year },
 		},
 	}
 }
