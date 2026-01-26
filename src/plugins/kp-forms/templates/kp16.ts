@@ -12,7 +12,7 @@ export const kp16: KPTemplate = {
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'settlementPlan', label: 'Settlement Plan/Terms', type: 'textarea', required: true, helpText: 'Describe the specific terms agreed upon by both parties' },
-    { key: 'punongBarangayOrPangkatChairman', label: 'Punong Barangay/Pangkat Chairman', type: 'text', required: true },
+    { key: 'punongBarangayOrPangkatChairman', label: 'Punong Barangay/Pangkat Chairman', type: 'text', required: true, placeholder: 'Name of official' },
     { key: 'dateEntered', label: 'Date Entered', type: 'date', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {

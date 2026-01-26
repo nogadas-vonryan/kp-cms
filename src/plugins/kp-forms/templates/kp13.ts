@@ -11,7 +11,7 @@ export const kp13: KPTemplate = {
     { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
-    { key: 'witnesses', label: 'Witnesses', type: 'textarea', required: true, placeholder: 'Enter names of witnesses (one per line)' },
+    { key: 'witnesses', label: 'Witnesses', type: 'array', required: true, placeholder: 'e.g., Witness Name' },
     { key: 'appearanceDate', label: 'Appearance Date', type: 'date', required: true },
     { key: 'appearanceTime', label: 'Appearance Time', type: 'text', required: true, placeholder: 'e.g., 9:00 AM' },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true },
@@ -27,6 +27,8 @@ export const kp13: KPTemplate = {
         day: 'numeric' 
       });
     };
+
+    const witnessList = data.witnesses ? String(data.witnesses).split('\n').filter(Boolean) : [];
 
     return {
       pageSize: {

@@ -166,16 +166,17 @@ watch(selectedTemplate, (tpl) => {
 }, { immediate: true });
 
 function derivePrefill(key: string): string | string[] {
-  const doc = props.context?.document;
-  if (!doc) return key === 'complainants' || key === 'respondents' ? [''] : '';
-  if ((key === 'complainant' || key === 'complainants') && Array.isArray(doc.fields?.complainants)) {
-    return (doc.fields.complainants as string[]);
-  }
-  if ((key === 'respondent' || key === 'respondents') && Array.isArray(doc.fields?.respondents)) {
-    return (doc.fields.respondents as string[]);
-  }
-  if (key === 'title' || key === 'subject') return doc.title || '';
-  return '';
+	const doc = props.context?.document;
+	if (!doc) return key === 'complainants' || key === 'respondents' ? [''] : '';
+	if (key === 'caseNo') return doc.code || '';
+	if ((key === 'complainant' || key === 'complainants') && Array.isArray(doc.fields?.complainants)) {
+		return (doc.fields.complainants as string[]);
+	}
+	if ((key === 'respondent' || key === 'respondents') && Array.isArray(doc.fields?.respondents)) {
+		return (doc.fields.respondents as string[]);
+	}
+	if (key === 'title' || key === 'subject') return doc.title || '';
+	return '';
 }
 
 function initForm(tpl: KPTemplate) {

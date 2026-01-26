@@ -12,7 +12,7 @@ export const kp14: KPTemplate = {
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'dateEntered', label: 'Date Entered', type: 'date', required: true },
-    { key: 'punongBarangayOrPangkatChairman', label: 'Punong Barangay/Pangkat Chairman', type: 'text', required: true }
+    { key: 'punongBarangayOrPangkatChairman', label: 'Punong Barangay/Pangkat Chairman', type: 'text', required: true, placeholder: 'Name of official' }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {

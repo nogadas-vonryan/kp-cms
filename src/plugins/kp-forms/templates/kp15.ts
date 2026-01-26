@@ -15,7 +15,7 @@ export const kp15: KPTemplate = {
     { key: 'madeBy', label: 'Award Made By', type: 'text', required: true, placeholder: 'Name of Punong Barangay/Pangkat Chairman' },
     { key: 'attestedBy', label: 'Attested By', type: 'text', required: true, placeholder: 'Name of Punong Barangay/Lupon Secretary' },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true },
-    { key: 'tagapagkasundoMembers', label: 'Tagapagkasundo Members', type: 'textarea', placeholder: 'Enter member names (one per line)' }
+    { key: 'tagapagkasundoMembers', label: 'Tagapagkasundo Members', type: 'array', placeholder: 'e.g., Member Name' }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {

@@ -10,7 +10,7 @@ export const kp25: KPTemplate = {
     { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
     { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
-    { key: 'for', label: 'For', type: 'text', required: true },
+    { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'settlementDate', label: 'Date of Settlement/Award', type: 'date', required: true },
     { key: 'dateIssued', label: 'Date of Motion', type: 'date', required: true },
     { 

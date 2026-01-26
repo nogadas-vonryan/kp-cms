@@ -15,11 +15,11 @@ export const kp9Return: KPTemplate = {
       key: 'serviceMethod', 
       label: 'Service Method', 
       type: 'select', 
-      options: ['handed_in_person', 'refused_to_receive', 'left_at_dwelling', 'left_at_office'],
+      options: ['Handed in person', 'Refused to receive', 'Left at dwelling', 'Left at office'],
       required: true 
     },
-    { key: 'receivedByThirdPartyName', label: 'Third Party Name (if applicable)', type: 'text', helpText: 'Used for methods 3 and 4' },
-    { key: 'officerName', label: 'Serving Officer Name', type: 'text', required: true }
+    { key: 'receivedByThirdPartyName', label: 'Third Party Name (if applicable)', type: 'text', helpText: 'Used for methods 3 and 4', placeholder: 'Name of person who received summons' },
+    { key: 'officerName', label: 'Serving Officer Name', type: 'text', required: true, placeholder: 'Name of the officer serving summons' }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {
