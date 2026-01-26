@@ -21,14 +21,35 @@
         </div>
       </div>
 
-      <div v-if="document.files?.length > 0" class="mb-6">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Filter Files</label>
-        <input 
-          v-model="searchQuery"
-          type="text" 
-          placeholder="Search by name or description..."
-          class="w-full bg-white border border-gray-300 text-sm p-2 rounded focus:ring-1 focus:ring-blue-500 outline-none"
-        />
+      <div v-if="document.files?.length > 0" class="mb-6 space-y-2">
+        <label class="block text-sm font-medium text-gray-700">Filter Files</label>
+        <div class="space-y-3">
+          <input 
+            v-model="searchQuery"
+            type="text" 
+            placeholder="Search by name or description..."
+            class="w-full bg-white border border-gray-300 text-sm p-2 rounded focus:ring-1 focus:ring-blue-500 outline-none"
+          />
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap py-1">
+            <button
+              v-for="tag in availableTags"
+              :key="tag"
+              type="button"
+              @click="toggleTag(tag)"
+              class="px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors shrink-0"
+              :class="selectedTags.includes(tag)
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-700'"
+            >
+              {{ tag }}
+            </button>
+            <span v-if="availableTags.length === 0" class="text-xs text-gray-400 italic shrink-0">No tags available</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-widest">
+            <span>Search and/or pick tags; all selected tags must be present.</span>
+            <button v-if="selectedTags.length" type="button" @click="clearTags" class="text-blue-600 hover:text-blue-800 font-semibold">Clear tags</button>
+          </div>
+        </div>
       </div>
 
       <UiSystemNotice
@@ -98,11 +119,11 @@
           <div v-if="editingFileName === file.file_name" class="mt-4 p-4 bg-gray-50 rounded border border-gray-200 space-y-4">
             <div>
               <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Edit Description</label>
-              <input v-model="editForm.description" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+              <input v-model="editForm.description" class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Note</label>
-              <textarea v-model="editForm.note" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" rows="2"></textarea>
+              <textarea v-model="editForm.note" class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" rows="2"></textarea>
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Tags</label>
@@ -155,16 +176,48 @@ const isUploading = ref(false);
 const statusMessage = ref<any>(null);
 
 const searchQuery = ref('');
+const selectedTags = ref<(string | number)[]>([]);
 const editingFileName = ref<string | null>(null);
 const editForm = ref<{ description: string; note: string; tags: string[] }>({ description: '', note: '', tags: [] });
+
+const availableTags = computed(() => {
+  const tagSet = new Set<string>();
+  (props.document.files ?? []).forEach((f: any) => {
+    if (Array.isArray(f.tags)) {
+      f.tags.forEach((tag: string | number) => {
+        if (tag) tagSet.add(String(tag));
+      });
+    } else if (typeof f.tags === 'string' && f.tags.trim()) {
+      tagSet.add(f.tags.trim());
+    }
+  });
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+});
 
 const filteredFiles = computed(() => {
   if (!props.document.files) return [];
   const q = searchQuery.value.toLowerCase();
-  return props.document.files.filter((f: any) => 
-    f.file_name.toLowerCase().includes(q) || 
-    (f.description && f.description.toLowerCase().includes(q))
-  );
+  const selected = selectedTags.value.map((t) => String(t));
+
+  return props.document.files.filter((f: any) => {
+    const fileTags = Array.isArray(f.tags)
+      ? f.tags.map((tag: string | number) => String(tag))
+      : (typeof f.tags === 'string' && f.tags.trim())
+        ? [f.tags.trim()]
+        : [];
+
+    const matchesSearch = [
+      f.file_name,
+      f.description,
+      f.note,
+      ...fileTags,
+    ].some((value) => value && String(value).toLowerCase().includes(q));
+
+    const matchesTags = selected.length === 0
+      || selected.every(tag => fileTags.includes(tag));
+
+    return matchesSearch && matchesTags;
+  });
 });
 
 /**
@@ -192,6 +245,20 @@ function startEdit(file: any) {
   };
 }
 
+function toggleTag(tag: string) {
+  const tagStr = String(tag);
+  const idx = selectedTags.value.findIndex((t) => String(t) === tagStr);
+  if (idx >= 0) {
+    selectedTags.value.splice(idx, 1);
+  } else {
+    selectedTags.value.push(tagStr);
+  }
+}
+
+function clearTags() {
+  selectedTags.value = [];
+}
+
 async function saveMetadata(fileName: string) {
   try {
     // Filter out empty tags
@@ -203,9 +270,9 @@ async function saveMetadata(fileName: string) {
     await DocumentService.updateFileMetadata(props.document.uuid, fileName, metadata);
     editingFileName.value = null;
     emit('refresh');
-    statusMessage.value = { type: 'success', text: 'METADATA_UPDATED' };
+    statusMessage.value = { type: 'success', text: 'metadata is successfully updated' };
   } catch (err: any) {
-    statusMessage.value = { type: 'error', text: 'UPDATE_FAILED' };
+    statusMessage.value = { type: 'error', text: 'update failed' };
   }
 }
 
