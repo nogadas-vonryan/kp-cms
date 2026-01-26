@@ -16,6 +16,18 @@ export function extractErrorMessage(error: unknown): string {
   // Axios error with response
   if (isAxiosError(error)) {
     const axiosError = error as AxiosError<ApiErrorResponse>;
+    // Network / connection errors (no response received)
+    if (!axiosError.response) {
+      // Request timed out
+      if (axiosError.code === 'ECONNABORTED') {
+        return 'Request timed out. Please check your server connection and try again.';
+      }
+
+      // Generic network error (browser or Node)
+      if (axiosError.message === 'Network Error' || axiosError.request) {
+        return 'Unable to connect to the server. Please check your server connection or try again later.';
+      }
+    }
     
     if (axiosError.response?.data) {
       // Prefer explicit error field, but fall back to generic message
