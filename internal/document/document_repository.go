@@ -16,8 +16,7 @@ type DocumentStore interface {
 }
 
 type FileStore interface {
-	// Adds the metadata of input file to the files.json
-	AddFile(ctx context.Context, uuid string, file File) error
+	AddFileMetadata(ctx context.Context, uuid string, file File) error
 	// Uploads the raw content of a multipart form file to the store
 	UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error
 	DeleteFile(ctx context.Context, uuid string, fileName string) error
