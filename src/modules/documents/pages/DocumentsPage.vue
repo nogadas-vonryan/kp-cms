@@ -34,6 +34,18 @@
               placeholder="Sort by..."
               class="flex-1"
             />
+          <UiButton 
+              v-if="filters.sort_by"
+              type="button" 
+              variant="secondary" 
+              class="px-3"
+              @click="filters.sort_desc = !filters.sort_desc"
+              :title="filters.sort_desc ? 'Sort Descending' : 'Sort Ascending'"
+            >
+              <span class="text-lg leading-none">
+                {{ filters.sort_desc ? '↓' : '↑' }}
+              </span>
+            </UiButton>
             <UiButton type="submit">Search</UiButton>
             <UiButton type="button" @click="resetSearch" variant="secondary">Reset</UiButton>
           </div>
@@ -289,6 +301,7 @@ const filters = ref({
   date_from: '',
   date_to: '',
   sort_by: '',
+  sort_desc: false,
   field_key: '',
   field_value: ''
 });
@@ -386,7 +399,7 @@ async function performSearch(resetOffset = true) {
       date_from: filters.value.date_from || undefined,
       date_to: filters.value.date_to || undefined,
       sort_by: filters.value.sort_by || undefined,
-      sort_desc: filters.value.sort_by ? true : undefined,
+      sort_desc: filters.value.sort_by ? filters.value.sort_desc : undefined,
       offset: offset.value, // This will now correctly use the incremented value
       limit: limit.value
     };
@@ -414,6 +427,7 @@ function resetSearch() {
     date_from: '',
     date_to: '',
     sort_by: '',
+    sort_desc: false,
     field_key: '',
     field_value: ''
   };
