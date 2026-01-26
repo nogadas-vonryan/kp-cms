@@ -40,23 +40,19 @@
         </div>
 
         <div v-else class="space-y-3">
-          <div
+          <UiSystemNotice
             v-for="(conflict, idx) in conflicts"
             :key="idx"
-            class="border border-yellow-300 rounded bg-yellow-50 p-3"
+            type="warning"
+            :label="conflict.type"
+            :modelValue="true" 
           >
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-200 text-yellow-800">
-                    {{ conflict.type }}
-                  </span>
-                  <span class="text-sm font-medium text-gray-900">{{ conflict.path }}</span>
-                </div>
-                <p class="mt-1 text-sm text-gray-700">{{ conflict.message }}</p>
-              </div>
-            </div>
-          </div>
+            <template #title>
+              <span class="text-sm font-medium text-gray-900">{{ conflict.path }}</span>
+            </template>
+            
+            <p class="text-sm text-gray-700">{{ conflict.message }}</p>
+          </UiSystemNotice>
         </div>
       </div>
     </UiCard>
@@ -88,6 +84,7 @@ import type { SyncIssue } from '@/types';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
+import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 
 const authStore = useAuthStore();
 
