@@ -114,6 +114,15 @@
 							<UiButton type="submit" variant="primary" :loading="isGenerating" :disabled="!selectedTemplate">
 								Generate PDF
 							</UiButton>
+							<UiButton
+								type="button"
+								variant="primary"
+								:loading="isUploading"
+								:disabled="!selectedTemplate || !(props.uuid || props.documentId || props.context?.document?.uuid)"
+								@click="onUpload"
+							>
+								Upload PDF
+							</UiButton>
 							<UiButton type="button" variant="ghost" @click="resetForm">Reset</UiButton>
 						</div>
 					</form>
@@ -137,6 +146,7 @@ import UiTextarea from '@/core/ui/components/UiTextarea.vue';
 import type { ArchivistPlugin, PluginContext } from '@/core/plugins/pluginRegistry';
 import type { KPTemplate } from './types';
 import { kpTemplates } from './templates';
+import { DocumentService } from '@/modules/documents/services/documentService';
 
 const pdfMake = window.pdfMake;
 
@@ -147,6 +157,7 @@ const selectedTemplateId = ref(kpTemplates[0]?.id || '');
 const formData = reactive<Record<string, any>>({});
 const errors = reactive<Record<string, string>>({});
 const isGenerating = ref(false);
+const isUploading = ref(false);
 const statusMessage = ref<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
 const filteredTemplates = computed(() => {
@@ -280,6 +291,60 @@ async function onGenerate() {
 		statusMessage.value = { type: 'error', text: err?.message || 'Failed to generate PDF.' };
 	} finally {
 		isGenerating.value = false;
+	}
+}
+
+function getPdfBlob(docDef: any): Promise<Blob> {
+	const pdf: any = pdfMake.createPdf(docDef);
+	try {
+		const result = (pdf.getBlob as any)();
+		if (result && typeof result.then === 'function') {
+			return result as Promise<Blob>;
+		}
+	} catch {}
+	return new Promise((resolve, reject) => {
+		try {
+			pdf.getBlob((blob: Blob) => resolve(blob));
+		} catch (e) {
+			reject(e);
+		}
+	});
+}
+
+async function onUpload() {
+	if (!selectedTemplate.value) return;
+	if (!validate()) return;
+
+	const uuid = props.uuid || props.documentId || props.context?.document?.uuid;
+	if (!uuid) {
+		statusMessage.value = { type: 'error', text: 'No document ID found to upload.' };
+		return;
+	}
+
+	try {
+		isUploading.value = true;
+
+		const dataForPdf = { ...formData };
+		selectedTemplate.value.fields.forEach((field) => {
+			if (field.type === 'array' && Array.isArray(dataForPdf[field.key])) {
+				dataForPdf[field.key] = (dataForPdf[field.key] as string[])
+					.filter(item => item && String(item).trim() !== '')
+					.join('\n');
+			}
+		});
+
+		const docDef = selectedTemplate.value.generatePdf(dataForPdf);
+		const blob = await getPdfBlob(docDef);
+		const file = new File([blob], fileName(), { type: 'application/pdf' });
+
+		await DocumentService.uploadFile(uuid, file);
+		statusMessage.value = { type: 'success', text: 'PDF uploaded successfully.' };
+		props.context?.events.onFileAdd?.(null);
+	} catch (err: any) {
+		console.error('Failed to upload PDF', err);
+		statusMessage.value = { type: 'error', text: err?.message || 'Failed to upload PDF.' };
+	} finally {
+		isUploading.value = false;
 	}
 }
 
