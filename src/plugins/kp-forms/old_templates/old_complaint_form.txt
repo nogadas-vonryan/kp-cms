@@ -1,0 +1,97 @@
+    const complaintForm: TDocumentDefinitions = {
+      pageSize: {
+        width: 612,
+        height: 936
+      },
+      pageMargins: [72, 108, 72, 72],
+            images: {
+        header: HEADER_BASE64,
+        seal: SEAL_BASE64
+      },
+      header: function () {
+        return {
+          image: 'header',
+          width: 594,
+          height: 93.6,
+          alignment: 'center',
+          margin: [0, 7.92, 0, 0]
+        };
+      },
+      background: function (currentPage, pageSize) {
+        return {
+          image: 'seal',
+          width: 320.4,
+          height: 320.4,
+          opacity: 0.15,
+          alignment: 'center',
+          margin: [0, 308, 0, 0]
+        };
+      },
+      content: [
+        {
+          alignment: 'center',
+          marginBottom: 20,
+          stack: [
+            { text: 'Republic of the Philippines' },
+            { text: 'Province of National Capital Region' },
+            { text: 'City of Taguig' },
+            { text: 'Barangay Bagumbayan', marginBottom: 20 },
+
+            { text: 'OFFICE OF THE LUPONG TAGAPAMAYAPA', bold: true },
+          ],
+        },
+
+        {
+          columns: [
+            {
+              stack: [
+                { text: `${this.complainants.map((c: any) => c.first_name + " " + c.last_name).join(', ')}\n`, decoration: 'underline' },
+                'Complainant/s \n\n — against —\n\n',
+                { text: `${this.respondents.map((r: any) => r.first_name + " " + r.last_name).join(', ')}\n`, decoration: 'underline' },
+                'Respondent/s'
+              ]
+            },
+            {
+              margin: [90, 0, 0, 0],
+              stack: [
+                { text: `Barangay Case No. ${this.formatId.transform(this.case.display_id)}\n` },
+                { text: `For: ` },
+                { text: `${this.form.value.for}`, decoration: 'underline' }
+              ]
+            }
+          ],
+          margin: [0, 10, 0, 10],
+        },
+
+        { text: 'C O M P L A I N T', bold: true, alignment: 'center', margin: [0, 15, 0, 10] },
+
+        { text: 'I/WE hereby complain against above named respondent/s for violating my/our rights and interests in the following manner:', margin: [0, 0, 0, 10] },
+
+        { text: this.form.value.complaint, margin: [0, 0, 0, 10], decoration: 'underline' },
+
+        { text: '\nTHEREFORE, I/WE pray that the following relief/s be granted to me/us in accordance with law and/or equity:', margin: [0, 10] },
+
+        { text: this.form.value.relief_sought, margin: [0, 0, 0, 10], decoration: 'underline' },
+
+        {
+          text: `\nMade this ${this.datePipe.transform(currentDate, 'mediumDate')}.\n\n`,
+          margin: [0, 10]
+        },
+        { text: `${this.complainants.map((c: any) => c.first_name + " " + c.last_name).join(', ')}\n`, decoration: 'underline' },
+        { text: 'Complainant/s', marginBottom: 10 },
+        {
+          text: `Received and filed this ${this.datePipe.transform(currentDate, 'mediumDate')}.\n\n`,
+          margin: [0, 10]
+        },
+
+        { text: this.form.value.punong_barangay, decoration: 'underline' },
+        'Punong Barangay'
+      ],
+
+      styles: {
+        header: {
+          fontSize: 16,
+          bold: true,
+        }
+      }
+    };

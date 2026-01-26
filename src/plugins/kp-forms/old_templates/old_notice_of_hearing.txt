@@ -1,0 +1,81 @@
+ const noticeOfHearingForm: TDocumentDefinitions = {
+      pageSize: {
+        width: 612,
+        height: 936
+      },
+      pageMargins: [72, 108, 72, 72],
+      images: {
+        header: HEADER_BASE64,
+        seal: SEAL_BASE64
+      },
+      header: function () {
+        return {
+          image: 'header',
+          width: 594,
+          height: 93.6,
+          alignment: 'center',
+          margin: [0, 7.92, 0, 0]
+        };
+      },
+      background: function (currentPage, pageSize) {
+        return {
+          image: 'seal',
+          width: 320.4,
+          height: 320.4,
+          opacity: 0.15,
+          alignment: 'center',
+          margin: [0, 308, 0, 0]
+        };
+      },
+
+      content: [
+        {
+          alignment: 'center',
+          text: [
+            'Republic of the Philippines\n' +
+            'Province of Metro Manila\n' +
+            'City of Taguig\n' +
+            'Barangay Bagumbayan\n' +
+            'OFFICE OF THE LUPONG TAGAPAMAYAPA\n\n',
+          ]
+        },
+        {
+          alignment: 'center',
+          bold: true,
+          text: 'NOTICE OF HEARING\n' +
+            '(MEDIATION PROCEEDINGS)\n\n'
+        },
+        {
+          alignment: 'left',
+          columns: [
+            {
+              width: 30,
+              text: 'TO: '
+            },
+            {
+              stack: [
+                { text: this.complainants.map((c: any) => c.first_name + " " + c.last_name).join('\n') + '\n', decoration: 'underline' },
+                'Complainant/s \n\n',
+              ]
+            }
+          ]
+        },
+        {
+          text: `You are hereby required to appear before me on the ${this.datePipe.transform(this.form.value.hearing_date, 'mediumDate')} at ${this.timeFormat.transform(this.form.value.hearing_time, false)} o\'clock in the morning/afternoon for the hearing of your complaint.\n\n
+            This ${this.datePipe.transform(currentDate, 'mediumDate')}.\n\n\n`
+        },
+        {
+          text: [
+            { text: `${this.form.value.punong_barangay}\n`, decoration: 'underline' },
+            'Punong Barangay/Lupon Chairman\n\n' +
+            `Notified this ${this.datePipe.transform(currentDate, 'mediumDate')}.\n\n`
+          ]
+        },
+        {
+          stack: [
+            'Complainant/s \n',
+            { text: this.complainants.map((c: any) => c.first_name + " " + c.last_name).join('\n') + '\n', decoration: 'underline' },
+          ]
+        }
+      ]
+    };
