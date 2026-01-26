@@ -384,7 +384,7 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 	return docs, nil
 }
 
-func (r *FileDocumentRepository) AddFile(ctx context.Context, uuid string, file File) error {
+func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid string, file File) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -418,6 +418,47 @@ func (r *FileDocumentRepository) AddFile(ctx context.Context, uuid string, file 
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
+func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, description string, note string) error {
+	if err := ctxErr(ctx); err != nil {
+		return err
+	}
+
+	doc, err := r.GetByUUID(ctx, uuid)
+	if err != nil {
+		return err
+	}
+
+	folderPath := r.getDocumentPath(doc.FolderName)
+	filesJSONPath := filepath.Join(folderPath, "files.json")
+
+	// Read existing metadata
+	var files []File
+	data, err := os.ReadFile(filesJSONPath)
+	if err != nil {
+		return fmt.Errorf("read metadata: %w", err)
+	}
+	if err := json.Unmarshal(data, &files); err != nil {
+		return err
+	}
+
+	// Find and update
+	found := false
+	for i := range files {
+		if files[i].FileName == fileName {
+			files[i].Description = description
+			files[i].Note = note
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return errors.New("file metadata not found")
+	}
+
+	return writeFilesMetadata(filesJSONPath, files)
+}
+
 func (r *FileDocumentRepository) GetDocumentFolderPath(ctx context.Context, uuid string) (string, error) {
 	if err := ctxErr(ctx); err != nil {
 		return "", err
@@ -429,6 +470,27 @@ func (r *FileDocumentRepository) GetDocumentFolderPath(ctx context.Context, uuid
 	}
 
 	return r.getDocumentPath(doc.FolderName), nil
+}
+
+func (r *FileDocumentRepository) DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+
+	doc, err := r.GetByUUID(ctx, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	// Path traversal protection is handled by getDocumentFilePath using filepath.Base
+	filePath := r.getDocumentFilePath(doc.FolderName, filepath.Base(fileName))
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("open file for download: %w", err)
+	}
+
+	return file, nil
 }
 
 func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {
@@ -484,7 +546,7 @@ func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fi
 		CreatedAt: fileInfo.ModTime(),
 	}
 
-	return r.AddFile(ctx, uuid, file)
+	return r.AddFileMetadata(ctx, uuid, file)
 }
 
 func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fileName string) error {
