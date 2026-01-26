@@ -60,6 +60,29 @@ export const DocumentService = {
     });
   },
 
+  /**
+   * Triggers a browser download for a specific file.
+   * Instead of a standard API call, this constructs the URL for the user to open.
+   */
+  getFileDownloadUrl: (uuid: string, fileName: string) => {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || '';
+    return `${baseURL}/documents/${uuid}/files/${fileName}`;
+  },
+
+  /**
+   * Updates the description and notes for a specific file entry in files.json.
+   * Matches: PUT /documents/{uuid}/files/{fileName}
+   */
+  updateFileMetadata: (uuid: string, fileName: string, data: { description: string; note: string }) =>
+    api.put(`/documents/${uuid}/files/${fileName}`, data),
+
+  /**
+   * Deletes both the physical file and its entry in files.json.
+   * Matches: DELETE /documents/{uuid}/files/{fileName}
+   */
+  deleteFile: (uuid: string, fileName: string) =>
+    api.delete(`/documents/${uuid}/files/${fileName}`),
+
   listConflicts: () =>
     api.get<SyncIssue[]>('/documents/conflicts'),
 

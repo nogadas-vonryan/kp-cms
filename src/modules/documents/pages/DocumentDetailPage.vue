@@ -78,6 +78,7 @@
           @saved="onDocumentSaved"
           @cancel="editMode = false"
           @refresh="loadDocument"
+          :is-admin="isAdmin"
         />
       </KeepAlive>
       
