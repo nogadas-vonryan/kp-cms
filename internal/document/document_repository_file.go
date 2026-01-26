@@ -180,8 +180,12 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 
 	now := time.Now().UTC()
 	doc.UUID = uuid.NewString()
-	doc.CreatedAt = now
-	doc.UpdatedAt = now
+	if doc.CreatedAt.IsZero() {
+		doc.CreatedAt = now
+	}
+	if doc.UpdatedAt.IsZero() {
+		doc.UpdatedAt = now
+	}
 	if doc.Fields == nil {
 		doc.Fields = map[string]any{}
 	}
@@ -302,7 +306,9 @@ func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, d
 	updated.UUID = existing.UUID
 	updated.FolderName = existing.FolderName
 	updated.Code = existing.Code
-	updated.CreatedAt = existing.CreatedAt
+	if updated.CreatedAt.IsZero() {
+		updated.CreatedAt = existing.CreatedAt
+	}
 	updated.UpdatedAt = time.Now().UTC()
 	if updated.Fields == nil {
 		updated.Fields = map[string]any{}
