@@ -5,6 +5,7 @@ import type { Document, PermissionAction } from '@/types';
 export interface PluginLocations {
   documentTab?: Component;
   documentCreate?: Component;
+  kpFormsTab?: Component;
   sidebarItem?: Component;
   staffTab?: Component;
   schedulingTab?: Component;
@@ -53,3 +54,5 @@ export const usePluginStore = defineStore('plugins', () => {
 
   return { plugins, register, unregister };
 });
+
+
