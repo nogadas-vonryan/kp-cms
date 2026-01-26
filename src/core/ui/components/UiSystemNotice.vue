@@ -34,13 +34,19 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = defineProps<{
+// Define a proper interface for your message object if applicable
+interface NoticeProps {
   modelValue?: any;
-  type: 'success' | 'error' | 'warning';
-  label?: string; // Optional custom text for the badge
-  title?: string; // Quick text for simple notices
+  type?: 'success' | 'error' | 'warning'; // Made optional because we provide a default
+  label?: string;
+  title?: string;
   dismissible?: boolean;
-}>();
+}
+
+const props = withDefaults(defineProps<NoticeProps>(), {
+  type: 'success', // Default fallback handled here
+  dismissible: true
+});
 
 const emit = defineEmits(['update:modelValue']);
 
@@ -50,6 +56,7 @@ const config = computed(() => {
     error: { containerClass: 'bg-red-50 border-red-300', badgeClass: 'bg-red-200 text-red-800' },
     warning: { containerClass: 'bg-yellow-50 border-yellow-300', badgeClass: 'bg-yellow-200 text-yellow-800' }
   };
-  return styles[props.type];
+  // Fallback to success if type is undefined/invalid
+  return styles[props.type] || styles.success;
 });
 </script>

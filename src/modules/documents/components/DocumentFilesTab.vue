@@ -31,7 +31,11 @@
         />
       </div>
 
-      <UiSystemNotice v-model="statusMessage" :type="(statusMessage && statusMessage.type) ? statusMessage.type : 'success'" />
+      <UiSystemNotice
+        v-model="statusMessage"
+        :type="statusMessage?.type ?? 'success'"
+        :title="statusMessage?.text"
+      />
 
       <div class="space-y-0 divide-y divide-gray-200 border-t border-gray-200">
         <div v-if="filteredFiles.length === 0" class="py-12 text-center text-sm text-gray-500 italic">
