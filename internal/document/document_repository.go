@@ -17,9 +17,12 @@ type DocumentStore interface {
 
 type FileStore interface {
 	AddFileMetadata(ctx context.Context, uuid string, file File) error
-	// Uploads the raw content of a multipart form file to the store
+	UpdateFileMetadata(ctx context.Context, uuid string, fileName string, description string, note string) error
+
+	DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error)
 	UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error
 	DeleteFile(ctx context.Context, uuid string, fileName string) error
+
 	GetDocumentFolderPath(ctx context.Context, uuid string) (string, error)
 }
 
