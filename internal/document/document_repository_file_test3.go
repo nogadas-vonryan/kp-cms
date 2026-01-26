@@ -60,7 +60,12 @@ func TestFileDocumentRepository_UpdateFileMetadata(t *testing.T) {
 	// Update Metadata
 	newDesc := "New Description"
 	newNote := "Important note"
-	err := repo.UpdateFileMetadata(ctx, doc.UUID, fileName, newDesc, newNote)
+	newKPForm := KPForm(3)
+	err := repo.UpdateFileMetadata(ctx, doc.UUID, fileName, FileMetadataUpdate{
+		Description: &newDesc,
+		Note:        &newNote,
+		KPFormType:  &newKPForm,
+	})
 	if err != nil {
 		t.Fatalf("UpdateFileMetadata failed: %v", err)
 	}
@@ -70,8 +75,8 @@ func TestFileDocumentRepository_UpdateFileMetadata(t *testing.T) {
 	found := false
 	for _, f := range updatedDoc.Files {
 		if f.FileName == fileName {
-			if f.Description != newDesc || f.Note != newNote {
-				t.Errorf("metadata mismatch: got desc=%q, note=%q", f.Description, f.Note)
+			if f.Description != newDesc || f.Note != newNote || f.KPFormType != newKPForm {
+				t.Errorf("metadata mismatch: got desc=%q, note=%q, kp_form_type=%d", f.Description, f.Note, f.KPFormType)
 			}
 			found = true
 		}

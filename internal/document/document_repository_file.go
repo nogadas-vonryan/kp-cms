@@ -418,7 +418,7 @@ func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid strin
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
-func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, description string, note string) error {
+func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates FileMetadataUpdate) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -445,8 +445,18 @@ func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid st
 	found := false
 	for i := range files {
 		if files[i].FileName == fileName {
-			files[i].Description = description
-			files[i].Note = note
+			if updates.Description != nil {
+				files[i].Description = *updates.Description
+			}
+			if updates.Note != nil {
+				files[i].Note = *updates.Note
+			}
+			if updates.KPFormType != nil {
+				if !updates.KPFormType.IsValid() {
+					return errors.New("invalid kp form type")
+				}
+				files[i].KPFormType = *updates.KPFormType
+			}
 			found = true
 			break
 		}

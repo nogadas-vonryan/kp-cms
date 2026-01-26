@@ -89,11 +89,11 @@ func (s *DocumentService) DownloadFile(ctx context.Context, uuid string, fileNam
 	return s.repo.DownloadFile(ctx, uuid, fileName)
 }
 
-func (s *DocumentService) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, description string, note string) error {
+func (s *DocumentService) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates FileMetadataUpdate) error {
 	if uuid == "" || fileName == "" {
 		return errors.New("uuid and fileName are required")
 	}
-	return s.repo.UpdateFileMetadata(ctx, uuid, fileName, description, note)
+	return s.repo.UpdateFileMetadata(ctx, uuid, fileName, updates)
 }
 
 func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName string) error {

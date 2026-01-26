@@ -196,6 +196,34 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 			return
 		}
 
+		metadataUpdate := document.FileMetadataUpdate{}
+		if r.MultipartForm != nil {
+			if descVals, ok := r.MultipartForm.Value["description"]; ok && len(descVals) > 0 {
+				desc := descVals[0]
+				metadataUpdate.Description = &desc
+			}
+			if noteVals, ok := r.MultipartForm.Value["note"]; ok && len(noteVals) > 0 {
+				note := noteVals[0]
+				metadataUpdate.Note = &note
+			}
+			if kpVals, ok := r.MultipartForm.Value["kp_form_type"]; ok && len(kpVals) > 0 {
+				kpFormStr := kpVals[0]
+				if kpFormStr != "" {
+					kpParsed, err := strconv.Atoi(kpFormStr)
+					if err != nil {
+						respondError(w, http.StatusBadRequest, "kp_form_type must be a number")
+						return
+					}
+					kpForm := document.KPForm(kpParsed)
+					if !kpForm.IsValid() {
+						respondError(w, http.StatusBadRequest, "invalid kp_form_type")
+						return
+					}
+					metadataUpdate.KPFormType = &kpForm
+				}
+			}
+		}
+
 		file, header, err := r.FormFile("file")
 		if err != nil {
 			respondError(w, http.StatusBadRequest, "file is required")
@@ -218,6 +246,18 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 			return
 		}
 
+		hasMetadataUpdate := metadataUpdate.Description != nil || metadataUpdate.Note != nil || metadataUpdate.KPFormType != nil
+		if hasMetadataUpdate {
+			if err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, metadataUpdate); err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					respondError(w, http.StatusNotFound, "document not found")
+					return
+				}
+				respondError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
 		respondJSON(w, http.StatusCreated, map[string]string{
 			"message":   "file uploaded successfully",
 			"file_name": fileName,
@@ -226,8 +266,9 @@ func (s *Server) handleUploadFile() http.HandlerFunc {
 }
 
 type UpdateFileMetadataRequest struct {
-	Description string `json:"description"`
-	Note        string `json:"note"`
+	Description *string `json:"description"`
+	Note        *string `json:"note"`
+	KPFormType  *uint8  `json:"kp_form_type"`
 }
 
 func (s *Server) handleDownloadFile() http.HandlerFunc {
@@ -272,8 +313,23 @@ func (s *Server) handleUpdateFileMetadata() http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+		updates := document.FileMetadataUpdate{}
+		if req.Description != nil {
+			updates.Description = req.Description
+		}
+		if req.Note != nil {
+			updates.Note = req.Note
+		}
+		if req.KPFormType != nil {
+			kpForm := document.KPForm(*req.KPFormType)
+			if !kpForm.IsValid() {
+				respondError(w, http.StatusBadRequest, "invalid kp_form_type")
+				return
+			}
+			updates.KPFormType = &kpForm
+		}
 
-		err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, req.Description, req.Note)
+		err := s.documentService.UpdateFileMetadata(r.Context(), uuid, fileName, updates)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				respondError(w, http.StatusNotFound, "file or document not found")

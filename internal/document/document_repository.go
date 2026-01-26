@@ -17,7 +17,7 @@ type DocumentStore interface {
 
 type FileStore interface {
 	AddFileMetadata(ctx context.Context, uuid string, file File) error
-	UpdateFileMetadata(ctx context.Context, uuid string, fileName string, description string, note string) error
+	UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates FileMetadataUpdate) error
 
 	DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error)
 	UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error
