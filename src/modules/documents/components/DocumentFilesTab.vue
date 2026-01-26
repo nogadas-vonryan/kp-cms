@@ -59,6 +59,10 @@
                   <label class="block text-xs font-medium text-gray-500 tracking-tighter">Note</label>
                   <div class="text-sm text-gray-700">{{ file.note }}</div>
                 </div>
+                <div v-if="file.tags && file.tags.length > 0">
+                  <label class="block text-xs font-medium text-gray-500 tracking-tighter">Tags</label>
+                  <div class="text-sm text-gray-700">{{ Array.isArray(file.tags) ? file.tags.join(', ') : file.tags }}</div>
+                </div>
               </div>
             </div>
 
@@ -96,6 +100,26 @@
               <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Note</label>
               <textarea v-model="editForm.note" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" rows="2"></textarea>
             </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Tags</label>
+              <div class="space-y-2">
+                <div v-for="(tag, index) in editForm.tags" :key="index" class="flex gap-2">
+                  <UiInput v-model="editForm.tags[index]" placeholder="Enter tag" class="flex-1" />
+                  <button 
+                    @click="editForm.tags.splice(index, 1)" 
+                    class="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <button 
+                  @click="editForm.tags.push('')" 
+                  class="w-full px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                >
+                  + Add Tag
+                </button>
+              </div>
+            </div>
             <div class="flex justify-end gap-3 pt-2 border-t border-gray-200">
               <button @click="editingFileName = null" class="text-xs font-medium text-gray-500 hover:text-gray-700">Cancel</button>
               <button @click="saveMetadata(file.file_name)" class="text-xs font-bold bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700">Save Changes</button>
@@ -112,6 +136,7 @@ import { ref, computed } from 'vue';
 import { UiCard } from '@/core/ui';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
+import UiInput from '@/core/ui/components/UiInput.vue';
 
 const props = defineProps<{
   document: any;
@@ -127,7 +152,7 @@ const statusMessage = ref<any>(null);
 
 const searchQuery = ref('');
 const editingFileName = ref<string | null>(null);
-const editForm = ref({ description: '', note: '' });
+const editForm = ref<{ description: string; note: string; tags: string[] }>({ description: '', note: '', tags: [] });
 
 const filteredFiles = computed(() => {
   if (!props.document.files) return [];
@@ -155,12 +180,23 @@ function downloadFile(fileName: string) {
 
 function startEdit(file: any) {
   editingFileName.value = file.file_name;
-  editForm.value = { description: file.description || '', note: file.note || '' };
+  const tags = Array.isArray(file.tags) ? [...file.tags] : [];
+  editForm.value = { 
+    description: file.description || '', 
+    note: file.note || '',
+    tags
+  };
 }
 
 async function saveMetadata(fileName: string) {
   try {
-    await DocumentService.updateFileMetadata(props.document.uuid, fileName, editForm.value);
+    // Filter out empty tags
+    const metadata = {
+      ...editForm.value,
+      tags: editForm.value.tags.filter(t => t.trim())
+    };
+    
+    await DocumentService.updateFileMetadata(props.document.uuid, fileName, metadata);
     editingFileName.value = null;
     emit('refresh');
     statusMessage.value = { type: 'success', text: 'METADATA_UPDATED' };
