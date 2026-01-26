@@ -89,9 +89,19 @@
       </div>
       
       <div class="w-full">
-        <UiAlert v-if="error" type="error" class="m-4">
-          {{ error }}
-        </UiAlert>
+        <UiSystemNotice 
+          v-if="error" 
+          type="error" 
+          label="System_Error"
+          :modelValue="true"
+          class="m-4"
+        >
+          <template #title>
+            <span class="px-2 text-sm text-gray-700 leading-relaxed">
+              {{ error }}
+            </span>
+          </template>
+        </UiSystemNotice>
 
         <template v-if="documents.length > 0">
           <UiTable :columns="columns" :rows="documents">
@@ -261,6 +271,7 @@ import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiSelect from '@/core/ui/components/UiSelect.vue';
 import UiComboBox from '@/core/ui/components/UiComboBox.vue';
 import UiTextarea from '@/core/ui/components/UiTextarea.vue';
+import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
@@ -334,6 +345,17 @@ const columns = [
   { key: 'actions', label: 'Actions' }
 ];
 
+const parseSystemError = (err: any): string => {
+  const rawError = err.response?.data?.error || '';
+  
+  // Specific check for physical folder mismatch
+  if (rawError.includes('no such file or directory') || rawError.includes('scanning physical folder')) {
+    return 'Physical directory mismatch detected. Please reload documents in the admin dashboard.';
+  }
+  
+  return rawError || 'An unexpected system error occurred.';
+};
+
 async function loadDocuments() {
   loading.value = true;
   error.value = '';
@@ -341,7 +363,7 @@ async function loadDocuments() {
     const response = await DocumentService.getAll(offset.value, limit.value);
     documents.value = response.data;
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Failed to load documents';
+    error.value = parseSystemError(err);
   } finally {
     loading.value = false;
   }
@@ -378,7 +400,7 @@ async function performSearch(resetOffset = true) {
     const response = await DocumentService.search(params);
     documents.value = response.data;
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Failed to search documents';
+    error.value = parseSystemError(err);
   } finally {
     loading.value = false;
   }
