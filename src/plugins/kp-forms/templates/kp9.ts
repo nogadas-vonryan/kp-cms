@@ -7,8 +7,8 @@ export const kp9: KPTemplate = {
   name: 'KP Form #9: Patawag (Summons)',
   description: 'Official summons for the respondent to appear for mediation/conciliation',
   fields: [
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'e.g., Unpaid Debt' },
     { key: 'hearingDate', label: 'Hearing Date', type: 'date', required: true },

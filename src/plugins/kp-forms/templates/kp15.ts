@@ -7,8 +7,8 @@ export const kp15: KPTemplate = {
   name: 'KP Form #15: Arbitration Award',
   description: 'Official award rendered by the Lupon Chairman or Pangkat after arbitration proceedings.',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'awardDetails', label: 'Arbitration Award Details', type: 'textarea', required: true, helpText: 'Describe the terms and resolution of the award' },

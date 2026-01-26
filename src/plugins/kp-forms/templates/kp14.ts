@@ -7,8 +7,8 @@ export const kp14: KPTemplate = {
   name: 'KP Form #14: Agreement for Arbitration',
   description: 'Official agreement where parties agree to abide by the arbitration award of the Lupon Chairman or Pangkat.',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'dateEntered', label: 'Date Entered', type: 'date', required: true },

@@ -7,8 +7,8 @@ export const kp19: KPTemplate = {
   name: 'KP Form #19: Notice of Hearing (Respondent)',
   description: 'Notice to respondent to explain failure to appear and why counterclaims should not be dismissed',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For (Violation)', type: 'text', required: true },
     { key: 'hearingDate', label: 'New Hearing Date', type: 'date', required: true },

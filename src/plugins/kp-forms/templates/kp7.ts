@@ -7,8 +7,8 @@ export const kp7: KPTemplate = {
   name: 'KP Form #7: Pagsumbong (Complaint)',
   description: 'Official complaint form for Barangay Bagumbayan with header and seal',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'e.g., Juan Dela Cruz, Maria Santos' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'e.g., Pedro Reyes' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true, placeholder: 'e.g., 2026-001' },
     { key: 'for', label: 'For (Violation)', type: 'text', required: true, placeholder: 'e.g., Noise Complaint, Property Dispute' },
     { key: 'complaint', label: 'Complaint Details', type: 'textarea', required: true, helpText: 'Describe how your rights and interests were violated' },

@@ -7,8 +7,8 @@ export const kp24: KPTemplate = {
   name: 'KP Form #24: Certification to Bar Counterclaim',
   description: 'Certification barring respondent from filing counterclaims due to willful failure to appear',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true },
     { key: 'respondent1', label: 'First Respondent Name', type: 'text', required: true },

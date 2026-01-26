@@ -3,7 +3,7 @@ import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 export interface KPFormField {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'date' | 'select';
+  type: 'text' | 'textarea' | 'date' | 'select' | 'array';
   options?: string[]; // For select inputs
   defaultValue?: string;
   required?: boolean;

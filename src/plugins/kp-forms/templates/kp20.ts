@@ -3,12 +3,12 @@ import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { HEADER_BASE64, SEAL_BASE64 } from '../old_templates/image-headers-base64';
 
 export const kp20: KPTemplate = {
-  id: 'kp-cert-secretary',
+  id: 'kp20',
   name: 'Certification to File Action (Lupon Secretary)',
   description: 'Certification issued by the Lupon Secretary when a settlement is repudiated',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true },
     { key: 'repudiantee', label: 'Name of Repudiantee', type: 'text', required: true, placeholder: 'Person who repudiated the settlement' },

@@ -7,8 +7,8 @@ export const kp23: KPTemplate = {
   name: 'KP Form #23: Certification to Bar Action',
   description: 'Certification barring complainant from court filing due to willful failure to appear',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true },
     { key: 'complainant1', label: 'First Complainant Name', type: 'text', required: true },

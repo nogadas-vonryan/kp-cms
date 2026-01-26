@@ -7,8 +7,8 @@ export const kp12: KPTemplate = {
   name: 'KP Form #12: Notice of Hearing (Conciliation Proceedings)',
   description: 'Official notice for parties to appear for conciliation proceedings before the Pangkat Chairman.',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'hearingDate', label: 'Hearing Date', type: 'date', required: true },
     { key: 'hearingTime', label: 'Hearing Time', type: 'text', required: true, placeholder: 'e.g., 9:00 AM' },
     { key: 'pangkatChairman', label: 'Pangkat Chairman', type: 'text', required: true },

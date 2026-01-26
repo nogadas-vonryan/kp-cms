@@ -7,8 +7,8 @@ export const kp27: KPTemplate = {
   name: 'KP Form #27: Notice of Execution',
   description: 'Official notice from the Punong Barangay regarding the execution of a settlement or award',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true },
     { key: 'dateIssued', label: 'Date Signed', type: 'date', required: true },

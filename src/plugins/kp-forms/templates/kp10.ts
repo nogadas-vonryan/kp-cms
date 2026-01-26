@@ -7,8 +7,8 @@ export const kp10: KPTemplate = {
   name: 'KP Form #10: Notice for Constitution of Pangkat',
   description: 'Notice to both parties to appear for the selection of Pangkat Tagapagkasundo members.',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'constitutionDate', label: 'Constitution Date', type: 'date', required: true },
     { key: 'constitutionTime', label: 'Constitution Time', type: 'text', required: true, placeholder: 'e.g., 9:00 AM' },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true },

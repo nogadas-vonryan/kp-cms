@@ -7,8 +7,8 @@ export const kp16: KPTemplate = {
   name: 'KP Form #16: Amicable Settlement',
   description: 'Official agreement outlining the terms of settlement reached between the complainant and respondent.',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'settlementPlan', label: 'Settlement Plan/Terms', type: 'textarea', required: true, helpText: 'Describe the specific terms agreed upon by both parties' },

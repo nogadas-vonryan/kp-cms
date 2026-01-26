@@ -7,8 +7,8 @@ export const kp17: KPTemplate = {
   name: 'KP Form #17: Repudiation',
   description: 'Official form for repudiating a settlement or an agreement for arbitration on grounds of fraud, violence, or intimidation.',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true, placeholder: 'Name/s of Complainant/s' },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true, placeholder: 'Name/s of Respondent/s' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'Nature of dispute' },
     { key: 'repudiationGrounds', label: 'Grounds for Repudiation', type: 'textarea', required: true, helpText: 'Describe the fraud, violence, or intimidation used to get your consent' },

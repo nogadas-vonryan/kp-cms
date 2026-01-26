@@ -7,7 +7,7 @@ export const kp8: KPTemplate = {
   name: 'KP Form #8: Notice of Hearing (Mediation)',
   description: 'Notice of hearing for mediation proceedings before the Lupon',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'textarea', required: true, placeholder: 'Enter each complainant on a new line', helpText: 'One name per line' },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
     { key: 'hearingDate', label: 'Hearing Date', type: 'date', required: true },
     { key: 'hearingTime', label: 'Hearing Time', type: 'text', required: true, placeholder: 'e.g., 2:00 PM' },
     { key: 'timeOfDay', label: 'Time of Day', type: 'select', options: ['morning', 'afternoon'], required: true, defaultValue: 'afternoon' },

@@ -7,8 +7,8 @@ export const kp21: KPTemplate = {
   name: 'KP Form #21: Certification to File Action (Pangkat Secretary)',
   description: 'Certification issued when both mediation and Pangkat conciliation failed to reach a settlement',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true },

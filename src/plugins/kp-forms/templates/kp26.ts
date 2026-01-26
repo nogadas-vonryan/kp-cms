@@ -7,8 +7,8 @@ export const kp26: KPTemplate = {
   name: 'KP Form #26: Notice of Hearing (Re: Motion for Execution)',
   description: 'Notice to parties regarding the hearing for a filed motion for execution',
   fields: [
-    { key: 'complainants', label: 'Complainant/s', type: 'text', required: true },
-    { key: 'respondents', label: 'Respondent/s', type: 'text', required: true },
+    { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },
+    { key: 'respondents', label: 'Respondent/s', type: 'array', required: true, placeholder: 'e.g., Pedro Reyes' },
     { key: 'caseNo', label: 'Barangay Case No.', type: 'text', required: true },
     { key: 'for', label: 'For', type: 'text', required: true },
     { key: 'hearingDate', label: 'Hearing Date', type: 'date', required: true },
