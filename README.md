@@ -1,5 +1,17 @@
-# Vue 3 + TypeScript + Vite
+# Katarungang Pambarangay Case Management System
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A client for case management system for barangay-level dispute resolution. 
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Features
+
+- **Case Management** - Create, track, and manage cases
+- **Document Storage** - Centralized document repository via archivist server
+- **User Authentication** - Role-based access control
+- **Case Details** - View case information and attached documents
+- **Dynamic Forms** - Customizable case entry forms
+
+## Tech Stack
+
+- Vue 3 + TypeScript
+- Vite
+- Archivist backend
