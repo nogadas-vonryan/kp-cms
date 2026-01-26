@@ -76,6 +76,34 @@
 								:placeholder="field.placeholder || 'Select'"
 							/>
 
+							<!-- Array field for dynamic inputs -->
+							<div v-else-if="field.type === 'array'" class="space-y-2">
+								<div v-for="(_, index) in (formData[field.key] as string[])" :key="index" class="flex gap-2">
+									<UiInput
+										v-model="(formData[field.key] as string[])[index]"
+										:placeholder="field.placeholder"
+										:required="field.required && index === 0"
+										class="flex-1"
+									/>
+									<UiButton
+										type="button"
+										variant="ghost"
+										@click="removeArrayItem(field.key, index)"
+										class="px-2 py-1 text-red-600 hover:bg-red-50"
+									>
+										Remove
+									</UiButton>
+								</div>
+								<UiButton
+									type="button"
+									variant="ghost"
+									@click="addArrayItem(field.key)"
+									class="text-blue-600 hover:bg-blue-50"
+								>
+									+ Add
+								</UiButton>
+							</div>
+
 							<input v-else v-model="formData[field.key]" class="hidden" />
 
 							<p v-if="field.helpText" class="text-xs text-gray-500">{{ field.helpText }}</p>
@@ -137,15 +165,14 @@ watch(selectedTemplate, (tpl) => {
 	if (tpl) initForm(tpl);
 }, { immediate: true });
 
-function derivePrefill(key: string): string {
+function derivePrefill(key: string): string | string[] {
   const doc = props.context?.document;
-  if (!doc) return '';
-  if (key === 'caseNo') return doc.code || '';
+  if (!doc) return key === 'complainants' || key === 'respondents' ? [''] : '';
   if ((key === 'complainant' || key === 'complainants') && Array.isArray(doc.fields?.complainants)) {
-    return (doc.fields.complainants as string[]).join(', ');
+    return (doc.fields.complainants as string[]);
   }
   if ((key === 'respondent' || key === 'respondents') && Array.isArray(doc.fields?.respondents)) {
-    return (doc.fields.respondents as string[]).join(', ');
+    return (doc.fields.respondents as string[]);
   }
   if (key === 'title' || key === 'subject') return doc.title || '';
   return '';
@@ -160,8 +187,18 @@ function initForm(tpl: KPTemplate) {
 
 	tpl.fields.forEach((field) => {
 		const prefill = derivePrefill(field.key);
-		const baseValue = field.type === 'date' && !field.defaultValue ? today : field.defaultValue || '';
-		formData[field.key] = prefill || baseValue;
+		
+		if (field.type === 'array') {
+			// For array fields, initialize with prefilled data or empty array with one input
+			if (Array.isArray(prefill) && prefill.length > 0) {
+				formData[field.key] = prefill;
+			} else {
+				formData[field.key] = [''];
+			}
+		} else {
+			const baseValue = field.type === 'date' && !field.defaultValue ? today : field.defaultValue || '';
+			formData[field.key] = typeof prefill === 'string' ? prefill || baseValue : baseValue;
+		}
 	});
 }
 
@@ -175,12 +212,38 @@ function validate(): boolean {
 
 	selectedTemplate.value.fields.forEach((field) => {
 		const value = formData[field.key];
-		if (field.required && (!value || String(value).trim() === '')) {
-			errors[field.key] = 'This field is required';
+		
+		if (field.type === 'array') {
+			const items = (value as string[]).filter(item => item && String(item).trim() !== '');
+			if (field.required && items.length === 0) {
+				errors[field.key] = 'Please add at least one entry';
+			}
+		} else {
+			if (field.required && (!value || String(value).trim() === '')) {
+				errors[field.key] = 'This field is required';
+			}
 		}
 	});
 
 	return Object.keys(errors).length === 0;
+}
+
+function addArrayItem(fieldKey: string) {
+	if (!Array.isArray(formData[fieldKey])) {
+		formData[fieldKey] = [''];
+	} else {
+		(formData[fieldKey] as string[]).push('');
+	}
+}
+
+function removeArrayItem(fieldKey: string, index: number) {
+	if (Array.isArray(formData[fieldKey])) {
+		(formData[fieldKey] as string[]).splice(index, 1);
+		// Ensure at least one empty field remains
+		if ((formData[fieldKey] as string[]).length === 0) {
+			(formData[fieldKey] as string[]).push('');
+		}
+	}
 }
 
 function fileName(): string {
@@ -196,7 +259,18 @@ async function onGenerate() {
 
 	try {
 		isGenerating.value = true;
-		const docDef = selectedTemplate.value.generatePdf({ ...formData });
+		
+		// Convert array fields to newline-separated strings for PDF generation
+		const dataForPdf = { ...formData };
+		selectedTemplate.value.fields.forEach((field) => {
+			if (field.type === 'array' && Array.isArray(dataForPdf[field.key])) {
+				dataForPdf[field.key] = (dataForPdf[field.key] as string[])
+					.filter(item => item && String(item).trim() !== '')
+					.join('\n');
+			}
+		});
+		
+		const docDef = selectedTemplate.value.generatePdf(dataForPdf);
 		pdfMake.createPdf(docDef).download(fileName());
 		statusMessage.value = { type: 'success', text: 'PDF generated and downloaded.' };
 		props.context?.events.onFileAdd?.(null);
