@@ -61,50 +61,52 @@ func (s *Server) routes() {
 		MaxAge:           300,
 	}))
 
-	// Public Routes
-	s.Router.Get("/", s.handleVersion())
-	s.Router.Get("/health", s.handleHealth())
-	s.Router.Post("/auth/login", s.handleLogin())
-	s.Router.Post("/auth/register", s.handleRegister())
-	s.Router.Post("/auth/logout", s.handleLogout())
+	s.Router.Route("/api", func(r chi.Router) {
+		// Public Routes
+		r.Get("/", s.handleVersion())
+		r.Get("/health", s.handleHealth())
+		r.Post("/auth/login", s.handleLogin())
+		r.Post("/auth/register", s.handleRegister())
+		r.Post("/auth/logout", s.handleLogout())
 
-	s.Router.Group(func(r chi.Router) {
-		// Authenticated routes
-		r.Use(auth.SessionMiddleware(s.sessionManager))
-		r.Use(auth.CSRFMiddleware())
+		r.Group(func(r chi.Router) {
+			// Authenticated routes
+			r.Use(auth.SessionMiddleware(s.sessionManager))
+			r.Use(auth.CSRFMiddleware())
 
-		r.Get("/auth/me", s.handleMe())
+			r.Get("/auth/me", s.handleMe())
 
-		r.Route("/auth/admin", func(admin chi.Router) {
-			admin.Use(auth.RequireRole(auth.RoleAdmin))
-			admin.Get("/users", s.handleListUsers())
-			admin.Post("/users", s.handleCreateUser())
-			admin.Post("/users/{username}/role", s.handleUpdateUserRole())
-			admin.Delete("/users/{username}", s.handleDeleteUser())
-		})
-
-		r.Route("/documents", func(r chi.Router) {
-			r.Get("/", s.handleListDocuments())
-			r.Get("/search", s.handleSearchDocuments())
-			r.Get("/{uuid}", s.handleGetDocumentByUUID())
-			r.Get("/code/{code}", s.handleGetDocumentByCode())
-
-			r.Get("/{uuid}/files/{fileName:.+}", s.handleDownloadFile())
-
-			r.Group(func(admin chi.Router) {
+			r.Route("/auth/admin", func(admin chi.Router) {
 				admin.Use(auth.RequireRole(auth.RoleAdmin))
+				admin.Get("/users", s.handleListUsers())
+				admin.Post("/users", s.handleCreateUser())
+				admin.Post("/users/{username}/role", s.handleUpdateUserRole())
+				admin.Delete("/users/{username}", s.handleDeleteUser())
+			})
 
-				admin.Post("/", s.handleCreateDocument())
-				admin.Put("/{uuid}", s.handleUpdateDocument())
-				admin.Delete("/{uuid}", s.handleDeleteDocument())
+			r.Route("/documents", func(r chi.Router) {
+				r.Get("/", s.handleListDocuments())
+				r.Get("/search", s.handleSearchDocuments())
+				r.Get("/{uuid}", s.handleGetDocumentByUUID())
+				r.Get("/code/{code}", s.handleGetDocumentByCode())
 
-				admin.Post("/{uuid}/files", s.handleUploadFile())
-				admin.Put("/{uuid}/files/{fileName:.+}", s.handleUpdateFileMetadata())
-				admin.Delete("/{uuid}/files/{fileName:.+}", s.handleDeleteFile())
+				r.Get("/{uuid}/files/{fileName:.+}", s.handleDownloadFile())
 
-				admin.Get("/conflicts", s.handleGetConflicts())
-				admin.Post("/reload", s.handleReloadDocuments())
-				admin.Post("/reload/{folderName}", s.handleReloadDocument())
+				r.Group(func(admin chi.Router) {
+					admin.Use(auth.RequireRole(auth.RoleAdmin))
+
+					admin.Post("/", s.handleCreateDocument())
+					admin.Put("/{uuid}", s.handleUpdateDocument())
+					admin.Delete("/{uuid}", s.handleDeleteDocument())
+
+					admin.Post("/{uuid}/files", s.handleUploadFile())
+					admin.Put("/{uuid}/files/{fileName:.+}", s.handleUpdateFileMetadata())
+					admin.Delete("/{uuid}/files/{fileName:.+}", s.handleDeleteFile())
+
+					admin.Get("/conflicts", s.handleGetConflicts())
+					admin.Post("/reload", s.handleReloadDocuments())
+					admin.Post("/reload/{folderName}", s.handleReloadDocument())
+				})
 			})
 		})
 	})
