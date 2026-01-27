@@ -61,7 +61,7 @@ func (a *App) StartWebServer(host string, port int) error {
 	}
 	// Store server reference for shutdown later
 	a.server = srv
-	a.Log(fmt.Sprintf("Frontend server started successfully on %s:%d", host, port))
+	a.Log(fmt.Sprintf("Frontend server started successfully on http://%s:%d", host, port))
 	return nil
 }
 
@@ -106,7 +106,9 @@ func (a *App) StartBackendServer(host string, port int, user, pass, dataPath str
 	}
 	// Store server reference for shutdown later
 	a.backendServer = srv
-	a.Log(fmt.Sprintf("Backend server started successfully on %s:%d", host, port))
+	a.Log(fmt.Sprintf("Backend server started successfully on http://%s:%d", host, port))
+	a.Log(fmt.Sprintf("Using data directory: %s", dataPath))
+	a.Log(fmt.Sprintf("Admin user: %s", user))
 	return nil
 }
 

@@ -151,9 +151,7 @@ func StartWebServer(host string, port int) (*http.Server, error) {
 	testListener.Close()
 
 	go func() {
-		fmt.Printf("Web server started at http://%s:%d\n", host, port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Server error: %s\n", err)
 		}
 	}()
 
@@ -227,11 +225,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string) (*ht
 	}
 
 	go func() {
-		fmt.Printf("Backend server started at http://%s\n", addr)
-		fmt.Printf("Using data directory: %s\n", dataPath)
-		fmt.Printf("Admin user: %s\n", user)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Backend server error: %s\n", err)
 		}
 	}()
 
