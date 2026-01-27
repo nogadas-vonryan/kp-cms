@@ -423,7 +423,7 @@ async function performSearch(resetOffset = true) {
       limit: limit.value
     };
 
-    if (filters.value.field_key && filters.value.field_value) {
+    if (filters.value.field_key) {
       // Convert field key to snake_case
       const key = filters.value.field_key
         .replace(/\s+/g, '_')
@@ -431,7 +431,9 @@ async function performSearch(resetOffset = true) {
         .toLowerCase()
         .replace(/^_/, '');
       // Convert display value to API snake_case value
-      const apiValue = apiValueMap[filters.value.field_key]?.[filters.value.field_value] ?? filters.value.field_value.toLowerCase();
+      const apiValue = filters.value.field_value 
+        ? (apiValueMap[filters.value.field_key]?.[filters.value.field_value] ?? filters.value.field_value.toLowerCase())
+        : '';
       params[`field_${key}`] = apiValue;
     }
 

@@ -26,8 +26,11 @@ export const DocumentService = {
   }) => {
     const cleanParams: any = {};
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== '' && value !== null) {
-        cleanParams[key] = value;
+      // Allow field_* parameters even if empty, but filter out other empty values
+      if (value !== undefined && value !== null) {
+        if (key.startsWith('field_') || value !== '') {
+          cleanParams[key] = value;
+        }
       }
     });
     return api.get<Document[]>('/api/documents/search', { params: cleanParams });
