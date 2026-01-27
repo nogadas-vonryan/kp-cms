@@ -20,10 +20,11 @@ const currentPage = ref<'panel' | 'logs'>('panel')
 
 // Shared state
 type LogEntry = { timestamp: string; message: string }
+type ServerStatus = 'stopped' | 'running' | 'error' | 'remote'
 const logs = ref<LogEntry[]>([])
 const maxLogs = 1000
-const frontendStatus = ref<'stopped' | 'running' | 'error'>('stopped')
-const backendStatus = ref<'stopped' | 'running' | 'error'>('stopped')
+const frontendStatus = ref<ServerStatus>('stopped')
+const backendStatus = ref<ServerStatus>('stopped')
 
 function showLogs() {
   currentPage.value = 'logs'
@@ -38,11 +39,11 @@ function clearLogs() {
 }
 
 // Update status functions
-function updateFrontendStatus(status: 'stopped' | 'running' | 'error') {
+function updateFrontendStatus(status: ServerStatus) {
   frontendStatus.value = status
 }
 
-function updateBackendStatus(status: 'stopped' | 'running' | 'error') {
+function updateBackendStatus(status: ServerStatus) {
   backendStatus.value = status
 }
 

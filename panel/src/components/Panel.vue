@@ -102,6 +102,13 @@
                 <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectFolder">Browse</button>
               </div>
             </div>
+            <div class="col-span-2">
+              <label class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+                <input v-model="useRemoteBackend" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                <span>Use remote backend (only start frontend proxy)</span>
+              </label>
+              <p class="mt-1 text-xs text-slate-500">Skips starting the local backend and proxies to the backend host/port above.</p>
+            </div>
           </div>
 
           <div class="flex flex-wrap justify-end gap-2">
@@ -155,6 +162,7 @@ const backendPort = ref('8080')
 const user = ref('admin')
 const pass = ref('')
 const dataPath = ref('')
+const useRemoteBackend = ref(false)
 
 const showModal = ref(false)
 const modalTitle = ref('')
@@ -186,6 +194,7 @@ function handleReset() {
   user.value = 'admin'
   pass.value = ''
   dataPath.value = ''
+  useRemoteBackend.value = false
   emit('update-frontend-status', 'stopped')
   emit('update-backend-status', 'stopped')
 }
@@ -216,9 +225,13 @@ async function startServers() {
   let frontendStarted = false
   let backendStarted = false
   let errors = []
+  const remoteOnly = useRemoteBackend.value
 
   // Start backend server first
-  if (typeof appNs.StartBackendServer === 'function') {
+  if (remoteOnly) {
+    backendStarted = true
+    emit('update-backend-status', 'remote')
+  } else if (typeof appNs.StartBackendServer === 'function') {
     try {
       const result = await appNs.StartBackendServer(
         backendHost.value,
@@ -260,12 +273,17 @@ async function startServers() {
 
   // Show appropriate message
   if (frontendStarted && backendStarted) {
-    showMessage('Success', `Servers started successfully!\nFrontend: http://${frontendHost.value}:${frontendPort.value}\nBackend: http://${backendHost.value}:${backendPort.value}\n\nCheck the Logs tab for admin credentials if password was auto-generated.`)
+    const backendLabel = remoteOnly ? 'Remote Backend' : 'Backend'
+    showMessage(
+      'Success',
+      `Frontend started successfully.\n${backendLabel}: http://${backendHost.value}:${backendPort.value}\n\nCheck the Logs tab for admin credentials if password was auto-generated.`
+    )
   } else if (frontendStarted || backendStarted) {
     const started = []
     if (frontendStarted) started.push(`Frontend: http://${frontendHost.value}:${frontendPort.value}`)
-    if (backendStarted) started.push(`Backend: http://${backendHost.value}:${backendPort.value}`)
-    showMessage('Partial Success', `Partially started:\n${started.join('\n')}\n\nErrors:\n${errors.join('\n')}`)
+    if (backendStarted) started.push(`${remoteOnly ? 'Remote Backend proxy' : 'Backend'}: http://${backendHost.value}:${backendPort.value}`)
+    const errorText = errors.length ? `\n\nErrors:\n${errors.join('\n')}` : ''
+    showMessage('Partial Success', `Partially started:\n${started.join('\n')}${errorText}`)
   } else if (errors.length > 0) {
     showMessage('Error', 'Failed to start servers:\n' + errors.join('\n'))
   }
@@ -299,6 +317,7 @@ async function stopServers() {
     }
 
     let errors = []
+    const remoteOnly = useRemoteBackend.value
 
     // Stop frontend server
     if (typeof appNs.StopWebServer === 'function') {
@@ -313,7 +332,7 @@ async function stopServers() {
     }
 
     // Stop backend server
-    if (typeof appNs.StopBackendServer === 'function') {
+    if (!remoteOnly && typeof appNs.StopBackendServer === 'function') {
       try {
         await appNs.StopBackendServer()
         emit('update-backend-status', 'stopped')
@@ -322,6 +341,8 @@ async function stopServers() {
         errors.push(errorMsg)
         emit('update-backend-status', 'error')
       }
+    } else if (remoteOnly) {
+      emit('update-backend-status', 'stopped')
     }
 
     if (errors.length > 0) {
@@ -340,6 +361,7 @@ function statusClass(status) {
   return {
     running: 'border-green-200 bg-green-50 text-green-700',
     stopped: 'border-slate-200 bg-slate-50 text-slate-600',
+    remote: 'border-blue-200 bg-blue-50 text-blue-700',
     error: 'border-amber-200 bg-amber-50 text-amber-700'
   }[status] || 'border-slate-200 bg-slate-50 text-slate-600'
 }
@@ -348,6 +370,7 @@ function statusText(status) {
   return {
     running: 'Running',
     stopped: 'Stopped',
+    remote: 'Remote',
     error: 'Unavailable'
   }[status] || 'Unknown'
 }
@@ -356,6 +379,7 @@ function dotClass(status) {
   return {
     running: 'bg-green-500',
     stopped: 'bg-slate-300',
+    remote: 'bg-blue-500',
     error: 'bg-amber-500'
   }[status] || 'bg-slate-300'
 }
