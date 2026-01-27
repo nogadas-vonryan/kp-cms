@@ -1,139 +1,136 @@
 <template>
-  <div class="app-shell">
-    <header class="panel-header">
-      <div class="status">
-        <span class="status-dot"></span>
-        <h1 class="panel-title">Katarungang Pambarangay</h1>
+  <div class="min-h-screen max-h-screen w-full max-w-5xl mx-auto flex flex-col gap-3 p-4 bg-slate-50 text-slate-900 font-sans">
+    <header class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <div class="flex items-center gap-2 text-sm font-semibold">
+        <span class="h-2 w-2 rounded-full bg-green-500"></span>
+        <h1 class="text-sm font-semibold tracking-tight">Katarungang Pambarangay</h1>
       </div>
-      <span class="badge">v0.1</span>
+      <span class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-mono text-slate-600">v0.1</span>
     </header>
 
-    <main class="panel-body">
-      <!-- Unified Server Section -->
-      <section class="section">
-        <div class="section-top">
-          <div class="section-heading">
-            <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="4" y="6.5" width="16" height="11" rx="1.4" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M8 10.5h8M8 13.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <main class="flex-1 rounded-xl border border-slate-200 bg-white p-3 shadow-sm overflow-auto flex flex-col gap-3">
+      <section class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2 text-slate-500">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="6.5" width="16" height="11" rx="1.4" stroke="currentColor" stroke-width="1.4" />
+              <path d="M8 10.5h8M8 13.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
             </svg>
-            <h2 class="section-title">Server Configuration</h2>
+            <h2 class="text-[11px] font-bold uppercase tracking-[0.12em]">Server Configuration</h2>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <span class="status-badge" :class="statusClass(frontendStatus)">
-              <span class="status-dot"></span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" :class="statusClass(frontendStatus)">
+              <span class="h-2 w-2 rounded-full" :class="dotClass(frontendStatus)"></span>
               Frontend: {{ statusText(frontendStatus) }}
             </span>
-            <span class="status-badge" :class="statusClass(backendStatus)">
-              <span class="status-dot"></span>
+            <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" :class="statusClass(backendStatus)">
+              <span class="h-2 w-2 rounded-full" :class="dotClass(backendStatus)"></span>
               Backend: {{ statusText(backendStatus) }}
             </span>
           </div>
         </div>
 
-        <form class="form" @submit.prevent="startServers">
-          <div class="form-grid">
-            <div class="span-2">
-              <label class="field-label">Frontend Host</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <form class="flex flex-col gap-3" @submit.prevent="startServers">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Frontend Host</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
-                <input v-model="frontendHost" type="text" placeholder="0.0.0.0" />
+                <input v-model="frontendHost" type="text" placeholder="0.0.0.0" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
             </div>
             <div>
-              <label class="field-label">Frontend Port</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Frontend Port</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
-                <input v-model="frontendPort" type="text" placeholder="8081" />
+                <input v-model="frontendPort" type="text" placeholder="8081" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
             </div>
-            <div class="span-2">
-              <label class="field-label">Backend Host</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backend Host</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
-                <input v-model="backendHost" type="text" placeholder="0.0.0.0" />
-              </div>
-            </div>
-            <div>
-              <label class="field-label">Backend Port</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                </svg>
-                <input v-model="backendPort" type="text" placeholder="8080" />
+                <input v-model="backendHost" type="text" placeholder="0.0.0.0" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
             </div>
             <div>
-              <label class="field-label">Admin User</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="8.5" r="3.2" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M6.5 18.5c1.5-2 3.3-3 5.5-3s4 1 5.5 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backend Port</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
-                <input v-model="user" type="text" placeholder="admin" />
+                <input v-model="backendPort" type="text" placeholder="8080" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
             </div>
-            <div class="span-2">
-              <label class="field-label">Admin Password</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect x="5" y="10" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M9 10V8a3 3 0 1 1 6 0v2" stroke="currentColor" stroke-width="1.4"/>
+            <div>
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Admin User</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="8.5" r="3.2" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M6.5 18.5c1.5-2 3.3-3 5.5-3s4 1 5.5 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 </svg>
-                <input v-model="pass" type="password" placeholder="••••••" />
+                <input v-model="user" type="text" placeholder="admin" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
             </div>
-            <div class="span-3">
-              <label class="field-label">Data Path</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4.5 7.5h6l1.5 2h7.5v8a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.4"/>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Admin Password</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="5" y="10" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M9 10V8a3 3 0 1 1 6 0v2" stroke="currentColor" stroke-width="1.4" />
                 </svg>
-                <input v-model="dataPath" type="text" placeholder="/var/www/data" />
-                <button type="button" class="btn compact" @click="selectFolder">Browse</button>
+                <input v-model="pass" type="password" placeholder="••••••" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
+              </div>
+            </div>
+            <div class="col-span-2">
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Data Path</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4.5 7.5h6l1.5 2h7.5v8a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.4" />
+                </svg>
+                <input v-model="dataPath" type="text" placeholder="/var/www/data" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
+                <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectFolder">Browse</button>
               </div>
             </div>
           </div>
 
-          <div class="actions">
-            <button type="button" class="btn ghost" @click="stopServers">Stop All</button>
-            <button type="button" class="btn" @click="openFrontendInBrowser">Open Frontend</button>
-            <button type="submit" class="btn primary">Start Servers</button>
+          <div class="flex flex-wrap justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="stopServers">Stop All</button>
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100" @click="openFrontendInBrowser">Open Frontend</button>
+            <button type="submit" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Start Servers</button>
           </div>
         </form>
       </section>
-
     </main>
 
-    <footer class="panel-footer">
-      <button type="button" class="btn ghost" @click="viewLogs">View Logs</button>
-      <div style="display: flex; gap: 8px; margin-left: auto;">
-        <button type="button" class="btn ghost" @click="handleReset">Reset</button>
-        <button type="button" class="btn primary" @click="handleSave">Save Changes</button>
+    <footer class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="viewLogs">View Logs</button>
+      <div class="ml-auto flex gap-2">
+        <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="handleReset">Reset</button>
+        <button type="button" class="rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 px-3 py-2 text-xs font-semibold text-white hover:from-slate-800 hover:to-slate-700" @click="handleSave">Save Changes</button>
       </div>
     </footer>
 
-    <!-- Modal Dialog -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-dialog" @click.stop>
-        <div class="modal-header">
-          <h3 class="modal-title">{{ modalTitle }}</h3>
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" @click="closeModal">
+      <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @click.stop>
+        <div class="border-b border-slate-200 px-4 py-3">
+          <h3 class="text-sm font-semibold text-slate-900">{{ modalTitle }}</h3>
         </div>
-        <div class="modal-body">
-          <pre class="modal-message">{{ modalMessage }}</pre>
+        <div class="max-h-[60vh] overflow-y-auto px-4 py-3">
+          <pre class="whitespace-pre-wrap break-words text-sm text-slate-700">{{ modalMessage }}</pre>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn primary" @click="closeModal">OK</button>
+        <div class="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+          <button type="button" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800" @click="closeModal">OK</button>
         </div>
       </div>
     </div>
@@ -159,10 +156,6 @@ const user = ref('admin')
 const pass = ref('')
 const dataPath = ref('')
 
-// simple applied flag for footer save button feedback
-const isSaved = ref(false)
-
-// Modal state
 const showModal = ref(false)
 const modalTitle = ref('')
 const modalMessage = ref('')
@@ -178,10 +171,7 @@ function closeModal() {
 }
 
 function handleSave() {
-  isSaved.value = true
-  setTimeout(() => {
-    isSaved.value = false
-  }, 2000)
+  showMessage('Saved', 'Settings saved locally.')
 }
 
 function viewLogs() {
@@ -351,10 +341,10 @@ async function stopServers() {
 
 function statusClass(status) {
   return {
-    running: 'status-ok',
-    stopped: 'status-muted',
-    error: 'status-warn'
-  }[status] || 'status-muted'
+    running: 'border-green-200 bg-green-50 text-green-700',
+    stopped: 'border-slate-200 bg-slate-50 text-slate-600',
+    error: 'border-amber-200 bg-amber-50 text-amber-700'
+  }[status] || 'border-slate-200 bg-slate-50 text-slate-600'
 }
 
 function statusText(status) {
@@ -364,253 +354,12 @@ function statusText(status) {
     error: 'Unavailable'
   }[status] || 'Unknown'
 }
+
+function dotClass(status) {
+  return {
+    running: 'bg-green-500',
+    stopped: 'bg-slate-300',
+    error: 'bg-amber-500'
+  }[status] || 'bg-slate-300'
+}
 </script>
-
-<style scoped>
-.app-shell{
-  height:100vh;
-  max-height:100vh;
-  width:min(1100px, 100%);
-  margin:0 auto;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  padding:12px 16px 16px;
-  background:#f8fafc;
-  font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  box-sizing:border-box;
-  overflow:hidden;
-}
-
-.panel-header,
-.panel-footer{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:8px 10px;
-  background:#fff;
-  border:1px solid #e2e8f0;
-  border-radius:10px;
-  box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.panel-footer{gap:8px}
-
-.panel-body{
-  flex:1;
-  min-height:0;
-  background:#fff;
-  border:1px solid #e2e8f0;
-  border-radius:10px;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
-  overflow:auto;
-}
-
-.status{display:flex;align-items:center;gap:8px}
-.status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block}
-.panel-title{margin:0;font-size:14px;font-weight:600;letter-spacing:-0.01em}
-.badge{
-  font-size:10px;
-  background:#f8fafc;
-  color:#475569;
-  padding:2px 8px;
-  border-radius:6px;
-  border:1px solid #e2e8f0;
-  font-family:"SFMono-Regular", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-.section{display:flex;flex-direction:column;gap:10px}
-.section-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.section-heading{display:flex;align-items:center;gap:8px}
-.heading-icon{width:16px;height:16px;color:#94a3b8}
-.section-title{margin:0;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#94a3b8}
-
-.status-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:600;
-  border:1px solid #e2e8f0;
-  color:#334155;
-  background:#f8fafc;
-  text-transform:capitalize;
-}
-
-.status-badge .status-dot{width:8px;height:8px;border-radius:999px;background:#cbd5e1}
-.status-badge.status-ok{border-color:#22c55e1a;background:#f0fdf4;color:#166534}
-.status-badge.status-ok .status-dot{background:#22c55e}
-.status-badge.status-warn{border-color:#f973161a;background:#fff7ed;color:#9a3412}
-.status-badge.status-warn .status-dot{background:#f97316}
-.status-badge.status-muted{border-color:#e2e8f0;background:#f8fafc;color:#475569}
-.status-badge.status-muted .status-dot{background:#cbd5e1}
-
-.divider{height:1px;background:#e2e8f0}
-
-.form{display:flex;flex-direction:column;gap:12px}
-.form-grid{display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px;align-items:start}
-.span-2{grid-column:span 2}
-.span-3{grid-column:span 3}
-
-.field-label{
-  display:block;
-  font-size:10px;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:0.08em;
-  color:#64748b;
-  margin:0 0 4px 0;
-}
-
-.input-wrap{
-  position:relative;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  background:#f8fafc;
-  border:1px solid #e2e8f0;
-  border-radius:8px;
-  padding:0 12px 0 36px;
-  min-height:38px;
-  transition:border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.input-wrap:focus-within{border-color:#3b82f6;background:#fff}
-.input-icon{
-  position:absolute;
-  left:12px;
-  width:14px;
-  height:14px;
-  color:#94a3b8;
-}
-
-.input-wrap input{
-  width:100%;
-  border:none;
-  outline:none;
-  background:transparent;
-  font-size:13px;
-  color:#0f172a;
-  padding:0;
-  height:20px;
-}
-
-.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-
-.btn{
-  border:1px solid #e2e8f0;
-  background:#fff;
-  color:#0f172a;
-  padding:8px 12px;
-  border-radius:8px;
-  font-size:12px;
-  font-weight:600;
-  cursor:pointer;
-  transition:background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.btn.primary{
-  background:#0f172a;
-  border-color:#0f172a;
-  color:#fff;
-}
-
-.btn.ghost{
-  background:transparent;
-  color:#475569;
-}
-
-.btn.compact{
-  padding:6px 10px;
-  font-size:11px;
-  margin-left:8px;
-  height:28px;
-  flex-shrink:0;
-}
-
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-
-.modal-dialog {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
-  width: 100%;
-  max-width: 380px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #e2e8f0;
-}
-
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.modal-body {
-  padding: 16px 20px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-.modal-message {
-  margin: 0;
-  font-size: 13px;
-  color: #334155;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  line-height: 1.5;
-}
-
-.modal-footer {
-  padding: 12px 20px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-.btn:hover{background:#f1f5f9}
-.btn.primary:hover{background:#111827;border-color:#111827}
-.btn.ghost:hover{color:#0f172a}
-
-.btn:focus{outline:2px solid #bfdbfe;outline-offset:1px}
-
-.panel-footer .btn.primary{
-  background:linear-gradient(120deg, #0f172a, #111827);
-  flex-shrink: 0;
-}
-
-.log-message {
-  color: #0f172a;
-  word-break: break-word;
-}
-</style>
