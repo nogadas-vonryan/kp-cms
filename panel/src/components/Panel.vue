@@ -134,6 +134,32 @@
           </div>
         </form>
       </section>
+
+      <div class="divider"></div>
+
+      <!-- Logs Section -->
+      <section class="section logs-section">
+        <div class="section-top">
+          <div class="section-heading">
+            <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <h2 class="section-title">Application Logs</h2>
+          </div>
+          <button type="button" class="btn ghost" @click="clearLogs">Clear</button>
+        </div>
+        <div class="logs-container">
+          <div v-if="logs.length === 0" class="logs-empty">
+            No logs yet
+          </div>
+          <div v-else class="logs-list">
+            <div v-for="(log, index) in logs" :key="index" class="log-entry">
+              <span class="log-time">{{ log.timestamp }}</span>
+              <span class="log-message">{{ log.message }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="panel-footer">
@@ -144,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const frontendHost = ref('0.0.0.0')
 const frontendPort = ref('8081')
@@ -156,6 +182,44 @@ const dataPath = ref('')
 
 const frontendStatus = ref('stopped')
 const backendStatus = ref('stopped')
+
+// Logs
+const logs = ref([])
+const maxLogs = 100
+
+function clearLogs() {
+  logs.value = []
+}
+
+// Listen for log events from backend
+onMounted(() => {
+  try {
+    const runtime = window.runtime
+    if (runtime && typeof runtime.EventsOn === 'function') {
+      runtime.EventsOn('log', (message) => {
+        const timestamp = new Date().toLocaleTimeString()
+        logs.value.push({ timestamp, message })
+        // Keep only the last maxLogs entries
+        if (logs.value.length > maxLogs) {
+          logs.value.shift()
+        }
+      })
+    }
+  } catch (err) {
+    console.error('Failed to setup log listener:', err)
+  }
+})
+
+onUnmounted(() => {
+  try {
+    const runtime = window.runtime
+    if (runtime && typeof runtime.EventsOff === 'function') {
+      runtime.EventsOff('log')
+    }
+  } catch (err) {
+    console.error('Failed to cleanup log listener:', err)
+  }
+})
 
 // simple applied flag for footer save button feedback
 const isSaved = ref(false)
@@ -472,5 +536,58 @@ function statusText(status) {
 .panel-footer .btn.primary.saving{
   background:#22c55e;
   border-color:#16a34a;
+}
+
+/* Logs Section */
+.logs-section {
+  margin-top: 8px;
+}
+
+.logs-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.logs-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 20px;
+}
+
+.logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-entry {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  padding: 4px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-time {
+  color: #64748b;
+  font-weight: 600;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.log-message {
+  color: #0f172a;
+  word-break: break-word;
 }
 </style>
