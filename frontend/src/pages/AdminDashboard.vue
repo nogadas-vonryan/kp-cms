@@ -24,7 +24,7 @@
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900">
             Sync Conflicts
-            <span v-if="conflicts.length > 0" class="ml-2 text-red-600">({{ conflicts.length }})</span>
+            <span v-if="conflicts && conflicts.length > 0" class="ml-2 text-red-600">({{ conflicts && conflicts.length }})</span>
           </h2>
           <UiButton @click="loadConflicts" :loading="loadingConflicts">
             Refresh
@@ -35,13 +35,13 @@
           {{ conflictsError }}
         </UiAlert>
 
-        <div v-else-if="conflicts.length === 0" class="text-center py-8 text-gray-600">
+        <div v-else-if="!conflicts || conflicts.length === 0" class="text-center py-8 text-gray-600">
           No conflicts detected
         </div>
 
         <div v-else class="space-y-3">
           <UiSystemNotice
-            v-for="(conflict, idx) in conflicts"
+            v-for="(conflict, idx) in conflicts || []"
             :key="idx"
             type="warning"
             :label="conflict.type"
@@ -116,12 +116,13 @@ async function handleReload() {
   
   try {
     const response = await DocumentService.reload();
-    reloadSuccess.value = response.data.status === 'success';
-    reloadMessage.value = `Reload ${response.data.status}. ${response.data.conflicts.length} conflicts found.`;
-    
+    reloadSuccess.value = response.data?.status === 'success';
+    const respConflicts = Array.isArray(response.data?.conflicts) ? response.data.conflicts : [];
+    reloadMessage.value = `Reload ${response.data?.status}. ${respConflicts.length} conflicts found.`;
+
     // Refresh conflicts list
-    if (response.data.conflicts.length > 0) {
-      conflicts.value = response.data.conflicts;
+    if (respConflicts.length > 0) {
+      conflicts.value = respConflicts;
     } else {
       await loadConflicts();
     }
