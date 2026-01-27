@@ -135,42 +135,27 @@
         </form>
       </section>
 
-      <div class="divider"></div>
-
-      <!-- Logs Section -->
-      <section class="section logs-section">
-        <div class="section-top">
-          <div class="section-heading">
-            <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-            <h2 class="section-title">Application Logs</h2>
-          </div>
-          <button type="button" class="btn ghost" @click="clearLogs">Clear</button>
-        </div>
-        <div class="logs-container">
-          <div v-if="logs.length === 0" class="logs-empty">
-            No logs yet
-          </div>
-          <div v-else class="logs-list">
-            <div v-for="(log, index) in logs" :key="index" class="log-entry">
-              <span class="log-time">{{ log.timestamp }}</span>
-              <span class="log-message">{{ log.message }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
 
     <footer class="panel-footer">
-      <button type="button" class="btn ghost" @click="handleReset">Reset</button>
-      <button type="button" class="btn primary" @click="handleSave">Save Changes</button>
+      <button type="button" class="btn ghost" @click="viewLogs">View Logs</button>
+      <div style="display: flex; gap: 8px; margin-left: auto;">
+        <button type="button" class="btn ghost" @click="handleReset">Reset</button>
+        <button type="button" class="btn primary" @click="handleSave">Save Changes</button>
+      </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, defineProps, defineEmits } from 'vue'
+
+defineProps({
+  frontendStatus: String,
+  backendStatus: String
+})
+
+const emit = defineEmits(['view-logs', 'update-frontend-status', 'update-backend-status'])
 
 const frontendHost = ref('0.0.0.0')
 const frontendPort = ref('8081')
@@ -179,47 +164,6 @@ const backendPort = ref('8080')
 const user = ref('admin')
 const pass = ref('')
 const dataPath = ref('')
-
-const frontendStatus = ref('stopped')
-const backendStatus = ref('stopped')
-
-// Logs
-const logs = ref([])
-const maxLogs = 100
-
-function clearLogs() {
-  logs.value = []
-}
-
-// Listen for log events from backend
-onMounted(() => {
-  try {
-    const runtime = window.runtime
-    if (runtime && typeof runtime.EventsOn === 'function') {
-      runtime.EventsOn('log', (message) => {
-        const timestamp = new Date().toLocaleTimeString()
-        logs.value.push({ timestamp, message })
-        // Keep only the last maxLogs entries
-        if (logs.value.length > maxLogs) {
-          logs.value.shift()
-        }
-      })
-    }
-  } catch (err) {
-    console.error('Failed to setup log listener:', err)
-  }
-})
-
-onUnmounted(() => {
-  try {
-    const runtime = window.runtime
-    if (runtime && typeof runtime.EventsOff === 'function') {
-      runtime.EventsOff('log')
-    }
-  } catch (err) {
-    console.error('Failed to cleanup log listener:', err)
-  }
-})
 
 // simple applied flag for footer save button feedback
 const isSaved = ref(false)
@@ -231,6 +175,10 @@ function handleSave() {
   }, 2000)
 }
 
+function viewLogs() {
+  emit('view-logs')
+}
+
 function handleReset() {
   frontendHost.value = 'localhost'
   frontendPort.value = '3000'
@@ -239,8 +187,8 @@ function handleReset() {
   user.value = 'admin'
   pass.value = ''
   dataPath.value = '/var/www/data'
-  frontendStatus.value = 'stopped'
-  backendStatus.value = 'stopped'
+  emit('update-frontend-status', 'stopped')
+  emit('update-backend-status', 'stopped')
 }
 
 async function selectFolder() {
@@ -265,15 +213,15 @@ async function startFrontend() {
     if (appNs && typeof appNs.StartWebServer === 'function') {
       await appNs.StartWebServer(frontendHost.value, parseInt(frontendPort.value) || 8081)
       alert(`Frontend server started at http://${frontendHost.value}:${frontendPort.value}`)
-      frontendStatus.value = 'running'
+      emit('update-frontend-status', 'running')
     } else {
       alert('StartWebServer not available in this environment')
-      frontendStatus.value = 'error'
+      emit('update-frontend-status', 'error')
     }
   } catch (err) {
     console.error(err)
     alert('Failed to start frontend server: ' + err.message)
-    frontendStatus.value = 'error'
+    emit('update-frontend-status', 'error')
   }
 }
 
@@ -283,15 +231,15 @@ async function stopFrontend() {
     if (appNs && typeof appNs.StopWebServer === 'function') {
       await appNs.StopWebServer()
       alert('Frontend server stopped successfully')
-      frontendStatus.value = 'stopped'
+      emit('update-frontend-status', 'stopped')
     } else {
       alert('StopWebServer not available in this environment')
-      frontendStatus.value = 'error'
+      emit('update-frontend-status', 'error')
     }
   } catch (err) {
     console.error(err)
     alert('Failed to stop frontend server: ' + err.message)
-    frontendStatus.value = 'error'
+    emit('update-frontend-status', 'error')
   }
 }
 
@@ -307,15 +255,15 @@ async function startBackend() {
         dataPath.value
       )
       alert(`Backend server started at http://${backendHost.value}:${backendPort.value}\nCheck terminal for admin credentials if password was auto-generated.`)
-      backendStatus.value = 'running'
+      emit('update-backend-status', 'running')
     } else {
       alert('StartBackendServer not available in this environment')
-      backendStatus.value = 'error'
+      emit('update-backend-status', 'error')
     }
   } catch (err) {
     console.error(err)
     alert('Failed to start backend server: ' + err.message)
-    backendStatus.value = 'error'
+    emit('update-backend-status', 'error')
   }
 }
 
@@ -325,15 +273,15 @@ async function stopBackend() {
     if (appNs && typeof appNs.StopBackendServer === 'function') {
       await appNs.StopBackendServer()
       alert('Backend server stopped successfully')
-      backendStatus.value = 'stopped'
+      emit('update-backend-status', 'stopped')
     } else {
       alert('StopBackendServer not available in this environment')
-      backendStatus.value = 'error'
+      emit('update-backend-status', 'error')
     }
   } catch (err) {
     console.error(err)
     alert('Failed to stop backend server: ' + err.message)
-    backendStatus.value = 'error'
+    emit('update-backend-status', 'error')
   }
 }
 
@@ -530,59 +478,6 @@ function statusText(status) {
 
 .panel-footer .btn.primary{
   background:linear-gradient(120deg, #0f172a, #111827);
-  border-color:#0f172a;
-}
-
-.panel-footer .btn.primary.saving{
-  background:#22c55e;
-  border-color:#16a34a;
-}
-
-/* Logs Section */
-.logs-section {
-  margin-top: 8px;
-}
-
-.logs-container {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 12px;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 12px;
-}
-
-.logs-empty {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 13px;
-  padding: 20px;
-}
-
-.logs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.log-entry {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  font-family: 'Courier New', monospace;
-  padding: 4px 0;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.log-entry:last-child {
-  border-bottom: none;
-}
-
-.log-time {
-  color: #64748b;
-  font-weight: 600;
-  min-width: 80px;
   flex-shrink: 0;
 }
 
