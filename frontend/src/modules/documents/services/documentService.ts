@@ -8,8 +8,8 @@ import type {
 } from '@/types';
 
 export const DocumentService = {
-  getAll: (offset = 0, limit = 15) => 
-    api.get<Document[]>('/api/documents', { params: { offset, limit } }),
+  getAll: (offset = 0, limit = 15, sort_by?: string, sort_desc?: boolean) => 
+    api.get<Document[]>('/api/documents', { params: { offset, limit, sort_by, sort_desc } }),
 
   search: (params: {
     uuid?: string;

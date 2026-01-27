@@ -302,7 +302,7 @@ const filters = ref({
   date_from: '',
   date_to: '',
   sort_by: '',
-  sort_desc: false,
+  sort_desc: true,
   field_key: '',
   field_value: ''
 });
@@ -375,7 +375,7 @@ async function loadDocuments() {
   loading.value = true;
   error.value = '';
   try {
-    const response = await DocumentService.getAll(offset.value, limit.value);
+    const response = await DocumentService.getAll(offset.value, limit.value, 'code', true);
     documents.value = response.data;
   } catch (err: any) {
     error.value = parseSystemError(err);
@@ -429,7 +429,7 @@ function resetSearch() {
     date_from: '',
     date_to: '',
     sort_by: '',
-    sort_desc: false,
+    sort_desc: true,
     field_key: '',
     field_value: ''
   };
