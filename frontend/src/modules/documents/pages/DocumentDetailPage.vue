@@ -152,6 +152,7 @@ const loading = ref(false);
 const error = ref('');
 const deleting = ref(false);
 const activeTab = ref('details');
+const highlightFileName = ref('');
 const showDeleteConfirm = ref(false);
 const editMode = ref(false);
 
@@ -183,7 +184,7 @@ const currentTabProps = computed(() => {
         return { document: document.value, isEditing: editMode.value };
     }
     if (activeTab.value === 'files') {
-        return { document: document.value };
+		return { document: document.value, highlightFileName: highlightFileName.value };
     }
     return {};
 });
@@ -193,7 +194,11 @@ const pluginContext = computed<PluginContext>(() => ({
   isAdmin: isAdmin.value,
   events: {
     onDocumentUpdate: (doc: Document) => { document.value = doc; },
-    onFileAdd: () => { loadDocument(); },
+    onFileAdd: (fileName?: string) => {
+      highlightFileName.value = fileName || '';
+      activeTab.value = 'files';
+      loadDocument();
+    },
     onError: (err: string) => { error.value = err; }
   }
 }));

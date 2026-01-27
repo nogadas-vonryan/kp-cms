@@ -66,7 +66,13 @@
         <div 
           v-for="file in filteredFiles" 
           :key="file.file_name"
-          class="group py-4 transition-colors hover:bg-gray-50/50"
+      :class="[
+        'group py-4 transition-colors hover:bg-gray-50/50',
+        highlightActive === file.file_name
+          ? 'p-2 bg-yellow-200 shadow-lg'
+          : ''
+      ]"
+			:ref="el => setRowRef(file.file_name, el as HTMLElement | null)"
         >
           <div class="flex justify-between items-start">
             <div class="flex-1 min-w-0 pr-4">
@@ -157,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 import { UiCard } from '@/core/ui';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
@@ -166,6 +172,7 @@ import UiInput from '@/core/ui/components/UiInput.vue';
 const props = defineProps<{
   document: any;
   isAdmin: boolean;
+	highlightFileName?: string;
 }>();
 
 const emit = defineEmits(['refresh']);
@@ -174,6 +181,11 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
 const isUploading = ref(false);
 const statusMessage = ref<any>(null);
+const highlightActive = ref('');
+const pendingHighlight = ref('');
+const highlightTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+const rowRefs = ref<Record<string, HTMLElement | null>>({});
+const isHighlighting = ref(false);
 
 const searchQuery = ref('');
 const selectedTags = ref<(string | number)[]>([]);
@@ -219,6 +231,14 @@ const filteredFiles = computed(() => {
     return matchesSearch && matchesTags;
   });
 });
+
+function setRowRef(fileName: string, el: HTMLElement | null) {
+  if (el) {
+    rowRefs.value[fileName] = el;
+  } else {
+    delete rowRefs.value[fileName];
+  }
+}
 
 /**
  * Downloads file with proper authentication using blob.
@@ -321,7 +341,6 @@ async function uploadFile(file: File) {
   try {
     isUploading.value = true;
     
-    // Perform upload via DocumentService
     const response = await DocumentService.uploadFile(props.document.uuid, file);
     
     // Handle Success
@@ -344,6 +363,59 @@ async function uploadFile(file: File) {
     if (fileInput.value) fileInput.value.value = '';
   }
 } 
+
+function clearHighlightTimer() {
+  if (highlightTimer.value) {
+    clearTimeout(highlightTimer.value);
+    highlightTimer.value = null;
+  }
+}
+
+async function highlightAndScroll(fileName: string) {
+  if (!fileName) return;
+  if (isHighlighting.value) return;
+  isHighlighting.value = true;
+
+  const shouldClearFilters = searchQuery.value !== '' || selectedTags.value.length > 0;
+  if (shouldClearFilters) {
+    searchQuery.value = '';
+    selectedTags.value = [];
+    await nextTick();
+  }
+
+  await nextTick();
+  const target = rowRefs.value[fileName];
+  highlightActive.value = fileName;
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  clearHighlightTimer();
+  highlightTimer.value = setTimeout(() => {
+    highlightActive.value = '';
+    highlightTimer.value = null;
+  }, 4000);
+
+  isHighlighting.value = false;
+}
+
+watch(
+  () => props.highlightFileName,
+  (fileName) => {
+    if (!fileName) return;
+    pendingHighlight.value = fileName;
+    const exists = filteredFiles.value.some((f: any) => f.file_name === fileName);
+    if (exists) highlightAndScroll(fileName);
+  }
+);
+
+watch(filteredFiles, () => {
+  if (isHighlighting.value) return;
+  const target = pendingHighlight.value || props.highlightFileName || '';
+  if (target && filteredFiles.value.some((f: any) => f.file_name === target)) {
+    highlightAndScroll(target);
+    pendingHighlight.value = '';
+  }
+});
 
 function formatSize(bytes?: number) {
   if (!bytes) return '0 B';

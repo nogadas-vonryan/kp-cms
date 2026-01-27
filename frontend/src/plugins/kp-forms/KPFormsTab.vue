@@ -339,7 +339,7 @@ async function onUpload() {
 
 		await DocumentService.uploadFile(uuid, file);
 		statusMessage.value = { type: 'success', text: 'PDF uploaded successfully.' };
-		props.context?.events.onFileAdd?.(null);
+		props.context?.events.onFileAdd?.(file.name);
 	} catch (err: any) {
 		console.error('Failed to upload PDF', err);
 		statusMessage.value = { type: 'error', text: err?.message || 'Failed to upload PDF.' };
