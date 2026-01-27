@@ -1,17 +1,18 @@
 package api
 
 import (
-"context"
-"fmt"
-"io"
-"net/http"
-"net/http/httptest"
-"os"
-"strings"
-"testing"
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
 
-"github.com/go-chi/chi/v5"
-"main/internal/document"
+	"kpcms/server/core/document"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestDownloadFile_WithSpaces_Direct(t *testing.T) {

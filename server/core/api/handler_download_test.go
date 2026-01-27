@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"main/internal/auth"
-	"main/internal/document"
+	"kpcms/server/core/auth"
+	"kpcms/server/core/document"
 )
 
 func setupTestServer(t *testing.T) (*Server, string) {

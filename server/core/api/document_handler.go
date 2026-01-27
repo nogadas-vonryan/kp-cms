@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"main/internal/document"
+	"kpcms/server/core/document"
 
 	"github.com/go-chi/chi/v5"
 )

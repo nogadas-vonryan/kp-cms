@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
+	"kpcms/server/core/api"
+	"kpcms/server/core/auth"
+	"kpcms/server/core/document"
 	"log"
-	"main/internal/api"
-	"main/internal/auth"
-	"main/internal/document"
 
 	"net/http"
 )

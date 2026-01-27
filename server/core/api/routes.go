@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"main/internal/auth"
-	"main/internal/document"
+	"kpcms/server/core/auth"
+	"kpcms/server/core/document"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"main/internal/auth"
+	"kpcms/server/core/auth"
 
 	"github.com/go-chi/chi/v5"
 )
