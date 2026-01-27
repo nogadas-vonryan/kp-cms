@@ -9,7 +9,8 @@ const FIELD_OPTIONS = {
     { value: 'arbitration', label: 'Arbitration' },
     { value: 'mediation', label: 'Mediation' },
     { value: 'conciliation', label: 'Conciliation' },
-    { value: 'repudiation', label: 'Repudiation' }
+    { value: 'repudiation', label: 'Repudiation' },
+    { value: 'resolved', label: 'Resolved' }
   ]
 };
 
