@@ -1,3 +1,45 @@
 build/bin
 node_modules
 frontend/dist
+
+# Data and local stores
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Env and secrets
+.env*
+.envrc
+.direnv/
+
+# Go build/test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.a
+*.test
+*.out
+coverage.out
+coverage.txt
+*.prof
+*.pprof
+
+# Build outputs
+bin/
+build/
+dist/
+out/
+tmp/
+.tmp/
+
+# Editor/IDE and OS junk
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
