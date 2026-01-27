@@ -35,7 +35,7 @@
 
     <footer class="panel-footer">
       <button type="button" class="btn ghost" @click="$emit('back')">Back</button>
-      <button type="button" class="btn ghost" @click="downloadLogs">Download Logs</button>
+      
     </footer>
   </div>
 </template>
@@ -47,32 +47,12 @@ defineProps({
   logs: Array
 })
 
-defineEmits(['back'])
+const emit = defineEmits(['back', 'clear-logs'])
 
 function clearLogs() {
   if (confirm('Are you sure you want to clear all logs?')) {
-    // Note: logs will need to be cleared from parent component
-    // For now, we can clear locally
+    emit('clear-logs')
   }
-}
-
-function downloadLogs() {
-  if (!logs.value || logs.value.length === 0) {
-    alert('No logs to download')
-    return
-  }
-
-  const logText = logs.value
-    .map(log => `[${log.timestamp}] ${log.message}`)
-    .join('\n')
-
-  const element = document.createElement('a')
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(logText))
-  element.setAttribute('download', `logs-${new Date().toISOString()}.txt`)
-  element.style.display = 'none'
-  document.body.appendChild(element)
-  element.click()
-  document.body.removeChild(element)
 }
 </script>
 

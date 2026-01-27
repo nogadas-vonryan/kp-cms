@@ -33,6 +33,10 @@ function backToPanel() {
   currentPage.value = 'panel'
 }
 
+function clearLogs() {
+  logs.value = []
+}
+
 // Update status functions
 function updateFrontendStatus(status: 'stopped' | 'running' | 'error') {
   frontendStatus.value = status
@@ -86,5 +90,6 @@ onUnmounted(() => {
     v-else
     :logs="logs"
     @back="backToPanel"
+    @clear-logs="clearLogs"
   />
 </template>
