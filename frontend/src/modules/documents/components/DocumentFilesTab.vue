@@ -69,7 +69,7 @@
       :class="[
         'group py-4 transition-colors hover:bg-gray-50/50',
         highlightActive === file.file_name
-          ? 'p-2 bg-yellow-200 shadow-lg'
+          ? 'p-2 bg-yellow-100 shadow-lg'
           : ''
       ]"
 			:ref="el => setRowRef(file.file_name, el as HTMLElement | null)"
@@ -352,6 +352,15 @@ async function uploadFile(file: File) {
     // Trigger parent refresh to update props.document.files list
     emit('refresh');
     
+    // Highlight the uploaded file
+    pendingHighlight.value = file.name;
+    await nextTick();
+    const exists = filteredFiles.value.some((f: any) => f.file_name === file.name);
+    if (exists) {
+      highlightAndScroll(file.name);
+      pendingHighlight.value = '';
+    }
+    
   } catch (error: any) {
     console.error('[System] Upload Failed:', error);
     statusMessage.value = {
@@ -404,14 +413,17 @@ watch(
     if (!fileName) return;
     pendingHighlight.value = fileName;
     const exists = filteredFiles.value.some((f: any) => f.file_name === fileName);
-    if (exists) highlightAndScroll(fileName);
+    if (exists) {
+      highlightAndScroll(fileName);
+      pendingHighlight.value = '';
+    }
   }
 );
 
 watch(filteredFiles, () => {
-  if (isHighlighting.value) return;
-  const target = pendingHighlight.value || props.highlightFileName || '';
-  if (target && filteredFiles.value.some((f: any) => f.file_name === target)) {
+  if (isHighlighting.value || !pendingHighlight.value) return;
+  const target = pendingHighlight.value;
+  if (filteredFiles.value.some((f: any) => f.file_name === target)) {
     highlightAndScroll(target);
     pendingHighlight.value = '';
   }
