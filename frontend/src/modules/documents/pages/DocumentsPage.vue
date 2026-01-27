@@ -476,7 +476,9 @@ async function handleCreate() {
       fields: form.value.fields
     });
     showCreateModal.value = false;
-    form.value = { title: '', code: '', folder_name: '', fields: {} };
+    form.value = { title: '', code: '', folder_name: '', fields: {
+      nature: 'civil', status: 'case_filed', complainants: [], respondents: [],
+    } };
     loadDocuments();
   } catch (err: any) {
     formError.value = extractErrorMessage(err) || 'Failed to create document';
