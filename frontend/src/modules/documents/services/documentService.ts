@@ -9,7 +9,7 @@ import type {
 
 export const DocumentService = {
   getAll: (offset = 0, limit = 15) => 
-    api.get<Document[]>('/documents', { params: { offset, limit } }),
+    api.get<Document[]>('/api/documents', { params: { offset, limit } }),
 
   search: (params: {
     uuid?: string;
@@ -30,32 +30,32 @@ export const DocumentService = {
         cleanParams[key] = value;
       }
     });
-    return api.get<Document[]>('/documents/search', { params: cleanParams });
+    return api.get<Document[]>('/api/documents/search', { params: cleanParams });
   },
 
   getOne: (uuid: string) => 
-    api.get<Document>(`/documents/${uuid}`),
+    api.get<Document>(`/api/documents/${uuid}`),
 
   getById: (uuid: string) =>
-    api.get<Document>(`/documents/${uuid}`),
+    api.get<Document>(`/api/documents/${uuid}`),
 
   getByCode: (code: string) =>
-    api.get<Document>(`/documents/code/${code}`),
+    api.get<Document>(`/api/documents/code/${code}`),
 
   // Only exposes admin methods if generic type allows, but API enforces security
   create: (data: CreateDocumentRequest) => 
-    api.post<Document>('/documents', data),
+    api.post<Document>('/api/documents', data),
 
   update: (uuid: string, data: UpdateDocumentRequest) =>
-    api.put<Document>(`/documents/${uuid}`, data),
+    api.put<Document>(`/api/documents/${uuid}`, data),
 
   remove: (uuid: string) =>
-    api.delete<void>(`/documents/${uuid}`),
+    api.delete<void>(`/api/documents/${uuid}`),
     
   uploadFile: (uuid: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post(`/documents/${uuid}/files`, formData, {
+    return api.post(`/api/documents/${uuid}/files`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
@@ -65,7 +65,7 @@ export const DocumentService = {
    * Returns the file as a blob so it can be downloaded with auth headers.
    */
   downloadFile: async (uuid: string, fileName: string) => {
-    const response = await api.get(`/documents/${uuid}/files/${fileName}`, {
+    const response = await api.get(`/api/documents/${uuid}/files/${fileName}`, {
       responseType: 'blob'
     });
     return response.data;
@@ -76,18 +76,18 @@ export const DocumentService = {
    * Matches: PUT /documents/{uuid}/files/{fileName}
    */
   updateFileMetadata: (uuid: string, fileName: string, data: { description: string; note: string }) =>
-    api.put(`/documents/${uuid}/files/${fileName}`, data),
+    api.put(`/api/documents/${uuid}/files/${fileName}`, data),
 
   /**
    * Deletes both the physical file and its entry in files.json.
    * Matches: DELETE /documents/{uuid}/files/{fileName}
    */
   deleteFile: (uuid: string, fileName: string) =>
-    api.delete(`/documents/${uuid}/files/${fileName}`),
+    api.delete(`/api/documents/${uuid}/files/${fileName}`),
 
   listConflicts: () =>
-    api.get<SyncIssue[]>('/documents/conflicts'),
+    api.get<SyncIssue[]>('/api/documents/conflicts'),
 
   reload: () =>
-    api.post<ReloadResponse>('/documents/reload'),
+    api.post<ReloadResponse>('/api/documents/reload'),
 };

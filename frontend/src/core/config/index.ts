@@ -18,7 +18,9 @@ function getEnvVar(key: string, defaultValue?: string): string {
 }
 
 export const config: AppConfig = {
-  apiUrl: getEnvVar('VITE_API_URL', 'http://localhost:8080'),
+  // Use empty string for production (relative URLs) to go through the proxy
+  // In development with Vite dev server, can use VITE_API_URL env var to point directly to backend
+  apiUrl: getEnvVar('VITE_API_URL', ''),
   apiTimeout: parseInt(getEnvVar('VITE_API_TIMEOUT', '30000'), 10),
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,

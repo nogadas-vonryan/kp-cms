@@ -14,7 +14,7 @@ function mapAuthResponse(raw: ServerAuthResponse): AuthResponse {
 
 export const AuthService = {
   async register(payload: RegisterRequest) {
-    const response = await api.post<ServerAuthResponse>('/auth/register', payload);
+    const response = await api.post<ServerAuthResponse>('/api/auth/register', payload);
     const authStore = useAuthStore();
     const mapped = mapAuthResponse(response.data);
     authStore.setAuth(mapped);
@@ -22,7 +22,7 @@ export const AuthService = {
   },
 
   async login(payload: LoginRequest) {
-    const response = await api.post<ServerAuthResponse>('/auth/login', payload);
+    const response = await api.post<ServerAuthResponse>('/api/auth/login', payload);
     const authStore = useAuthStore();
     const mapped = mapAuthResponse(response.data);
     authStore.setAuth(mapped);
@@ -30,13 +30,13 @@ export const AuthService = {
   },
 
   async getCurrentUser() {
-    const response = await api.get<ServerAuthResponse>('/auth/me');
+    const response = await api.get<ServerAuthResponse>('/api/auth/me');
     return mapAuthResponse(response.data);
   },
 
   async logout() {
     try {
-      await api.post('/auth/logout');
+      await api.post('/api/auth/logout');
     } finally {
       const authStore = useAuthStore();
       authStore.logout();
