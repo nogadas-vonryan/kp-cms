@@ -310,9 +310,26 @@ const filters = ref({
 // ComboBox Search relationship
 const fieldOptions = ['Nature', 'Status', 'Complainants', 'Respondents'];
 
+// Display values (user-facing)
 const valueOptionsMap: any = {
   'Nature': ['Civil', 'Criminal'],
   'Status': ['Case Filed', 'Mediation', 'Arbitration', 'Conciliation', 'Pending', 'Resolved'],
+};
+
+// Mapping for API conversions to snake_case
+const apiValueMap: Record<string, Record<string, string>> = {
+  'Nature': {
+    'Civil': 'civil',
+    'Criminal': 'criminal'
+  },
+  'Status': {
+    'Case Filed': 'case_filed',
+    'Mediation': 'mediation',
+    'Arbitration': 'arbitration',
+    'Conciliation': 'conciliation',
+    'Pending': 'pending',
+    'Resolved': 'resolved'
+  }
 };
 
 // Computed property to handle the dynamic list for the second ComboBox Search
@@ -406,10 +423,16 @@ async function performSearch(resetOffset = true) {
       limit: limit.value
     };
 
-    if (filters.value.field_key) {
-      const key = filters.value.field_key.toLowerCase();
-      const val = filters.value.field_value?.toLowerCase() ?? '';
-      params[`field_${key}`] = val;
+    if (filters.value.field_key && filters.value.field_value) {
+      // Convert field key to snake_case
+      const key = filters.value.field_key
+        .replace(/\s+/g, '_')
+        .replace(/([A-Z])/g, '_$1')
+        .toLowerCase()
+        .replace(/^_/, '');
+      // Convert display value to API snake_case value
+      const apiValue = apiValueMap[filters.value.field_key]?.[filters.value.field_value] ?? filters.value.field_value.toLowerCase();
+      params[`field_${key}`] = apiValue;
     }
 
     const response = await DocumentService.search(params);
