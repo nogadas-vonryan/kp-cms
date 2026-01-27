@@ -3,7 +3,7 @@
     <UiCard class="w-full max-w-md">
       <div class="space-y-6">
         <div class="text-center">
-          <h1 class="text-2xl font-bold text-gray-900">Archivist</h1>
+          <h1 class="text-2xl font-bold text-gray-900">Katarungang Pambarangay</h1>
           <p class="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
 

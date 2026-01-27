@@ -9,57 +9,7 @@
     </header>
 
     <main class="panel-body">
-      <!-- Frontend Section -->
-      <section class="section">
-        <div class="section-top">
-          <div class="section-heading">
-            <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M3.6 9.5h16.8M3.6 14.5h16.8M12 3.5c-2 2.2-3.1 4.8-3.1 8s1.1 5.8 3.1 8c2-2.2 3.1-4.8 3.1-8s-1.1-5.8-3.1-8z" stroke="currentColor" stroke-width="1.4"/>
-            </svg>
-            <h2 class="section-title">Frontend Server</h2>
-          </div>
-          <span class="status-badge" :class="statusClass(frontendStatus)">
-            <span class="status-dot"></span>
-            {{ statusText(frontendStatus) }}
-          </span>
-        </div>
-
-        <form class="form" @submit.prevent="startFrontend">
-          <div class="form-grid">
-            <div class="span-2">
-              <label class="field-label">Host</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                </svg>
-                <input v-model="frontendHost" type="text" placeholder="localhost" />
-              </div>
-            </div>
-            <div>
-              <label class="field-label">Port</label>
-              <div class="input-wrap">
-                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                </svg>
-                <input v-model="frontendPort" type="text" placeholder="3000" />
-              </div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn ghost" @click="stopFrontend">Stop</button>
-            <button type="button" class="btn" @click="openFrontendInBrowser">Open in Browser</button>
-            <button type="submit" class="btn primary">Start</button>
-          </div>
-        </form>
-      </section>
-
-      <div class="divider"></div>
-
-      <!-- Backend Section -->
+      <!-- Unified Server Section -->
       <section class="section">
         <div class="section-top">
           <div class="section-heading">
@@ -67,28 +17,54 @@
               <rect x="4" y="6.5" width="16" height="11" rx="1.4" stroke="currentColor" stroke-width="1.4"/>
               <path d="M8 10.5h8M8 13.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
-            <h2 class="section-title">Backend Server</h2>
+            <h2 class="section-title">Server Configuration</h2>
           </div>
-          <span class="status-badge" :class="statusClass(backendStatus)">
-            <span class="status-dot"></span>
-            {{ statusText(backendStatus) }}
-          </span>
+          <div style="display: flex; gap: 8px;">
+            <span class="status-badge" :class="statusClass(frontendStatus)">
+              <span class="status-dot"></span>
+              Frontend: {{ statusText(frontendStatus) }}
+            </span>
+            <span class="status-badge" :class="statusClass(backendStatus)">
+              <span class="status-dot"></span>
+              Backend: {{ statusText(backendStatus) }}
+            </span>
+          </div>
         </div>
 
-        <form class="form" @submit.prevent="startBackend">
+        <form class="form" @submit.prevent="startServers">
           <div class="form-grid">
             <div class="span-2">
-              <label class="field-label">Host</label>
+              <label class="field-label">Frontend Host</label>
               <div class="input-wrap">
                 <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4"/>
                   <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                 </svg>
-                <input v-model="backendHost" type="text" placeholder="127.0.0.1" />
+                <input v-model="frontendHost" type="text" placeholder="0.0.0.0" />
               </div>
             </div>
             <div>
-              <label class="field-label">Port</label>
+              <label class="field-label">Frontend Port</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4"/>
+                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <input v-model="frontendPort" type="text" placeholder="8081" />
+              </div>
+            </div>
+            <div class="span-2">
+              <label class="field-label">Backend Host</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4"/>
+                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <input v-model="backendHost" type="text" placeholder="0.0.0.0" />
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Backend Port</label>
               <div class="input-wrap">
                 <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4"/>
@@ -98,7 +74,7 @@
               </div>
             </div>
             <div>
-              <label class="field-label">User</label>
+              <label class="field-label">Admin User</label>
               <div class="input-wrap">
                 <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="8.5" r="3.2" stroke="currentColor" stroke-width="1.4"/>
@@ -107,8 +83,8 @@
                 <input v-model="user" type="text" placeholder="admin" />
               </div>
             </div>
-            <div>
-              <label class="field-label">Password</label>
+            <div class="span-2">
+              <label class="field-label">Admin Password</label>
               <div class="input-wrap">
                 <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="5" y="10" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/>
@@ -130,8 +106,9 @@
           </div>
 
           <div class="actions">
-            <button type="button" class="btn ghost" @click="stopBackend">Stop</button>
-            <button type="submit" class="btn primary">Start</button>
+            <button type="button" class="btn ghost" @click="stopServers">Stop All</button>
+            <button type="button" class="btn" @click="openFrontendInBrowser">Open Frontend</button>
+            <button type="submit" class="btn primary">Start Servers</button>
           </div>
         </form>
       </section>
@@ -182,13 +159,13 @@ function viewLogs() {
 }
 
 function handleReset() {
-  frontendHost.value = 'localhost'
-  frontendPort.value = '3000'
-  backendHost.value = '127.0.0.1'
+  frontendHost.value = '0.0.0.0'
+  frontendPort.value = '8081'
+  backendHost.value = '0.0.0.0'
   backendPort.value = '8080'
   user.value = 'admin'
   pass.value = ''
-  dataPath.value = '/var/www/data'
+  dataPath.value = ''
   emit('update-frontend-status', 'stopped')
   emit('update-backend-status', 'stopped')
 }
@@ -209,21 +186,74 @@ async function selectFolder() {
   }
 }
 
-async function startFrontend() {
-  try {
-    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.StartWebServer === 'function') {
-      await appNs.StartWebServer(frontendHost.value, parseInt(frontendPort.value) || 8081)
-      alert(`Frontend server started at http://${frontendHost.value}:${frontendPort.value}`)
+async function startServers() {
+  const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+  if (!appNs) {
+    alert('Wails API not available in this environment')
+    return
+  }
+
+  let frontendStarted = false
+  let backendStarted = false
+  let errors = []
+
+  // Start backend server first
+  if (typeof appNs.StartBackendServer === 'function') {
+    try {
+      const result = await appNs.StartBackendServer(
+        backendHost.value,
+        parseInt(backendPort.value) || 8080,
+        user.value || 'admin',
+        pass.value,
+        dataPath.value
+      )
+      // If we get here without exception, it succeeded
+      backendStarted = true
+      emit('update-backend-status', 'running')
+    } catch (err) {
+      console.error('Backend start error:', err)
+      if (err && (err.message || err.toString())) {
+        errors.push('Backend: ' + (err.message || err.toString()))
+      } else {
+        errors.push('Backend: Unknown error')
+      }
+      emit('update-backend-status', 'error')
+    }
+  }
+
+  // Start frontend server with backend configuration
+  if (typeof appNs.StartWebServer === 'function') {
+    try {
+      const result = await appNs.StartWebServer(
+        frontendHost.value,
+        parseInt(frontendPort.value) || 8081,
+        backendHost.value,
+        parseInt(backendPort.value) || 8080
+      )
+      // If we get here without exception, it succeeded
+      frontendStarted = true
       emit('update-frontend-status', 'running')
-    } else {
-      alert('StartWebServer not available in this environment')
+    } catch (err) {
+      console.error('Frontend start error:', err)
+      if (err && (err.message || err.toString())) {
+        errors.push('Frontend: ' + (err.message || err.toString()))
+      } else {
+        errors.push('Frontend: Unknown error')
+      }
       emit('update-frontend-status', 'error')
     }
-  } catch (err) {
-    console.error(err)
-    alert('Failed to start frontend server: ' + err.message)
-    emit('update-frontend-status', 'error')
+  }
+
+  // Show appropriate message
+  if (frontendStarted && backendStarted) {
+    alert(`Servers started successfully!\nFrontend: http://${frontendHost.value}:${frontendPort.value}\nBackend: http://${backendHost.value}:${backendPort.value}\n\nCheck the Logs tab for admin credentials if password was auto-generated.`)
+  } else if (frontendStarted || backendStarted) {
+    const started = []
+    if (frontendStarted) started.push(`Frontend: http://${frontendHost.value}:${frontendPort.value}`)
+    if (backendStarted) started.push(`Backend: http://${backendHost.value}:${backendPort.value}`)
+    alert(`Partially started:\n${started.join('\n')}\n\nErrors:\n${errors.join('\n')}`)
+  } else if (errors.length > 0) {
+    alert('Failed to start servers:\n' + errors.join('\n'))
   }
 }
 
@@ -246,63 +276,46 @@ function openFrontendInBrowser() {
   }
 }
 
-async function stopFrontend() {
+async function stopServers() {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.StopWebServer === 'function') {
-      await appNs.StopWebServer()
-      alert('Frontend server stopped successfully')
-      emit('update-frontend-status', 'stopped')
-    } else {
-      alert('StopWebServer not available in this environment')
-      emit('update-frontend-status', 'error')
+    if (!appNs) {
+      alert('Wails API not available in this environment')
+      return
     }
-  } catch (err) {
-    console.error(err)
-    alert('Failed to stop frontend server: ' + err.message)
-    emit('update-frontend-status', 'error')
-  }
-}
 
-async function startBackend() {
-  try {
-    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.StartBackendServer === 'function') {
-      await appNs.StartBackendServer(
-        backendHost.value,
-        parseInt(backendPort.value) || 8080,
-        user.value || 'admin',
-        pass.value,
-        dataPath.value
-      )
-      alert(`Backend server started at http://${backendHost.value}:${backendPort.value}\nCheck terminal for admin credentials if password was auto-generated.`)
-      emit('update-backend-status', 'running')
-    } else {
-      alert('StartBackendServer not available in this environment')
-      emit('update-backend-status', 'error')
-    }
-  } catch (err) {
-    console.error(err)
-    alert('Failed to start backend server: ' + err.message)
-    emit('update-backend-status', 'error')
-  }
-}
+    let errors = []
 
-async function stopBackend() {
-  try {
-    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.StopBackendServer === 'function') {
-      await appNs.StopBackendServer()
-      alert('Backend server stopped successfully')
-      emit('update-backend-status', 'stopped')
+    // Stop frontend server
+    if (typeof appNs.StopWebServer === 'function') {
+      try {
+        await appNs.StopWebServer()
+        emit('update-frontend-status', 'stopped')
+      } catch (err) {
+        errors.push('Frontend: ' + err.message)
+        emit('update-frontend-status', 'error')
+      }
+    }
+
+    // Stop backend server
+    if (typeof appNs.StopBackendServer === 'function') {
+      try {
+        await appNs.StopBackendServer()
+        emit('update-backend-status', 'stopped')
+      } catch (err) {
+        errors.push('Backend: ' + err.message)
+        emit('update-backend-status', 'error')
+      }
+    }
+
+    if (errors.length > 0) {
+      alert('Some servers failed to stop:\n' + errors.join('\n'))
     } else {
-      alert('StopBackendServer not available in this environment')
-      emit('update-backend-status', 'error')
+      alert('All servers stopped successfully')
     }
   } catch (err) {
     console.error(err)
-    alert('Failed to stop backend server: ' + err.message)
-    emit('update-backend-status', 'error')
+    alert('Failed to stop servers: ' + err.message)
   }
 }
 
