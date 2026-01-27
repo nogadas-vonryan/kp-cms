@@ -15,7 +15,7 @@ type mockRepo struct {
 	OnCreate      func(ctx context.Context, doc *Document) (*Document, error)
 	OnUpdate      func(ctx context.Context, uuid string, doc *Document) (*Document, error)
 	OnDelete      func(ctx context.Context, uuid string) error
-	OnList        func(ctx context.Context, offset int, limit int) ([]*Document, error)
+	OnList        func(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error)
 }
 
 func (m *mockRepo) GetByUUID(ctx context.Context, uuid string) (*Document, error) {
@@ -54,9 +54,9 @@ func (m *mockRepo) Delete(ctx context.Context, uuid string) error {
 	}
 	return nil
 }
-func (m *mockRepo) List(ctx context.Context, offset int, limit int) ([]*Document, error) {
+func (m *mockRepo) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
 	if m.OnList != nil {
-		return m.OnList(ctx, offset, limit)
+		return m.OnList(ctx, offset, limit, sortBy, sortDesc)
 	}
 	return nil, nil
 }
@@ -244,13 +244,13 @@ func TestDocumentService_List(t *testing.T) {
 
 	t.Run("should return empty list", func(t *testing.T) {
 		mockRepo := &mockRepo{
-			OnList: func(ctx context.Context, offset, limit int) ([]*Document, error) {
+			OnList: func(ctx context.Context, offset, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
 				return []*Document{}, nil
 			},
 		}
 		service := NewDocumentService(mockRepo)
 
-		docs, err := service.List(ctx, 0, 100)
+		docs, err := service.List(ctx, 0, 100, "", false)
 		if err != nil {
 			t.Errorf("expected no error, got: %v", err)
 		}
@@ -265,13 +265,13 @@ func TestDocumentService_List(t *testing.T) {
 			{UUID: "uuid-2", Code: "0002", Title: "Test 2"},
 		}
 		mockRepo := &mockRepo{
-			OnList: func(ctx context.Context, offset, limit int) ([]*Document, error) {
+			OnList: func(ctx context.Context, offset, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
 				return expectedDocs, nil
 			},
 		}
 		service := NewDocumentService(mockRepo)
 
-		docs, err := service.List(ctx, 0, 100)
+		docs, err := service.List(ctx, 0, 100, "", false)
 		if err != nil {
 			t.Errorf("expected no error, got: %v", err)
 		}
@@ -286,6 +286,31 @@ func TestDocumentService_List(t *testing.T) {
 				t.Errorf("expected documents to match")
 				break
 			}
+		}
+	})
+
+	t.Run("should forward sort parameters", func(t *testing.T) {
+		receivedSortBy := ""
+		receivedSortDesc := false
+		mockRepo := &mockRepo{
+			OnList: func(ctx context.Context, offset, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
+				receivedSortBy = sortBy
+				receivedSortDesc = sortDesc
+				return []*Document{}, nil
+			},
+		}
+
+		service := NewDocumentService(mockRepo)
+		_, err := service.List(ctx, 5, 10, "created_at", true)
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if receivedSortBy != "created_at" {
+			t.Fatalf("expected sortBy created_at, got %s", receivedSortBy)
+		}
+		if !receivedSortDesc {
+			t.Fatalf("expected sortDesc to be true")
 		}
 	})
 }

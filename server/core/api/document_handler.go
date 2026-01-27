@@ -62,6 +62,8 @@ func (s *Server) handleListDocuments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		offset := 0
 		limit := 10
+		sortBy := r.URL.Query().Get("sort_by")
+		sortDesc := false
 
 		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 			if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
@@ -75,7 +77,13 @@ func (s *Server) handleListDocuments() http.HandlerFunc {
 			}
 		}
 
-		docs, err := s.documentService.List(r.Context(), offset, limit)
+		if sortDescStr := r.URL.Query().Get("sort_desc"); sortDescStr != "" {
+			if parsed, err := strconv.ParseBool(sortDescStr); err == nil {
+				sortDesc = parsed
+			}
+		}
+
+		docs, err := s.documentService.List(r.Context(), offset, limit, sortBy, sortDesc)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

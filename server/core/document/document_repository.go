@@ -11,7 +11,7 @@ type DocumentStore interface {
 	GetByCode(ctx context.Context, code string) (*Document, error)
 	Update(ctx context.Context, uuid string, doc *Document) (*Document, error)
 	Delete(ctx context.Context, uuid string) error
-	List(ctx context.Context, offset int, limit int) ([]*Document, error)
+	List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error)
 	Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error)
 }
 

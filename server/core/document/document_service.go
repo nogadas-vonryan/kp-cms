@@ -63,8 +63,8 @@ func (s *DocumentService) Delete(ctx context.Context, uuid string) error {
 	return s.repo.Delete(ctx, uuid)
 }
 
-func (s *DocumentService) List(ctx context.Context, offset int, limit int) ([]*Document, error) {
-	return s.repo.List(ctx, offset, limit)
+func (s *DocumentService) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
+	return s.repo.List(ctx, offset, limit, sortBy, sortDesc)
 }
 
 func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {

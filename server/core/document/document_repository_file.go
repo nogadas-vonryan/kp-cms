@@ -237,7 +237,7 @@ func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) e
 	return nil
 }
 
-func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int) ([]*Document, error) {
+func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -245,35 +245,73 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	total := len(r.sortedByCode)
-	if offset >= total || offset < 0 {
-		return []*Document{}, nil
-	}
-
-	end := offset + limit
-	if end > total || limit <= 0 {
-		end = total
-	}
-
-	pageKeys := r.sortedByCode[offset:end]
-	docs := make([]*Document, 0, len(pageKeys))
-
-	for _, code := range pageKeys {
-		doc, exists := r.cacheByCode[code]
-		if !exists {
-			continue
-		}
-
+	buildDoc := func(doc *Document) (*Document, error) {
 		files, err := r.readFiles(doc.FolderName)
 		if err != nil {
 			return nil, err
 		}
 
-		doc.Files = files
+		return &Document{
+			UUID:       doc.UUID,
+			Code:       doc.Code,
+			FolderName: doc.FolderName,
+			Title:      doc.Title,
+			Fields:     doc.Fields,
+			Files:      files,
+			CreatedAt:  doc.CreatedAt,
+			UpdatedAt:  doc.UpdatedAt,
+		}, nil
+	}
+
+	// Fast path for default ascending code order using the prebuilt index
+	if sortBy == "" || (sortBy == "code" && !sortDesc) {
+		total := len(r.sortedByCode)
+		if offset >= total || offset < 0 {
+			return []*Document{}, nil
+		}
+
+		end := offset + limit
+		if end > total || limit <= 0 {
+			end = total
+		}
+
+		docs := make([]*Document, 0, end-offset)
+		pageKeys := r.sortedByCode[offset:end]
+		for _, code := range pageKeys {
+			doc, exists := r.cacheByCode[code]
+			if !exists {
+				continue
+			}
+
+			resp, err := buildDoc(doc)
+			if err != nil {
+				return nil, err
+			}
+			docs = append(docs, resp)
+		}
+
+		return docs, nil
+	}
+
+	// General path: sort using provided field/direction
+	docs := make([]*Document, 0, len(r.cacheByCode))
+	for _, doc := range r.cacheByCode {
 		docs = append(docs, doc)
 	}
 
-	return docs, nil
+	sortResults(docs, sortBy, sortDesc)
+	paged := paginate(docs, offset, limit)
+
+	result := make([]*Document, 0, len(paged))
+	for _, doc := range paged {
+		resp, err := buildDoc(doc)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, resp)
+	}
+
+	return result, nil
 }
 
 func (r *FileDocumentRepository) GetDocumentFolderPath(ctx context.Context, uuid string) (string, error) {

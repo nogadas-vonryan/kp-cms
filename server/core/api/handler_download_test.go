@@ -54,7 +54,7 @@ func TestHandleDownloadFile_WithSpaces(t *testing.T) {
 
 	// Test download via HTTP with URL-encoded filename
 	urlEncodedFileName := strings.ReplaceAll(fileName, " ", "%20")
-	reqURL := fmt.Sprintf("/documents/%s/files/%s", createdDoc.UUID, urlEncodedFileName)
+	reqURL := fmt.Sprintf("/api/documents/%s/files/%s", createdDoc.UUID, urlEncodedFileName)
 
 	req := httptest.NewRequest("GET", reqURL, nil)
 	addAdminSessionCookie(t, server, req)
@@ -92,7 +92,7 @@ func TestHandleDownloadFile_WithMultipleSpaces(t *testing.T) {
 	}
 
 	urlEncodedFileName := strings.ReplaceAll(fileName, " ", "%20")
-	reqURL := fmt.Sprintf("/documents/%s/files/%s", createdDoc.UUID, urlEncodedFileName)
+	reqURL := fmt.Sprintf("/api/documents/%s/files/%s", createdDoc.UUID, urlEncodedFileName)
 
 	req := httptest.NewRequest("GET", reqURL, nil)
 	addAdminSessionCookie(t, server, req)
@@ -172,7 +172,7 @@ func TestHandleDownloadFile_WithBracketsAndSpaces_HTTP(t *testing.T) {
 	cookieHeader := fmt.Sprintf("%s=%s", auth.SessionCookieName, session.Token)
 
 	// Use the exact URL shape reported by the user (spaces encoded, brackets unencoded)
-	encodedPath := "/documents/" + createdDoc.UUID + "/files/One%20Day%20in%20the%20Life%20of%20a%20Rice%20Farmer%20[s_kLkOOV3CE].webm"
+	encodedPath := "/api/documents/" + createdDoc.UUID + "/files/One%20Day%20in%20the%20Life%20of%20a%20Rice%20Farmer%20[s_kLkOOV3CE].webm"
 	req := httptest.NewRequest(http.MethodGet, encodedPath, nil)
 	req.Header.Set("Cookie", cookieHeader)
 
