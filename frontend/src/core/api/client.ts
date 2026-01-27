@@ -3,6 +3,13 @@ import { useAuthStore } from '@/modules/auth/store';
 import { config } from '@/core/config';
 import { logger } from '@/core/utils/logger';
 import { createAppError } from './errorHandler';
+import type { Router } from 'vue-router';
+
+let router: Router | null = null;
+
+export function setApiRouter(r: Router) {
+  router = r;
+}
 
 const api = axios.create({
   baseURL: config.apiUrl,
@@ -26,10 +33,15 @@ api.interceptors.response.use(
     const appError = createAppError(error);
     logger.error('API request failed', appError);
     
+    // Handle 401 Unauthorized - redirect to login
     if (error.response?.status === 401) {
       const authStore = useAuthStore();
-      authStore.logout(); // Redirect to login
+      authStore.logout();
+      if (router && router.currentRoute.value.meta.requiresAuth) {
+        router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } });
+      }
     }
+    
     return Promise.reject(error);
   }
 );

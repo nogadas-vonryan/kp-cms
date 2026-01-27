@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
+import { setApiRouter } from '@/core/api/client';
 import LoginPage from '@/pages/LoginPage.vue';
 import DocumentsPage from '@/modules/documents/pages/DocumentsPage.vue';
 import DocumentDetailPage from '@/modules/documents/pages/DocumentDetailPage.vue';
@@ -47,6 +48,9 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
+
+// Inject router into API client for auth error handling
+setApiRouter(router);
 
 router.beforeEach((to, _from, next) => {
   const auth = useAuthStore();
