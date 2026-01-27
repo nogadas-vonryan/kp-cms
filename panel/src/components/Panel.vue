@@ -117,7 +117,7 @@
       <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="viewLogs">View Logs</button>
       <div class="ml-auto flex gap-2">
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="handleReset">Reset</button>
-        <button type="button" class="rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 px-3 py-2 text-xs font-semibold text-white hover:from-slate-800 hover:to-slate-700" @click="handleSave">Save Changes</button>
+        <button type="button" class="rounded-lg bg-linear-to-r from-slate-900 to-slate-800 px-3 py-2 text-xs font-semibold text-white hover:from-slate-800 hover:to-slate-700" @click="handleSave">Save Changes</button>
       </div>
     </footer>
 
@@ -127,7 +127,7 @@
           <h3 class="text-sm font-semibold text-slate-900">{{ modalTitle }}</h3>
         </div>
         <div class="max-h-[60vh] overflow-y-auto px-4 py-3">
-          <pre class="whitespace-pre-wrap break-words text-sm text-slate-700">{{ modalMessage }}</pre>
+          <pre class="whitespace-pre-wrap wrap-break-word text-sm text-slate-700">{{ modalMessage }}</pre>
         </div>
         <div class="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
           <button type="button" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800" @click="closeModal">OK</button>
