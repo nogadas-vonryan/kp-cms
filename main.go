@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -17,6 +18,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:panel/dist
@@ -28,6 +30,31 @@ var frontendAssets embed.FS
 // Helper function to check if error message contains substring
 func contains(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}
+
+type Logger struct {
+	ctx        context.Context
+	logChannel chan string
+}
+
+func NewLogger(ctx context.Context) *Logger {
+	return &Logger{
+		ctx:        ctx,
+		logChannel: make(chan string),
+	}
+}
+
+func (l *Logger) Start() {
+	go func() {
+		for msg := range l.logChannel {
+			// Send log message to frontend
+			runtime.EventsEmit(l.ctx, "log", msg)
+		}
+	}()
+}
+
+func (l *Logger) Log(msg string) {
+	l.logChannel <- msg
 }
 
 func main() {
@@ -133,6 +160,17 @@ func StartWebServer(host string, port int) (*http.Server, error) {
 	return srv, nil
 }
 
+func GeneratePasswordIfEmpty(pass string) (string, error) {
+	if pass == "" {
+		generatedPass, err := auth.GenerateSecurePassword(12)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate password: %v", err)
+		}
+		return generatedPass, nil
+	}
+	return pass, nil
+}
+
 func StartBackendServer(host string, port int, user, pass, dataPath string) (*http.Server, error) {
 	if host == "" {
 		host = "0.0.0.0"
@@ -144,16 +182,6 @@ func StartBackendServer(host string, port int, user, pass, dataPath string) (*ht
 	// Validate port range
 	if port < 1 || port > 65535 {
 		return nil, fmt.Errorf("invalid port number: %d (must be between 1-65535)", port)
-	}
-
-	// Generate password if not provided
-	if pass == "" {
-		generatedPass, err := auth.GenerateSecurePassword(12)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate password: %v", err)
-		}
-		pass = generatedPass
-		fmt.Printf("Generated admin password: %s\n", pass)
 	}
 
 	// Set default data path
