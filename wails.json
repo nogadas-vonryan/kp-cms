@@ -1,7 +1,8 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "wrapper",
+  "name": "kpcms",
   "outputfilename": "kpcms",
+  "frontend:dir": "panel",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
