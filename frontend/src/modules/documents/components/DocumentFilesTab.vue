@@ -128,7 +128,7 @@
             <div>
               <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Tags</label>
               <div class="space-y-2">
-                <div v-for="(tag, index) in editForm.tags" :key="index" class="flex gap-2">
+                <div v-for="(_, index) in editForm.tags" :key="index" class="flex gap-2">
                   <UiInput v-model="editForm.tags[index]" placeholder="Enter tag" class="flex-1" />
                   <button 
                     @click="editForm.tags.splice(index, 1)" 

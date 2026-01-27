@@ -28,8 +28,6 @@ export const kp13: KPTemplate = {
       });
     };
 
-    const witnessList = data.witnesses ? String(data.witnesses).split('\n').filter(Boolean) : [];
-
     return {
       pageSize: {
         width: 612,
