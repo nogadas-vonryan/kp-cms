@@ -67,7 +67,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:         "KPCMS",
 		Width:         440,
-		Height:        640,
+		Height:        680,
 		DisableResize: true,
 		AssetServer: &assetserver.Options{
 			Assets: panelAssets,
