@@ -8,6 +8,8 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"time"
 
@@ -82,52 +84,76 @@ func main() {
 	}
 }
 
-func StartWebServer(host string, port int) (*http.Server, error) {
+func StartWebServer(host string, port int, backendHost string, backendPort int) (*http.Server, error) {
 	if host == "" {
 		host = "0.0.0.0"
 	}
 	if port == 0 {
 		port = 8081
 	}
-
-	// Validate port range
-	if port < 1 || port > 65535 {
-		return nil, fmt.Errorf("invalid port number: %d (must be between 1-65535)", port)
+	if backendHost == "" {
+		backendHost = "127.0.0.1"
+	}
+	if backendPort == 0 {
+		backendPort = 8080
 	}
 
-	staticPath := "frontend/dist"
+	// 1. Setup Reverse Proxy
+	backendAddr := fmt.Sprintf("http://%s:%d", backendHost, backendPort)
+	target, err := url.Parse(backendAddr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid backend address: %v", err)
+	}
 
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	originalDirector := proxy.Director
+	proxy.Director = func(r *http.Request) {
+		originalDirector(r)
+		r.Host = target.Host
+		r.URL.Scheme = target.Scheme
+		r.URL.Host = target.Host
+		r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+	}
+
+	mux := http.NewServeMux()
+
+	// 2. Prepare Static Assets
+	staticPath := "frontend/dist"
 	distFS, err := fs.Sub(frontendAssets, staticPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load frontend assets: %v", err)
 	}
-
-	mux := http.NewServeMux()
 	fileServer := http.FileServer(http.FS(distFS))
 
-	// API Routes
-	mux.HandleFunc("/api/status", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"status": "online"}`)
-	})
-
-	// SPA Handler
+	// 3. The "Smart" Catch-All Handler
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path[1:]
-		f, err := distFS.Open(path)
+		path := strings.TrimPrefix(r.URL.Path, "/")
 
-		// If path is empty (root) or file doesn't exist (SPA route)
-		if err != nil || path == "" {
-			data, readErr := fs.ReadFile(distFS, "index.html")
-			if readErr != nil {
-				http.Error(w, "index file not found", http.StatusInternalServerError)
-				return
-			}
-			http.ServeContent(w, r, "index.html", time.Now(), bytes.NewReader(data))
+		// A. If it's a known API prefix, proxy it immediately
+		if strings.HasPrefix(path, "api/") || strings.HasPrefix(path, "auth/") {
+			proxy.ServeHTTP(w, r)
 			return
 		}
-		f.Close()
-		fileServer.ServeHTTP(w, r)
+
+		// B. Try to see if the file exists in the static dist folder (CSS, JS, Images)
+		f, err := distFS.Open(path)
+		if err == nil {
+			f.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// C. If it's not a file and not an explicit API path,
+		// it's likely a frontend route (SPA). Serve index.html.
+		data, readErr := fs.ReadFile(distFS, "index.html")
+		if readErr != nil {
+			// If we can't find index.html, maybe the user is calling an API
+			// we didn't explicitly list? Try proxying as a last resort.
+			proxy.ServeHTTP(w, r)
+			return
+		}
+
+		http.ServeContent(w, r, "index.html", time.Now(), bytes.NewReader(data))
 	})
 
 	srv := &http.Server{
@@ -135,23 +161,16 @@ func StartWebServer(host string, port int) (*http.Server, error) {
 		Handler: mux,
 	}
 
-	// Test if we can bind to the address before starting the server
-	// This catches "address already in use" and permission errors early
-
-	// Try to create a test listener to validate the address
+	// Validate address binding
 	testListener, err := net.Listen("tcp", srv.Addr)
 	if err != nil {
-		if contains(err.Error(), "address already in use") {
-			return nil, fmt.Errorf("port %d is already in use", port)
-		} else if contains(err.Error(), "permission denied") {
-			return nil, fmt.Errorf("permission denied: cannot bind to port %d (ports below 1024 require elevated privileges)", port)
-		}
-		return nil, fmt.Errorf("failed to bind to %s:%d: %v", host, port, err)
+		return nil, err
 	}
 	testListener.Close()
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Web server error: %v\n", err)
 		}
 	}()
 

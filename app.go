@@ -52,9 +52,9 @@ func (a *App) SelectFolder() (string, error) {
 	return selection, nil
 }
 
-func (a *App) StartWebServer(host string, port int) error {
+func (a *App) StartWebServer(host string, port int, backendHost string, backendPort int) error {
 	a.Log(fmt.Sprintf("Starting frontend web server on %s:%d...", host, port))
-	srv, err := StartWebServer(host, port)
+	srv, err := StartWebServer(host, port, backendHost, backendPort)
 	if err != nil {
 		a.Log(fmt.Sprintf("Failed to start frontend server: %v", err))
 		return err
