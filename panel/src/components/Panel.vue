@@ -232,11 +232,8 @@ async function startServers() {
       emit('update-backend-status', 'running')
     } catch (err) {
       console.error('Backend start error:', err)
-      if (err && (err.message || err.toString())) {
-        errors.push('Backend: ' + (err.message || err.toString()))
-      } else {
-        errors.push('Backend: Unknown error')
-      }
+      const errorMsg = extractErrorMessage(err, 'Backend')
+      errors.push(errorMsg)
       emit('update-backend-status', 'error')
     }
   }
@@ -255,11 +252,8 @@ async function startServers() {
       emit('update-frontend-status', 'running')
     } catch (err) {
       console.error('Frontend start error:', err)
-      if (err && (err.message || err.toString())) {
-        errors.push('Frontend: ' + (err.message || err.toString()))
-      } else {
-        errors.push('Frontend: Unknown error')
-      }
+      const errorMsg = extractErrorMessage(err, 'Frontend')
+      errors.push(errorMsg)
       emit('update-frontend-status', 'error')
     }
   }
@@ -312,7 +306,8 @@ async function stopServers() {
         await appNs.StopWebServer()
         emit('update-frontend-status', 'stopped')
       } catch (err) {
-        errors.push('Frontend: ' + err.message)
+        const errorMsg = extractErrorMessage(err, 'Frontend')
+        errors.push(errorMsg)
         emit('update-frontend-status', 'error')
       }
     }
@@ -323,7 +318,8 @@ async function stopServers() {
         await appNs.StopBackendServer()
         emit('update-backend-status', 'stopped')
       } catch (err) {
-        errors.push('Backend: ' + err.message)
+        const errorMsg = extractErrorMessage(err, 'Backend')
+        errors.push(errorMsg)
         emit('update-backend-status', 'error')
       }
     }
@@ -335,7 +331,8 @@ async function stopServers() {
     }
   } catch (err) {
     console.error(err)
-    showMessage('Error', 'Failed to stop servers: ' + err.message)
+    const errorMsg = extractErrorMessage(err)
+    showMessage('Error', 'Failed to stop servers: ' + errorMsg)
   }
 }
 
@@ -361,5 +358,53 @@ function dotClass(status) {
     stopped: 'bg-slate-300',
     error: 'bg-amber-500'
   }[status] || 'bg-slate-300'
+}
+
+function extractErrorMessage(error, context = '') {
+  // Handle null or undefined
+  if (error === null || error === undefined) {
+    return context ? `${context}: No error details available` : 'No error details available'
+  }
+
+  // Handle string errors
+  if (typeof error === 'string') {
+    return context ? `${context}: ${error}` : error
+  }
+
+  // Handle error objects with message property
+  if (error.message && typeof error.message === 'string' && error.message.trim()) {
+    const msg = error.message.trim()
+    // Add context-aware suggestions for common errors
+    let suggestion = ''
+    if (msg.toLowerCase().includes('address already in use') || msg.toLowerCase().includes('bind')) {
+      suggestion = ' (Port may already be in use - try a different port or stop other services)'
+    } else if (msg.toLowerCase().includes('permission denied') || msg.toLowerCase().includes('eacces')) {
+      suggestion = ' (Permission denied - try running with appropriate privileges)'
+    } else if (msg.toLowerCase().includes('connection refused') || msg.toLowerCase().includes('econnrefused')) {
+      suggestion = ' (Connection refused - backend may not be running or port is incorrect)'
+    } else if (msg.toLowerCase().includes('no such file') || msg.toLowerCase().includes('enoent')) {
+      suggestion = ' (File or directory not found - check data path)'
+    } else if (msg.toLowerCase().includes('timeout')) {
+      suggestion = ' (Operation timed out - server may be unresponsive)'
+    }
+    return context ? `${context}: ${msg}${suggestion}` : `${msg}${suggestion}`
+  }
+
+  // Handle error objects with toString method
+  if (typeof error.toString === 'function') {
+    const str = error.toString().trim()
+    if (str && str !== '[object Object]') {
+      return context ? `${context}: ${str}` : str
+    }
+  }
+
+  // Handle error objects with status or code properties
+  if (error.code || error.status) {
+    const code = error.code || error.status
+    return context ? `${context}: Error code ${code}` : `Error code ${code}`
+  }
+
+  // Fallback for any other object
+  return context ? `${context}: Unknown error occurred` : 'Unknown error occurred'
 }
 </script>
