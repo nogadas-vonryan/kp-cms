@@ -122,6 +122,21 @@
         <button type="button" class="btn primary" @click="handleSave">Save Changes</button>
       </div>
     </footer>
+
+    <!-- Modal Dialog -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-dialog" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">{{ modalTitle }}</h3>
+        </div>
+        <div class="modal-body">
+          <pre class="modal-message">{{ modalMessage }}</pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn primary" @click="closeModal">OK</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -146,6 +161,21 @@ const dataPath = ref('')
 
 // simple applied flag for footer save button feedback
 const isSaved = ref(false)
+
+// Modal state
+const showModal = ref(false)
+const modalTitle = ref('')
+const modalMessage = ref('')
+
+function showMessage(title, message) {
+  modalTitle.value = title
+  modalMessage.value = message
+  showModal.value = true
+}
+
+function closeModal() {
+  showModal.value = false
+}
 
 function handleSave() {
   isSaved.value = true
@@ -179,17 +209,17 @@ async function selectFolder() {
       if (selection) dataPath.value = selection
       return
     }
-    alert('Folder picker not available in this environment')
+    showMessage('Not Available', 'Folder picker not available in this environment')
   } catch (err) {
     console.error(err)
-    alert('Failed to select folder')
+    showMessage('Error', 'Failed to select folder')
   }
 }
 
 async function startServers() {
   const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
   if (!appNs) {
-    alert('Wails API not available in this environment')
+    showMessage('Error', 'Wails API not available in this environment')
     return
   }
 
@@ -246,14 +276,14 @@ async function startServers() {
 
   // Show appropriate message
   if (frontendStarted && backendStarted) {
-    alert(`Servers started successfully!\nFrontend: http://${frontendHost.value}:${frontendPort.value}\nBackend: http://${backendHost.value}:${backendPort.value}\n\nCheck the Logs tab for admin credentials if password was auto-generated.`)
+    showMessage('Success', `Servers started successfully!\nFrontend: http://${frontendHost.value}:${frontendPort.value}\nBackend: http://${backendHost.value}:${backendPort.value}\n\nCheck the Logs tab for admin credentials if password was auto-generated.`)
   } else if (frontendStarted || backendStarted) {
     const started = []
     if (frontendStarted) started.push(`Frontend: http://${frontendHost.value}:${frontendPort.value}`)
     if (backendStarted) started.push(`Backend: http://${backendHost.value}:${backendPort.value}`)
-    alert(`Partially started:\n${started.join('\n')}\n\nErrors:\n${errors.join('\n')}`)
+    showMessage('Partial Success', `Partially started:\n${started.join('\n')}\n\nErrors:\n${errors.join('\n')}`)
   } else if (errors.length > 0) {
-    alert('Failed to start servers:\n' + errors.join('\n'))
+    showMessage('Error', 'Failed to start servers:\n' + errors.join('\n'))
   }
 }
 
@@ -268,11 +298,11 @@ function openFrontendInBrowser() {
     } else if (window?.open) {
       window.open(url, '_blank', 'noopener,noreferrer')
     } else {
-      alert('BrowserOpenURL not available in this environment')
+      showMessage('Not Available', 'BrowserOpenURL not available in this environment')
     }
   } catch (err) {
     console.error(err)
-    alert('Failed to open browser: ' + err.message)
+    showMessage('Error', 'Failed to open browser: ' + err.message)
   }
 }
 
@@ -280,7 +310,7 @@ async function stopServers() {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
     if (!appNs) {
-      alert('Wails API not available in this environment')
+      showMessage('Error', 'Wails API not available in this environment')
       return
     }
 
@@ -309,13 +339,13 @@ async function stopServers() {
     }
 
     if (errors.length > 0) {
-      alert('Some servers failed to stop:\n' + errors.join('\n'))
+      showMessage('Partial Success', 'Some servers failed to stop:\n' + errors.join('\n'))
     } else {
-      alert('All servers stopped successfully')
+      showMessage('Success', 'All servers stopped successfully')
     }
   } catch (err) {
     console.error(err)
-    alert('Failed to stop servers: ' + err.message)
+    showMessage('Error', 'Failed to stop servers: ' + err.message)
   }
 }
 
@@ -504,6 +534,70 @@ function statusText(status) {
   flex-shrink:0;
 }
 
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-dialog {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+  width: 100%;
+  max-width: 380px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.modal-message {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .btn:hover{background:#f1f5f9}
 .btn.primary:hover{background:#111827;border-color:#111827}
 .btn.ghost:hover{color:#0f172a}
