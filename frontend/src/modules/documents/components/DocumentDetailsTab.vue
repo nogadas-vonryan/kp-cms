@@ -33,7 +33,13 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Created</label>
-            <div class="text-sm text-gray-600">{{ formatDate(document.created_at) }}</div>
+            <div v-if="!isEditing" class="text-sm text-gray-600">{{ formatDate(document.created_at) }}</div>
+            <input
+              v-else
+              v-model="editForm.created_at"
+              type="date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Updated</label>
@@ -185,6 +191,7 @@ const editForm = ref({
   title: '',
   code: '',
   folder_name: '',
+  created_at: '',
   fields: {} as Record<string, any>
 });
 
@@ -195,6 +202,7 @@ watch(() => props.document, (newDoc) => {
       title: newDoc.title || '',
       code: newDoc.code || '',
       folder_name: newDoc.folder_name || '',
+      created_at: newDoc.created_at || '',
       fields: JSON.parse(JSON.stringify(newDoc.fields || {}))
     };
   }
@@ -207,6 +215,7 @@ watch(() => props.isEditing, (isEditing) => {
       title: props.document.title || '',
       code: props.document.code || '',
       folder_name: props.document.folder_name || '',
+      created_at: props.document.created_at || '',
       fields: JSON.parse(JSON.stringify(props.document.fields || {}))
     };
   }
@@ -218,6 +227,7 @@ const hasChanges = computed(() => {
   if (!props.document) return false;
   return (
     editForm.value.title !== props.document.title ||
+    editForm.value.created_at !== props.document.created_at ||
     JSON.stringify(editForm.value.fields) !== JSON.stringify(props.document.fields)
   );
 });
@@ -302,9 +312,14 @@ async function saveChanges() {
   error.value = '';
   
   try {
+    const createdAt = editForm.value.created_at
+      ? new Date(editForm.value.created_at).toISOString()
+      : props.document.created_at;
+
     await DocumentService.update(props.document.uuid, {
       title: editForm.value.title,
       code: editForm.value.code,
+      created_at: createdAt,
       fields: editForm.value.fields
     });
     // Assuming service returns the updated document structure

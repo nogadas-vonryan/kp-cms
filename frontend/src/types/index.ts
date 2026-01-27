@@ -43,6 +43,7 @@ export interface CreateDocumentRequest {
 export interface UpdateDocumentRequest {
   code?: string;
   title?: string;
+  created_at?: string;
   fields?: DocumentFields;
 }
 

@@ -23,9 +23,10 @@ type CreateDocumentRequest struct {
 }
 
 type UpdateDocumentRequest struct {
-	Code   string         `json:"code"`
-	Title  string         `json:"title"`
-	Fields map[string]any `json:"fields"`
+	Code      string         `json:"code"`
+	Title     string         `json:"title"`
+	Fields    map[string]any `json:"fields"`
+	CreatedAt string         `json:"created_at"`
 }
 
 type ErrorResponse struct {
@@ -142,10 +143,17 @@ func (s *Server) handleUpdateDocument() http.HandlerFunc {
 			return
 		}
 
+		createdAt, err := parseDate(req.CreatedAt)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid created_at date format")
+			return
+		}
+
 		doc := document.Document{
-			Code:   req.Code,
-			Title:  req.Title,
-			Fields: req.Fields,
+			Code:      req.Code,
+			Title:     req.Title,
+			Fields:    req.Fields,
+			CreatedAt: createdAt,
 		}
 
 		updated, err := s.documentService.Update(r.Context(), uuid, doc)
