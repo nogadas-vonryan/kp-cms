@@ -7,7 +7,7 @@ export function SelectFolder():Promise<string>;
 
 export function StartBackendServer(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string):Promise<void>;
 
-export function StartWebServer(arg1:string,arg2:number):Promise<void>;
+export function StartWebServer(arg1:string,arg2:number,arg3:string,arg4:number):Promise<void>;
 
 export function StopBackendServer():Promise<void>;
 

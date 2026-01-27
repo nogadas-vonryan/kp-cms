@@ -14,8 +14,8 @@ export function StartBackendServer(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['StartBackendServer'](arg1, arg2, arg3, arg4, arg5);
 }
 
-export function StartWebServer(arg1, arg2) {
-  return window['go']['main']['App']['StartWebServer'](arg1, arg2);
+export function StartWebServer(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['StartWebServer'](arg1, arg2, arg3, arg4);
 }
 
 export function StopBackendServer() {
