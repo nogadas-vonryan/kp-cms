@@ -11,12 +11,18 @@
     <main class="panel-body">
       <!-- Frontend Section -->
       <section class="section">
-        <div class="section-heading">
-          <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M3.6 9.5h16.8M3.6 14.5h16.8M12 3.5c-2 2.2-3.1 4.8-3.1 8s1.1 5.8 3.1 8c2-2.2 3.1-4.8 3.1-8s-1.1-5.8-3.1-8z" stroke="currentColor" stroke-width="1.4"/>
-          </svg>
-          <h2 class="section-title">Frontend Server</h2>
+        <div class="section-top">
+          <div class="section-heading">
+            <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M3.6 9.5h16.8M3.6 14.5h16.8M12 3.5c-2 2.2-3.1 4.8-3.1 8s1.1 5.8 3.1 8c2-2.2 3.1-4.8 3.1-8s-1.1-5.8-3.1-8z" stroke="currentColor" stroke-width="1.4"/>
+            </svg>
+            <h2 class="section-title">Frontend Server</h2>
+          </div>
+          <span class="status-badge" :class="statusClass(frontendStatus)">
+            <span class="status-dot"></span>
+            {{ statusText(frontendStatus) }}
+          </span>
         </div>
 
         <form class="form" @submit.prevent="startFrontend">
@@ -54,12 +60,18 @@
 
       <!-- Backend Section -->
       <section class="section">
-        <div class="section-heading">
-          <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect x="4" y="6.5" width="16" height="11" rx="1.4" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M8 10.5h8M8 13.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-          </svg>
-          <h2 class="section-title">Backend Server</h2>
+        <div class="section-top">
+          <div class="section-heading">
+            <svg class="heading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="6.5" width="16" height="11" rx="1.4" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M8 10.5h8M8 13.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <h2 class="section-title">Backend Server</h2>
+          </div>
+          <span class="status-badge" :class="statusClass(backendStatus)">
+            <span class="status-dot"></span>
+            {{ statusText(backendStatus) }}
+          </span>
         </div>
 
         <form class="form" @submit.prevent="startBackend">
@@ -142,6 +154,9 @@ const user = ref('admin')
 const pass = ref('')
 const dataPath = ref('')
 
+const frontendStatus = ref('stopped')
+const backendStatus = ref('stopped')
+
 // simple applied flag for footer save button feedback
 const isSaved = ref(false)
 
@@ -160,6 +175,8 @@ function handleReset() {
   user.value = 'admin'
   pass.value = ''
   dataPath.value = '/var/www/data'
+  frontendStatus.value = 'stopped'
+  backendStatus.value = 'stopped'
 }
 
 async function selectFolder() {
@@ -184,12 +201,15 @@ async function startFrontend() {
     if (appNs && typeof appNs.StartWebServer === 'function') {
       await appNs.StartWebServer(frontendHost.value, parseInt(frontendPort.value) || 8081)
       alert(`Frontend server started at http://${frontendHost.value}:${frontendPort.value}`)
+      frontendStatus.value = 'running'
     } else {
       alert('StartWebServer not available in this environment')
+      frontendStatus.value = 'error'
     }
   } catch (err) {
     console.error(err)
     alert('Failed to start frontend server: ' + err.message)
+    frontendStatus.value = 'error'
   }
 }
 
@@ -199,12 +219,15 @@ async function stopFrontend() {
     if (appNs && typeof appNs.StopWebServer === 'function') {
       await appNs.StopWebServer()
       alert('Frontend server stopped successfully')
+      frontendStatus.value = 'stopped'
     } else {
       alert('StopWebServer not available in this environment')
+      frontendStatus.value = 'error'
     }
   } catch (err) {
     console.error(err)
     alert('Failed to stop frontend server: ' + err.message)
+    frontendStatus.value = 'error'
   }
 }
 
@@ -220,12 +243,15 @@ async function startBackend() {
         dataPath.value
       )
       alert(`Backend server started at http://${backendHost.value}:${backendPort.value}\nCheck terminal for admin credentials if password was auto-generated.`)
+      backendStatus.value = 'running'
     } else {
       alert('StartBackendServer not available in this environment')
+      backendStatus.value = 'error'
     }
   } catch (err) {
     console.error(err)
     alert('Failed to start backend server: ' + err.message)
+    backendStatus.value = 'error'
   }
 }
 
@@ -235,13 +261,32 @@ async function stopBackend() {
     if (appNs && typeof appNs.StopBackendServer === 'function') {
       await appNs.StopBackendServer()
       alert('Backend server stopped successfully')
+      backendStatus.value = 'stopped'
     } else {
       alert('StopBackendServer not available in this environment')
+      backendStatus.value = 'error'
     }
   } catch (err) {
     console.error(err)
     alert('Failed to stop backend server: ' + err.message)
+    backendStatus.value = 'error'
   }
+}
+
+function statusClass(status) {
+  return {
+    running: 'status-ok',
+    stopped: 'status-muted',
+    error: 'status-warn'
+  }[status] || 'status-muted'
+}
+
+function statusText(status) {
+  return {
+    running: 'Running',
+    stopped: 'Stopped',
+    error: 'Unavailable'
+  }[status] || 'Unknown'
 }
 </script>
 
@@ -303,9 +348,32 @@ async function stopBackend() {
 }
 
 .section{display:flex;flex-direction:column;gap:10px}
+.section-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .section-heading{display:flex;align-items:center;gap:8px}
 .heading-icon{width:16px;height:16px;color:#94a3b8}
 .section-title{margin:0;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#94a3b8}
+
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  border:1px solid #e2e8f0;
+  color:#334155;
+  background:#f8fafc;
+  text-transform:capitalize;
+}
+
+.status-badge .status-dot{width:8px;height:8px;border-radius:999px;background:#cbd5e1}
+.status-badge.status-ok{border-color:#22c55e1a;background:#f0fdf4;color:#166534}
+.status-badge.status-ok .status-dot{background:#22c55e}
+.status-badge.status-warn{border-color:#f973161a;background:#fff7ed;color:#9a3412}
+.status-badge.status-warn .status-dot{background:#f97316}
+.status-badge.status-muted{border-color:#e2e8f0;background:#f8fafc;color:#475569}
+.status-badge.status-muted .status-dot{background:#cbd5e1}
 
 .divider{height:1px;background:#e2e8f0}
 
