@@ -51,6 +51,7 @@
 
           <div class="actions">
             <button type="button" class="btn ghost" @click="stopFrontend">Stop</button>
+            <button type="button" class="btn" @click="openFrontendInBrowser">Open in Browser</button>
             <button type="submit" class="btn primary">Start</button>
           </div>
         </form>
@@ -149,6 +150,7 @@
 
 <script setup>
 import { ref, defineProps, defineEmits } from 'vue'
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 
 defineProps({
   frontendStatus: String,
@@ -222,6 +224,25 @@ async function startFrontend() {
     console.error(err)
     alert('Failed to start frontend server: ' + err.message)
     emit('update-frontend-status', 'error')
+  }
+}
+
+function openFrontendInBrowser() {
+  const host = frontendHost.value || 'localhost'
+  const port = parseInt(frontendPort.value, 10) || 8081
+  const url = `http://${host}${port ? `:${port}` : ''}`
+
+  try {
+    if (typeof BrowserOpenURL === 'function') {
+      BrowserOpenURL(url)
+    } else if (window?.open) {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } else {
+      alert('BrowserOpenURL not available in this environment')
+    }
+  } catch (err) {
+    console.error(err)
+    alert('Failed to open browser: ' + err.message)
   }
 }
 
