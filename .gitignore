@@ -26,11 +26,11 @@ data/
 coverage.out
 coverage.txt
 *.prof
-*.pprof
+*.pprof 
 
 # Build outputs
 bin/
-build/
+build/*
 dist/
 out/
 tmp/
@@ -43,3 +43,7 @@ tmp/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Allow icons in the windows build
+!/build/appicon.png
+!/build/windows/
