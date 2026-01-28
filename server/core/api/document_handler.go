@@ -386,6 +386,105 @@ func (s *Server) handleDeleteFile() http.HandlerFunc {
 	}
 }
 
+func (s *Server) handleUpdateFileContents() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := chi.URLParam(r, "uuid")
+		if uuid == "" {
+			respondError(w, http.StatusBadRequest, "uuid is required")
+			return
+		}
+
+		fileNameParam := chi.URLParam(r, "fileName")
+		fileName, err := url.PathUnescape(fileNameParam)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
+		if fileName == "" {
+			respondError(w, http.StatusBadRequest, "file name is required")
+			return
+		}
+
+		// Parse multipart form (32MB max)
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			respondError(w, http.StatusBadRequest, "failed to parse multipart form")
+			return
+		}
+
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "file is required")
+			return
+		}
+		defer file.Close()
+
+		if err := s.documentService.UpdateFileContents(r.Context(), uuid, fileName, file); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				respondError(w, http.StatusNotFound, "document not found")
+				return
+			}
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{
+			"message":   "file contents updated successfully",
+			"file_name": fileName,
+		})
+	}
+}
+
+type RenameFileRequest struct {
+	NewName string `json:"new_name"`
+}
+
+func (s *Server) handleRenameFile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := chi.URLParam(r, "uuid")
+		if uuid == "" {
+			respondError(w, http.StatusBadRequest, "uuid is required")
+			return
+		}
+
+		fileNameParam := chi.URLParam(r, "fileName")
+		oldName, err := url.PathUnescape(fileNameParam)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
+		if oldName == "" {
+			respondError(w, http.StatusBadRequest, "file name is required")
+			return
+		}
+
+		var req RenameFileRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if req.NewName == "" {
+			respondError(w, http.StatusBadRequest, "new_name is required")
+			return
+		}
+
+		if err := s.documentService.RenameFile(r.Context(), uuid, oldName, req.NewName); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				respondError(w, http.StatusNotFound, "document or file not found")
+				return
+			}
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{
+			"message":  "file renamed successfully",
+			"old_name": oldName,
+			"new_name": req.NewName,
+		})
+	}
+}
+
 func (s *Server) handleGetConflicts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conflicts, err := s.documentService.GetConflicts(r.Context())

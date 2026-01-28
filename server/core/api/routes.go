@@ -101,6 +101,8 @@ func (s *Server) routes() {
 
 					admin.Post("/{uuid}/files", s.handleUploadFile())
 					admin.Put("/{uuid}/files/{fileName:.+}", s.handleUpdateFileMetadata())
+					admin.Patch("/{uuid}/files/{fileName:.+}/contents", s.handleUpdateFileContents())
+					admin.Patch("/{uuid}/files/{fileName:.+}/rename", s.handleRenameFile())
 					admin.Delete("/{uuid}/files/{fileName:.+}", s.handleDeleteFile())
 
 					admin.Get("/conflicts", s.handleGetConflicts())

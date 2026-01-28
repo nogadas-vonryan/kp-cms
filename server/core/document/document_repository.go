@@ -21,6 +21,8 @@ type FileStore interface {
 
 	DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error)
 	UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error
+	UpdateFileContents(ctx context.Context, uuid string, fileName string, content io.Reader) error
+	RenameFile(ctx context.Context, uuid string, oldName string, newName string) error
 	DeleteFile(ctx context.Context, uuid string, fileName string) error
 
 	GetDocumentFolderPath(ctx context.Context, uuid string) (string, error)

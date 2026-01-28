@@ -107,6 +107,31 @@ func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName 
 	return s.repo.DeleteFile(ctx, uuid, fileName)
 }
 
+func (s *DocumentService) UpdateFileContents(ctx context.Context, uuid string, fileName string, content io.Reader) error {
+	if uuid == "" {
+		return errors.New("uuid is required")
+	}
+	if fileName == "" {
+		return errors.New("file name is required")
+	}
+	if content == nil {
+		return errors.New("file content is required")
+	}
+
+	return s.repo.UpdateFileContents(ctx, uuid, fileName, content)
+}
+
+func (s *DocumentService) RenameFile(ctx context.Context, uuid string, oldName string, newName string) error {
+	if uuid == "" {
+		return errors.New("uuid is required")
+	}
+	if oldName == "" || newName == "" {
+		return errors.New("old and new file names are required")
+	}
+
+	return s.repo.RenameFile(ctx, uuid, oldName, newName)
+}
+
 func (s *DocumentService) GetConflicts(ctx context.Context) ([]SyncIssue, error) {
 	return s.repo.GetConflicts(ctx)
 }
