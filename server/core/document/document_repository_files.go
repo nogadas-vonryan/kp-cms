@@ -145,6 +145,7 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 
 	// Loop through physical files and attach metadata if it exists
 	syncedFiles := make([]File, 0, len(physicalFiles))
+	newFilesFound := false
 	for _, physFile := range physicalFiles {
 		if meta, exists := metadataMap[physFile.FileName]; exists {
 			// Keep existing metadata (like custom tags/names)
@@ -156,6 +157,16 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 		} else {
 			// It's a brand new file found on disk
 			syncedFiles = append(syncedFiles, physFile)
+			newFilesFound = true
+		}
+	}
+
+	// If we found new files, automatically sync them to files.json
+	if newFilesFound {
+		if err := writeFilesMetadata(filesJSONPath, syncedFiles); err != nil {
+			// Log the error but don't fail the read operation
+			// This allows the system to continue working even if sync fails
+			fmt.Fprintf(os.Stderr, "warning: failed to sync new files to %s: %v\n", filesJSONPath, err)
 		}
 	}
 
