@@ -124,7 +124,12 @@
               <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
             </template>
             <template #cell:status="{ row }">
-              <span class="text-sm text-gray-600 truncate block max-w-50">{{ ((row as unknown) as Document).fields?.status || 'none' }}</span>
+              <span 
+                :class="getStatusBadgeClass(((row as unknown) as Document).fields?.status || 'none')"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+              >
+                {{ formatStatusLabel(((row as unknown) as Document).fields?.status || 'none') }}
+              </span>
             </template>
             <template #cell:folder_name="{ value }">
               <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
@@ -313,7 +318,7 @@ const fieldOptions = ['Nature', 'Status', 'Complainants', 'Respondents'];
 // Display values (user-facing)
 const valueOptionsMap: any = {
   'Nature': ['Civil', 'Criminal'],
-  'Status': ['Case Filed', 'Mediation', 'Arbitration', 'Conciliation', 'Pending', 'Resolved'],
+  'Status': ['Case Filed', 'Mediation', 'Arbitration', 'Conciliation', 'Repudiation', 'Pending', 'Resolved'],
 };
 
 // Mapping for API conversions to snake_case
@@ -327,6 +332,7 @@ const apiValueMap: Record<string, Record<string, string>> = {
     'Mediation': 'mediation',
     'Arbitration': 'arbitration',
     'Conciliation': 'conciliation',
+    'Repudiation': 'repudiation',
     'Pending': 'pending',
     'Resolved': 'resolved'
   }
@@ -464,6 +470,34 @@ function resetSearch() {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
+}
+
+function getStatusBadgeClass(status: string): string {
+  const statusClasses: Record<string, string> = {
+    'case_filed': 'bg-blue-100 text-blue-800',
+    'mediation': 'bg-purple-100 text-purple-800',
+    'arbitration': 'bg-orange-100 text-orange-800',
+    'conciliation': 'bg-teal-100 text-teal-800',
+    'repudiation': 'bg-red-100 text-red-800',
+    'resolved': 'bg-green-100 text-green-800',
+    'pending': 'bg-yellow-100 text-yellow-800',
+    'none': 'bg-gray-100 text-gray-800'
+  };
+  return statusClasses[status] || 'bg-gray-100 text-gray-800';
+}
+
+function formatStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    'case_filed': 'Case Filed',
+    'mediation': 'Mediation',
+    'arbitration': 'Arbitration',
+    'conciliation': 'Conciliation',
+    'repudiation': 'Repudiation',
+    'resolved': 'Resolved',
+    'pending': 'Pending',
+    'none': 'None'
+  };
+  return labels[status] || status;
 }
 
 async function handleCreate() {
