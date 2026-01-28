@@ -33,6 +33,15 @@
             Cancel
             </UiButton>
         </template>
+
+        <UiButton 
+          v-if="isAdmin" 
+          @click="handleReload" 
+          :loading="reloading"
+          variant="secondary"
+        >
+          Reload
+        </UiButton>
         
         <UiButton v-if="isAdmin" @click="showDeleteConfirm = true" variant="danger">
           Delete
@@ -151,6 +160,7 @@ const document = ref<Document | null>(null);
 const loading = ref(false);
 const error = ref('');
 const deleting = ref(false);
+const reloading = ref(false);
 const activeTab = ref('details');
 const highlightFileName = ref('');
 const showDeleteConfirm = ref(false);
@@ -240,6 +250,25 @@ async function handleDelete() {
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to delete document';
     deleting.value = false;
+  }
+}
+
+async function handleReload() {
+  if (!document.value) return;
+  reloading.value = true;
+  error.value = '';
+  try {
+    // Use the document's code or folder_name as the folderName parameter
+    const folderName = (document.value as any).folder_name || document.value.code;
+    if (!folderName) {
+      throw new Error('Unable to determine folder name for reload');
+    }
+    await DocumentService.reloadDocument(folderName);
+    await loadDocument();
+  } catch (err: any) {
+    error.value = err.response?.data?.error || 'Failed to reload document';
+  } finally {
+    reloading.value = false;
   }
 }
 
