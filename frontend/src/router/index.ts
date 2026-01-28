@@ -6,6 +6,7 @@ import DocumentsPage from '@/modules/documents/pages/DocumentsPage.vue';
 import DocumentDetailPage from '@/modules/documents/pages/DocumentDetailPage.vue';
 import AdminDashboard from '@/pages/AdminDashboard.vue';
 import NotFound from '@/pages/NotFound.vue';
+import ReportExportPage from '@/modules/reports/pages/ReportExportPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -29,6 +30,12 @@ const routes: RouteRecordRaw[] = [
     name: 'document-detail',
     component: DocumentDetailPage,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/reports/export',
+    name: 'report-export',
+    component: ReportExportPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/admin',

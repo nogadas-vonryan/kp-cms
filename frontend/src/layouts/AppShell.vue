@@ -38,6 +38,15 @@ async function logout() {
               </router-link>
               <router-link
                 v-if="isAdmin"
+                to="/reports/export"
+                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                active-class="border-blue-500 text-gray-900"
+                inactive-class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              >
+                Reports
+              </router-link>
+              <router-link
+                v-if="isAdmin"
                 to="/admin"
                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 active-class="border-blue-500 text-gray-900"
