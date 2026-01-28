@@ -52,7 +52,7 @@
           
           <details class="group">
             <summary class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium list-none flex items-center gap-1 select-none">
-              <span class="group-open:rotate-90 transition-transform">▶</span>
+              <span class="group-open:rotate-90 transition-transform">›</span>
               Advanced Filters
             </summary>
             
