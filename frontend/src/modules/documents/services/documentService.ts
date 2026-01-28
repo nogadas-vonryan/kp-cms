@@ -88,9 +88,38 @@ export const DocumentService = {
   deleteFile: (uuid: string, fileName: string) =>
     api.delete(`/api/documents/${uuid}/files/${fileName}`),
 
+  /**
+   * Updates the file contents directly.
+   * Matches: PATCH /documents/{uuid}/files/{fileName}/contents
+   */
+  updateFileContents: (uuid: string, fileName: string, data: { contents: string }) =>
+    api.patch(`/api/documents/${uuid}/files/${fileName}/contents`, data),
+
+  /**
+   * Renames a file.
+   * Matches: PATCH /documents/{uuid}/files/{fileName}/rename
+   */
+  renameFile: (uuid: string, fileName: string, data: { newFileName: string }) =>
+    api.patch(`/api/documents/${uuid}/files/${fileName}/rename`, data),
+
+  /**
+   * Lists all sync conflicts (admin only).
+   * Matches: GET /documents/conflicts
+   */
   listConflicts: () =>
     api.get<SyncIssue[]>('/api/documents/conflicts'),
 
+  /**
+   * Reloads all documents (admin only).
+   * Matches: POST /documents/reload
+   */
   reload: () =>
     api.post<ReloadResponse>('/api/documents/reload'),
+
+  /**
+   * Reloads a specific folder/document (admin only).
+   * Matches: POST /documents/reload/{folderName}
+   */
+  reloadDocument: (folderName: string) =>
+    api.post<ReloadResponse>(`/api/documents/reload/${folderName}`),
 };
