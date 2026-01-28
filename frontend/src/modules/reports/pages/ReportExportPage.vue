@@ -129,7 +129,7 @@ const fetchFields = async () => [
   { key: 'fields.complainants', label: 'Complainants', visible: true },
   { key: 'fields.respondents', label: 'Respondents', visible: true },
   { key: 'fields.complaint', label: 'Complaint', visible: true },
-  { key: 'created_at', label: 'Date Created', visible: true },
+  { key: 'created_at', label: 'Date Filed', visible: true },
   { key: 'updated_at', label: 'Date Updated', visible: false },
 ]
 
