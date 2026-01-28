@@ -34,12 +34,17 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Created</label>
             <div v-if="!isEditing" class="text-sm text-gray-600">{{ formatDate(document.created_at) }}</div>
-            <input
-              v-else
-              v-model="editForm.created_at"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div v-else>
+              <input
+                v-model="editForm.created_at"
+                type="date"
+                :min="minDate"
+                :max="maxDate"
+                @change="onCreatedAt"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <div v-if="dateError" class="text-xs text-red-600 mt-1">{{ dateError }}</div>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Updated</label>
@@ -181,6 +186,7 @@ const { getFieldOptions, formatLabel, toSnakeCase, getTextareaRows, getSortedFie
 
 const saving = ref(false);
 const error = ref('');
+const dateError = ref('');
 const showAddFieldModal = ref(false);
 const showDeleteFieldConfirm = ref(false);
 const fieldToDelete = ref('');
@@ -223,6 +229,12 @@ watch(() => props.isEditing, (isEditing) => {
 
 const sortedFields = computed(() => getSortedFields(editForm.value.fields));
 
+const currentYear = computed(() => new Date().getFullYear());
+const minYear = computed(() => currentYear.value - 100);
+const maxYear = computed(() => currentYear.value + 100);
+const minDate = computed(() => `${minYear.value}-01-01`);
+const maxDate = computed(() => `${maxYear.value}-12-31`);
+
 const hasChanges = computed(() => {
   if (!props.document) return false;
   return (
@@ -234,6 +246,20 @@ const hasChanges = computed(() => {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
+}
+
+function onCreatedAt() {
+  dateError.value = '';
+  
+  if (!editForm.value.created_at) return;
+  
+  const selectedDate = new Date(editForm.value.created_at);
+  const year = selectedDate.getFullYear();
+  
+  if (year < minYear.value || year > maxYear.value) {
+    dateError.value = `Date must be between ${minYear.value} and ${maxYear.value}`;
+    editForm.value.created_at = props.document.created_at;
+  }
 }
 
 function getFieldDisplay(key: string, value: any): string {
