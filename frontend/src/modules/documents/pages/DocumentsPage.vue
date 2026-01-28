@@ -116,41 +116,33 @@
         </UiSystemNotice>
 
         <template v-if="documents.length > 0">
-          <UiTable :columns="columns" :rows="documents">
-            <template #cell:code="{ value }">
-              <span class="font-mono text-sm">{{ value }}</span>
-            </template>
-            <template #cell:title="{ value }">
-              <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
-            </template>
-            <template #cell:status="{ row }">
-              <span 
-                :class="getStatusBadgeClass(((row as unknown) as Document).fields?.status || 'none')"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-              >
-                {{ formatStatusLabel(((row as unknown) as Document).fields?.status || 'none') }}
-              </span>
-            </template>
-            <template #cell:folder_name="{ value }">
-              <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
-            </template>
-            <template #cell:files="{ row }">
-              <span class="text-sm text-gray-600">{{ ((row as unknown) as Document).files.length }} file(s)</span>
-            </template>
-            <template #cell:created_at="{ value }">
-              <span class="text-sm text-gray-600">{{ formatDate(value as string) }}</span>
-            </template>
-            <template #cell:actions="{ row }">
-              <div class="flex gap-2">
-                <router-link
-                  :to="`/documents/${(row as unknown as Document).uuid}`"
-                  class="text-blue-600 hover:text-blue-800 text-sm"
+          <div class="table-wrapper" @click="handleRowClick">
+            <UiTable :columns="columns" :rows="documents">
+              <template #cell:code="{ value }">
+                <span class="font-mono text-sm">{{ value }}</span>
+              </template>
+              <template #cell:title="{ value }">
+                <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
+              </template>
+              <template #cell:status="{ row }">
+                <span 
+                  :class="getStatusBadgeClass(((row as unknown) as Document).fields?.status || 'none')"
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                 >
-                  View
-                </router-link>
-              </div>
-            </template>
-          </UiTable>
+                  {{ formatStatusLabel(((row as unknown) as Document).fields?.status || 'none') }}
+                </span>
+              </template>
+              <template #cell:folder_name="{ value }">
+                <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
+              </template>
+              <template #cell:files="{ row }">
+                <span class="text-sm text-gray-600">{{ ((row as unknown) as Document).files.length }} file(s)</span>
+              </template>
+              <template #cell:created_at="{ value }">
+                <span class="text-sm text-gray-600">{{ formatDate(value as string) }}</span>
+              </template>
+            </UiTable>
+          </div>
         </template>
 
         <div v-else-if="!loading" class="p-8 text-center text-gray-600">
@@ -276,6 +268,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import { extractErrorMessage } from '@/core/api';
@@ -292,6 +285,7 @@ import UiTextarea from '@/core/ui/components/UiTextarea.vue';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 
 const documents = ref<Document[]>([]);
@@ -378,8 +372,7 @@ const columns = [
   { key: 'status', label: 'Status'},
   { key: 'folder_name', label: 'Folder Name' },
   { key: 'files', label: 'Files' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'actions', label: 'Actions' }
+  { key: 'created_at', label: 'Created' }
 ];
 
 const parseSystemError = (err: any): string => {
@@ -544,8 +537,42 @@ function isSearchActive(): boolean {
   );
 }
 
+function handleRowClick(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+  if (target.closest('[role="button"]') || target.closest('a')) {
+    return;
+  }
+  
+  const table = (event.currentTarget as HTMLElement).closest('.w-full');
+  if (!table) return;
+  
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  const clickedRow = rows.find(row => row.contains(target));
+  
+  if (clickedRow) {
+    const doc = documents.value[rows.indexOf(clickedRow)];
+    if (doc) {
+      router.push(`/documents/${doc.uuid}`);
+    }
+  }
+}
+
 onMounted(() => {
   loadDocuments();
 });
 </script>
+
+<style scoped>
+.table-wrapper {
+  cursor: pointer;
+}
+
+.table-wrapper :deep(tbody tr) {
+  transition: background-color 0.15s ease;
+}
+
+.table-wrapper :deep(tbody tr:hover) {
+  background-color: #f3f4f6;
+}
+</style>
 
