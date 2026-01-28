@@ -99,7 +99,7 @@ export const DocumentService = {
    * Renames a file.
    * Matches: PATCH /documents/{uuid}/files/{fileName}/rename
    */
-  renameFile: (uuid: string, fileName: string, data: { newFileName: string }) =>
+  renameFile: (uuid: string, fileName: string, data: { new_name: string }) =>
     api.patch(`/api/documents/${uuid}/files/${fileName}/rename`, data),
 
   /**
