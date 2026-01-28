@@ -211,7 +211,13 @@ func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fi
 		return fmt.Errorf("fetching document: %w", err)
 	}
 
-	filePath := r.getDocumentFilePath(doc.FolderName, safeName)
+	folderPath := r.getDocumentPath(doc.FolderName)
+	finalName, err := r.uniqueFileName(folderPath, safeName)
+	if err != nil {
+		return fmt.Errorf("determine unique filename: %w", err)
+	}
+
+	filePath := r.getDocumentFilePath(doc.FolderName, finalName)
 
 	outFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
 	if err != nil {
@@ -230,8 +236,8 @@ func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fi
 	}
 
 	file := File{
-		FileName:  safeName,
-		Type:      filepath.Ext(safeName),
+		FileName:  finalName,
+		Type:      filepath.Ext(finalName),
 		Size:      writtenBytes,
 		CreatedAt: fileInfo.ModTime(),
 	}
@@ -292,5 +298,203 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 	}
 
 	// Always write back files.json (even if file wasn't in metadata)
+	return writeFilesMetadata(filesJSONPath, files)
+}
+
+// uniqueFileName finds a free filename in folderPath by appending " (Copy)" / " (Copy N)"
+func (r *FileDocumentRepository) uniqueFileName(folderPath, baseName string) (string, error) {
+	if baseName == "" {
+		return "", errors.New("empty base name")
+	}
+
+	try := baseName
+	name := baseName
+	ext := filepath.Ext(baseName)
+	prefix := strings.TrimSuffix(baseName, ext)
+
+	i := 0
+	for {
+		fullPath := filepath.Join(folderPath, try)
+		_, err := os.Stat(fullPath)
+		if errors.Is(err, os.ErrNotExist) {
+			return try, nil
+		}
+		if err != nil {
+			return "", err
+		}
+		// exists -> prepare next
+		i++
+		if i == 1 {
+			name = fmt.Sprintf("%s (Copy)%s", prefix, ext)
+		} else {
+			name = fmt.Sprintf("%s (Copy %d)%s", prefix, i-1, ext)
+		}
+		try = name
+	}
+}
+
+// UpdateFileContents overwrites an existing file's content and updates its metadata (preserves Description/Note/Tags)
+func (r *FileDocumentRepository) UpdateFileContents(ctx context.Context, uuid string, fileName string, content io.Reader) error {
+	if err := ctxErr(ctx); err != nil {
+		return err
+	}
+	if fileName == "" {
+		return errors.New("file name is required")
+	}
+	if content == nil {
+		return errors.New("file content is required")
+	}
+
+	safeName := filepath.Base(fileName)
+	hasPathTraversal := safeName != fileName ||
+		safeName == "." || safeName == ".." ||
+		filepath.IsAbs(fileName) ||
+		strings.ContainsAny(fileName, `/\`)
+
+	if hasPathTraversal {
+		return errors.New("invalid file name: path traversal detected")
+	}
+
+	doc, err := r.GetByUUID(ctx, uuid)
+	if err != nil {
+		return err
+	}
+
+	filePath := r.getDocumentFilePath(doc.FolderName, safeName)
+
+	// Overwrite file (must already exist or we create it — preserve metadata if present)
+	outFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	if err != nil {
+		return fmt.Errorf("open file for update: %w", err)
+	}
+	defer outFile.Close()
+
+	writtenBytes, err := io.Copy(outFile, content)
+	if err != nil {
+		return fmt.Errorf("write updated content: %w", err)
+	}
+
+	info, err := outFile.Stat()
+	if err != nil {
+		return fmt.Errorf("stat updated file: %w", err)
+	}
+
+	// Update files.json (preserve custom fields)
+	folderPath := r.getDocumentPath(doc.FolderName)
+	filesJSONPath := filepath.Join(folderPath, "files.json")
+
+	var files []File
+	data, err := os.ReadFile(filesJSONPath)
+	if err == nil {
+		_ = json.Unmarshal(data, &files) // ignore unmarshal error and proceed
+	}
+
+	found := false
+	for i := range files {
+		if files[i].FileName == safeName {
+			files[i].Size = writtenBytes
+			files[i].CreatedAt = info.ModTime()
+			files[i].Type = filepath.Ext(safeName)
+			found = true
+			break
+		}
+	}
+	if !found {
+		files = append(files, File{
+			FileName:  safeName,
+			Type:      filepath.Ext(safeName),
+			Size:      writtenBytes,
+			CreatedAt: info.ModTime(),
+		})
+	}
+
+	return writeFilesMetadata(filesJSONPath, files)
+}
+
+// RenameFile renames a file on disk and updates files.json (preserves Description/Note/Tags)
+func (r *FileDocumentRepository) RenameFile(ctx context.Context, uuid string, oldName string, newName string) error {
+	if err := ctxErr(ctx); err != nil {
+		return err
+	}
+	if oldName == "" || newName == "" {
+		return errors.New("old and new file names are required")
+	}
+
+	oldSafe := filepath.Base(oldName)
+	newSafe := filepath.Base(newName)
+
+	hasPathTraversal := oldSafe != oldName || newSafe != newName ||
+		oldSafe == "." || oldSafe == ".." || newSafe == "." || newSafe == ".." ||
+		filepath.IsAbs(oldName) || filepath.IsAbs(newName) ||
+		strings.ContainsAny(oldName, `/\`) || strings.ContainsAny(newName, `/\`)
+
+	if hasPathTraversal {
+		return errors.New("invalid file name: path traversal detected")
+	}
+
+	doc, err := r.GetByUUID(ctx, uuid)
+	if err != nil {
+		return err
+	}
+
+	folderPath := r.getDocumentPath(doc.FolderName)
+	oldPath := filepath.Join(folderPath, oldSafe)
+	// ensure source exists
+	if _, err := os.Stat(oldPath); err != nil {
+		return fmt.Errorf("source file does not exist: %w", err)
+	}
+
+	// Resolve target name if conflict
+	finalName, err := r.uniqueFileName(folderPath, newSafe)
+	if err != nil {
+		return fmt.Errorf("determine target filename: %w", err)
+	}
+	newPath := filepath.Join(folderPath, finalName)
+
+	// Perform rename
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("rename file: %w", err)
+	}
+
+	// Update metadata
+	filesJSONPath := filepath.Join(folderPath, "files.json")
+	var files []File
+	data, err := os.ReadFile(filesJSONPath)
+	if err == nil {
+		_ = json.Unmarshal(data, &files) // ignore unmarshal error and rebuild if needed
+	}
+
+	info, err := os.Stat(newPath)
+	if err != nil {
+		return fmt.Errorf("stat renamed file: %w", err)
+	}
+
+	// Find old metadata entry, move/persist it under new name
+	found := false
+	for i := range files {
+		if files[i].FileName == oldSafe {
+			files[i].FileName = finalName
+			files[i].Type = filepath.Ext(finalName)
+			if info != nil {
+				files[i].Size = info.Size()
+				files[i].CreatedAt = info.ModTime()
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		// create new metadata entry if none existed
+		f := File{
+			FileName: finalName,
+			Type:     filepath.Ext(finalName),
+		}
+		if info != nil {
+			f.Size = info.Size()
+			f.CreatedAt = info.ModTime()
+		}
+		files = append(files, f)
+	}
+
 	return writeFilesMetadata(filesJSONPath, files)
 }
