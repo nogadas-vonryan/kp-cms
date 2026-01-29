@@ -83,11 +83,11 @@
               
               <!-- Read-only View -->
               <div v-if="!isEditing">
-                 <div v-if="!Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap">
+                 <div v-if="!Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap wrap-break-word">
                     {{ getFieldDisplay(key, value) }}
                  </div>
                  <div v-else class="space-y-1">
-                    <div v-for="(item, index) in value" :key="index" class="text-sm text-gray-700 whitespace-pre-wrap">- {{ item || '—' }}</div>
+                    <div v-for="(item, index) in value" :key="index" class="text-sm text-gray-700 whitespace-pre-wrap wrap-break-word">- {{ item || '—' }}</div>
                  </div>
               </div>
 
