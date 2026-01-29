@@ -30,6 +30,20 @@
           </div>
         </div>
 
+        <div v-if="networkIP && frontendStatus === 'running'" class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <div class="flex items-start gap-2">
+            <svg class="h-5 w-5 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <div class="flex-1">
+              <h3 class="text-xs font-bold text-blue-900">Network Access</h3>
+              <p class="mt-1 text-xs text-blue-700">Connect from other devices on your local network:</p>
+              <div class="mt-2 rounded-md bg-white px-3 py-2 font-mono text-sm font-semibold text-blue-900">http://{{ networkIP }}:{{ frontendPort }}</div>
+            </div>
+          </div>
+        </div>
+
         <form class="flex flex-col gap-3" @submit.prevent="startServers">
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -163,6 +177,7 @@ const user = ref('admin')
 const pass = ref('')
 const dataPath = ref('')
 const useRemoteBackend = ref(false)
+const networkIP = ref('')
 
 const showModal = ref(false)
 const modalTitle = ref('')
@@ -195,6 +210,7 @@ function handleReset() {
   pass.value = ''
   dataPath.value = ''
   useRemoteBackend.value = false
+  networkIP.value = ''
   emit('update-frontend-status', 'stopped')
   emit('update-backend-status', 'stopped')
 }
@@ -271,6 +287,18 @@ async function startServers() {
     }
   }
 
+  // Get network info if frontend host is 0.0.0.0
+  if (frontendStarted && frontendHost.value === '0.0.0.0' && typeof appNs.GetNetworkInfo === 'function') {
+    try {
+      const info = await appNs.GetNetworkInfo()
+      if (info && info.localIP) {
+        networkIP.value = info.localIP
+      }
+    } catch (err) {
+      console.error('Failed to get network info:', err)
+    }
+  }
+
   // Show appropriate message
   if (frontendStarted && backendStarted) {
     const backendLabel = remoteOnly ? 'Remote Backend' : 'Backend'
@@ -290,7 +318,11 @@ async function startServers() {
 }
 
 function openFrontendInBrowser() {
-  const host = frontendHost.value || 'localhost'
+  let host = frontendHost.value || 'localhost'
+  // Convert 0.0.0.0 to 127.0.0.1 for browser compatibility (especially on Windows)
+  if (host === '0.0.0.0') {
+    host = '127.0.0.1'
+  }
   const port = parseInt(frontendPort.value, 10) || 8081
   const url = `http://${host}${port ? `:${port}` : ''}`
 
@@ -344,6 +376,9 @@ async function stopServers() {
     } else if (remoteOnly) {
       emit('update-backend-status', 'stopped')
     }
+
+    // Clear network IP
+    networkIP.value = ''
 
     if (errors.length > 0) {
       showMessage('Partial Success', 'Some servers failed to stop:\n' + errors.join('\n'))

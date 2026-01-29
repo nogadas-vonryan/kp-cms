@@ -177,6 +177,21 @@ func StartWebServer(host string, port int, backendHost string, backendPort int) 
 	return srv, nil
 }
 
+func GetLocalIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ipNet.IP.To4() != nil {
+				return ipNet.IP.String(), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no network interface found")
+}
+
 func GeneratePasswordIfEmpty(pass string) (string, error) {
 	if pass == "" {
 		generatedPass, err := auth.GenerateSecurePassword(12)

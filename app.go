@@ -15,6 +15,8 @@ type App struct {
 	server        *http.Server
 	backendServer *http.Server
 	logger        *Logger
+	frontendPort  int
+	backendPort   int
 }
 
 // NewApp creates a new App application struct
@@ -52,6 +54,19 @@ func (a *App) SelectFolder() (string, error) {
 	return selection, nil
 }
 
+func (a *App) GetNetworkInfo() map[string]interface{} {
+	localIP, err := GetLocalIP()
+	if err != nil {
+		localIP = ""
+	}
+
+	return map[string]interface{}{
+		"localIP":      localIP,
+		"frontendPort": a.frontendPort,
+		"backendPort":  a.backendPort,
+	}
+}
+
 func (a *App) StartWebServer(host string, port int, backendHost string, backendPort int) error {
 	a.Log(fmt.Sprintf("Starting frontend web server on %s:%d...", host, port))
 	srv, err := StartWebServer(host, port, backendHost, backendPort)
@@ -61,6 +76,7 @@ func (a *App) StartWebServer(host string, port int, backendHost string, backendP
 	}
 	// Store server reference for shutdown later
 	a.server = srv
+	a.frontendPort = port
 	a.Log(fmt.Sprintf("Frontend server started successfully on http://%s:%d", host, port))
 	return nil
 }
@@ -106,9 +122,16 @@ func (a *App) StartBackendServer(host string, port int, user, pass, dataPath str
 	}
 	// Store server reference for shutdown later
 	a.backendServer = srv
+	a.backendPort = port
 	a.Log(fmt.Sprintf("Backend server started successfully on http://%s:%d", host, port))
 	a.Log(fmt.Sprintf("Using data directory: %s", dataPath))
 	a.Log(fmt.Sprintf("Admin user: %s", user))
+
+	// Log network access info
+	localIP, err := GetLocalIP()
+	if err == nil && localIP != "" {
+		a.Log(fmt.Sprintf("Network access: http://%s:%d", localIP, port))
+	}
 	return nil
 }
 
