@@ -30,20 +30,6 @@
           </div>
         </div>
 
-        <div v-if="networkIP && frontendStatus === 'running'" class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div class="flex items-start gap-2">
-            <svg class="h-5 w-5 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" />
-              <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-            <div class="flex-1">
-              <h3 class="text-xs font-bold text-blue-900">Network Access</h3>
-              <p class="mt-1 text-xs text-blue-700">Connect from other devices on your local network:</p>
-              <div class="mt-2 rounded-md bg-white px-3 py-2 font-mono text-sm font-semibold text-blue-900">http://{{ networkIP }}:{{ frontendPort }}</div>
-            </div>
-          </div>
-        </div>
-
         <form class="flex flex-col gap-3" @submit.prevent="startServers">
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -99,7 +85,6 @@
             <div class="sm:col-span-2">
               <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
                 Admin Password
-                <span v-if="savedPassword && !pass" class="ml-2 text-[9px] font-normal text-green-600">(using saved password)</span>
               </label>
               <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
                 <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -108,7 +93,8 @@
                 </svg>
                 <input v-model="pass" type="password" placeholder="Leave empty to use saved or auto-generate" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
-              <p class="mt-1 text-xs text-slate-500">Leave empty to use saved password, or will auto-generate if none saved.</p>
+              <span v-if="savedPassword && !pass" class="ml-2 text-[10px] font-normal text-green-600">(using saved password)</span>
+              <p class="mt-1 text-[9px] text-slate-500">Leave empty to use saved password, or will auto-generate if none saved.</p>
             </div>
             <div class="col-span-2">
               <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Data Path</label>
@@ -125,7 +111,7 @@
                 <input v-model="useRemoteBackend" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
                 <span>Use remote backend (only start frontend proxy)</span>
               </label>
-              <p class="mt-1 text-xs text-slate-500">Skips starting the local backend and proxies to the backend host/port above.</p>
+              <p class="mt-1 text-[10px] text-slate-500">Skips starting the local backend and proxies to the backend host/port above.</p>
             </div>
           </div>
 
@@ -135,6 +121,20 @@
             <button type="submit" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Start Servers</button>
           </div>
         </form>
+
+        <div v-if="networkIP && frontendStatus === 'running'" ref="networkInfoRef" class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <div class="flex items-start gap-2">
+            <svg class="h-5 w-5 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <div class="flex-1">
+              <h3 class="text-xs font-bold text-blue-900">Network Access</h3>
+              <p class="mt-1 text-xs text-blue-700">Connect from other devices on your local network:</p>
+              <div class="mt-2 rounded-md bg-white px-3 py-2 font-mono text-sm font-semibold text-blue-900">http://{{ networkIP }}:{{ frontendPort }}</div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -142,7 +142,7 @@
       <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="viewLogs">View Logs</button>
       <div class="ml-auto flex gap-2">
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="handleReset">Reset</button>
-        <button type="button" class="rounded-lg bg-linear-to-r from-slate-900 to-slate-800 px-3 py-2 text-xs font-semibold text-white hover:from-slate-800 hover:to-slate-700" @click="handleSave">Save Changes</button>
+        <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="handleSave">Save Changes</button>
       </div>
     </footer>
 
@@ -163,10 +163,10 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, defineProps, defineEmits, onMounted, watch, nextTick } from 'vue'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 
-defineProps({
+const props = defineProps({
   frontendStatus: String,
   backendStatus: String
 })
@@ -187,6 +187,23 @@ const networkIP = ref('')
 const showModal = ref(false)
 const modalTitle = ref('')
 const modalMessage = ref('')
+const networkInfoRef = ref(null)
+
+// Watch for network info appearing and scroll to it
+watch([networkIP, () => props.frontendStatus], ([ip, status], [prevIp, prevStatus]) => {
+  if (ip && status === 'running') {
+    nextTick(() => {
+      if (networkInfoRef.value) {
+        networkInfoRef.value.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    })
+  } else if (prevIp && (!ip || status !== 'running')) {
+    // Network message disappeared, scroll back to top
+    nextTick(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    })
+  }
+})
 
 // Computed property to select the effective password (entered or saved)
 const getPasswordToUse = () => pass.value || savedPassword.value
@@ -211,8 +228,10 @@ onMounted(async () => {
         }
         if (config.dataPath) dataPath.value = config.dataPath
       }
-    } else if (appNs && typeof appNs.GetExecutableDir === 'function') {
-      // Fallback: get executable directory for default data path
+    }
+    
+    // If dataPath is still empty, populate with executable directory + '/data'
+    if (!dataPath.value && appNs && typeof appNs.GetExecutableDir === 'function') {
       const execDir = await appNs.GetExecutableDir()
       if (execDir) {
         dataPath.value = execDir + '/data'
@@ -365,6 +384,18 @@ async function startServers() {
   if (!appNs) {
     showMessage('Error', 'Wails API not available in this environment')
     return
+  }
+
+  // If dataPath is empty, populate it with executable directory + '/data'
+  if (!dataPath.value && typeof appNs.GetExecutableDir === 'function') {
+    try {
+      const execDir = await appNs.GetExecutableDir()
+      if (execDir) {
+        dataPath.value = execDir + '/data'
+      }
+    } catch (err) {
+      console.error('Failed to get executable directory:', err)
+    }
   }
 
   let frontendStarted = false
