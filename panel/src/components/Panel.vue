@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref, defineProps, defineEmits, onMounted } from 'vue'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 
 defineProps({
@@ -182,6 +182,21 @@ const networkIP = ref('')
 const showModal = ref(false)
 const modalTitle = ref('')
 const modalMessage = ref('')
+
+// Get executable directory on mount to set default data path
+onMounted(async () => {
+  try {
+    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+    if (appNs && typeof appNs.GetExecutableDir === 'function') {
+      const execDir = await appNs.GetExecutableDir()
+      if (execDir) {
+        dataPath.value = execDir + '/data'
+      }
+    }
+  } catch (err) {
+    console.error('Failed to get executable directory:', err)
+  }
+})
 
 function showMessage(title, message) {
   modalTitle.value = title

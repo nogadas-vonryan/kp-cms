@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -65,6 +67,14 @@ func (a *App) GetNetworkInfo() map[string]interface{} {
 		"frontendPort": a.frontendPort,
 		"backendPort":  a.backendPort,
 	}
+}
+
+func (a *App) GetExecutableDir() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(exePath), nil
 }
 
 func (a *App) StartWebServer(host string, port int, backendHost string, backendPort int) error {
