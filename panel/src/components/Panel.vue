@@ -97,14 +97,18 @@
               </div>
             </div>
             <div class="sm:col-span-2">
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Admin Password</label>
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                Admin Password
+                <span v-if="savedPassword && !pass" class="ml-2 text-[9px] font-normal text-green-600">(using saved password)</span>
+              </label>
               <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
                 <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="5" y="10" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.4" />
                   <path d="M9 10V8a3 3 0 1 1 6 0v2" stroke="currentColor" stroke-width="1.4" />
                 </svg>
-                <input v-model="pass" type="password" placeholder="••••••" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
+                <input v-model="pass" type="password" placeholder="Leave empty to use saved or auto-generate" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
+              <p class="mt-1 text-xs text-slate-500">Leave empty to use saved password, or will auto-generate if none saved.</p>
             </div>
             <div class="col-span-2">
               <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Data Path</label>
@@ -175,6 +179,7 @@ const backendHost = ref('0.0.0.0')
 const backendPort = ref('8080')
 const user = ref('admin')
 const pass = ref('')
+const savedPassword = ref('') // Stored separately for security
 const dataPath = ref('')
 const useRemoteBackend = ref(false)
 const networkIP = ref('')
@@ -183,18 +188,50 @@ const showModal = ref(false)
 const modalTitle = ref('')
 const modalMessage = ref('')
 
-// Get executable directory on mount to set default data path
+// Computed property to select the effective password (entered or saved)
+const getPasswordToUse = () => pass.value || savedPassword.value
+
+// Load saved configuration on mount
 onMounted(async () => {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.GetExecutableDir === 'function') {
+    if (appNs && typeof appNs.LoadSavedConfig === 'function') {
+      const config = await appNs.LoadSavedConfig()
+      if (config) {
+        // Load all configuration values
+        if (config.frontendHost) frontendHost.value = config.frontendHost
+        if (config.frontendPort) frontendPort.value = config.frontendPort.toString()
+        if (config.backendHost) backendHost.value = config.backendHost
+        if (config.backendPort) backendPort.value = config.backendPort.toString()
+        if (config.username) user.value = config.username
+        // Store password separately without displaying it for security
+        if (config.password) {
+          savedPassword.value = config.password
+          // Don't populate the password field - keep it empty for security
+        }
+        if (config.dataPath) dataPath.value = config.dataPath
+      }
+    } else if (appNs && typeof appNs.GetExecutableDir === 'function') {
+      // Fallback: get executable directory for default data path
       const execDir = await appNs.GetExecutableDir()
       if (execDir) {
         dataPath.value = execDir + '/data'
       }
     }
   } catch (err) {
-    console.error('Failed to get executable directory:', err)
+    console.error('Failed to load configuration:', err)
+    // Try to at least get the executable directory
+    try {
+      const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+      if (appNs && typeof appNs.GetExecutableDir === 'function') {
+        const execDir = await appNs.GetExecutableDir()
+        if (execDir) {
+          dataPath.value = execDir + '/data'
+        }
+      }
+    } catch (err2) {
+      console.error('Failed to get executable directory:', err2)
+    }
   }
 })
 
@@ -208,26 +245,103 @@ function closeModal() {
   showModal.value = false
 }
 
-function handleSave() {
-  showMessage('Saved', 'Settings saved locally.')
+async function handleSave() {
+  try {
+    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+    if (!appNs) {
+      showMessage('Error', 'Wails API not available in this environment')
+      return
+    }
+
+    // Warn if removing password
+    if (pass.value === '' && savedPassword.value !== '') {
+      if (!confirm('Remove password? Auto-generated one will be used on next backend start.')) {
+        return
+      }
+    }
+
+    if (typeof appNs.SaveConfiguration === 'function') {
+      // Use the entered password if provided, otherwise keep the saved one
+      const passwordToSave = getPasswordToUse()
+      
+      await appNs.SaveConfiguration(
+        frontendHost.value,
+        parseInt(frontendPort.value) || 8081,
+        backendHost.value,
+        parseInt(backendPort.value) || 8080,
+        user.value || 'admin',
+        passwordToSave,
+        dataPath.value
+      )
+      
+      // Update saved password if a new one was entered
+      if (pass.value) {
+        savedPassword.value = pass.value
+        pass.value = '' // Clear the input field after saving for security
+      }
+      
+      showMessage('Success', 'Configuration saved successfully.')
+    } else {
+      showMessage('Error', 'SaveConfiguration function not available')
+    }
+  } catch (err) {
+    console.error('Failed to save configuration:', err)
+    const errorMsg = extractErrorMessage(err)
+    showMessage('Error', 'Failed to save configuration: ' + errorMsg)
+  }
 }
 
 function viewLogs() {
   emit('view-logs')
 }
 
-function handleReset() {
-  frontendHost.value = '0.0.0.0'
-  frontendPort.value = '8081'
-  backendHost.value = '0.0.0.0'
-  backendPort.value = '8080'
-  user.value = 'admin'
-  pass.value = ''
-  dataPath.value = ''
-  useRemoteBackend.value = false
-  networkIP.value = ''
-  emit('update-frontend-status', 'stopped')
-  emit('update-backend-status', 'stopped')
+async function handleReset() {
+  try {
+    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+    
+    // Try to reload saved config
+    if (appNs && typeof appNs.LoadSavedConfig === 'function') {
+      try {
+        const config = await appNs.LoadSavedConfig()
+        if (config) {
+          frontendHost.value = config.frontendHost || '0.0.0.0'
+          frontendPort.value = (config.frontendPort || 8081).toString()
+          backendHost.value = config.backendHost || '0.0.0.0'
+          backendPort.value = (config.backendPort || 8080).toString()
+          user.value = config.username || 'admin'
+          savedPassword.value = config.password || ''
+          pass.value = '' // Clear the visible password field for security
+          dataPath.value = config.dataPath || ''
+          useRemoteBackend.value = false
+          networkIP.value = ''
+          emit('update-frontend-status', 'stopped')
+          emit('update-backend-status', 'stopped')
+          showMessage('Reset', 'Configuration reset to saved values.')
+          return
+        }
+      } catch (err) {
+        console.error('Failed to load saved config:', err)
+      }
+    }
+    
+    // Fallback to defaults if loading saved config fails
+    frontendHost.value = '0.0.0.0'
+    frontendPort.value = '8081'
+    backendHost.value = '0.0.0.0'
+    backendPort.value = '8080'
+    user.value = 'admin'
+    pass.value = ''
+    savedPassword.value = ''
+    dataPath.value = ''
+    useRemoteBackend.value = false
+    networkIP.value = ''
+    emit('update-frontend-status', 'stopped')
+    emit('update-backend-status', 'stopped')
+    showMessage('Reset', 'Configuration reset to defaults.')
+  } catch (err) {
+    console.error('Reset failed:', err)
+    showMessage('Error', 'Failed to reset configuration')
+  }
 }
 
 async function selectFolder() {
@@ -256,7 +370,11 @@ async function startServers() {
   let frontendStarted = false
   let backendStarted = false
   let errors = []
+  let generatedPassword = null
   const remoteOnly = useRemoteBackend.value
+  
+  // Use the helper function for password selection
+  const passwordToUse = getPasswordToUse()
 
   // Start backend server first
   if (remoteOnly) {
@@ -268,12 +386,19 @@ async function startServers() {
         backendHost.value,
         parseInt(backendPort.value) || 8080,
         user.value || 'admin',
-        pass.value,
+        passwordToUse,
         dataPath.value
       )
       // If we get here without exception, it succeeded
       backendStarted = true
       emit('update-backend-status', 'running')
+      
+      // Handle auto-generated password
+      if (result && result.generated) {
+        generatedPassword = result.password
+        savedPassword.value = result.password
+        pass.value = '' // Clear the input field since we now have saved password
+      }
     } catch (err) {
       console.error('Backend start error:', err)
       const errorMsg = extractErrorMessage(err, 'Backend')
@@ -317,10 +442,14 @@ async function startServers() {
   // Show appropriate message
   if (frontendStarted && backendStarted) {
     const backendLabel = remoteOnly ? 'Remote Backend' : 'Backend'
-    showMessage(
-      'Success',
-      `Frontend started successfully.\n${backendLabel}: http://${backendHost.value}:${backendPort.value}\n\nCheck the Logs tab for admin credentials if password was auto-generated.`
-    )
+    let successMsg = `Frontend started successfully.\n${backendLabel}: http://${backendHost.value}:${backendPort.value}`
+    
+    // Add note about auto-generated password
+    if (generatedPassword) {
+      successMsg += `\n\nAuto-generated admin password: ${generatedPassword}\nPassword has been saved to configuration.`
+    }
+    
+    showMessage('Success', successMsg)
   } else if (frontendStarted || backendStarted) {
     const started = []
     if (frontendStarted) started.push(`Frontend: http://${frontendHost.value}:${frontendPort.value}`)
