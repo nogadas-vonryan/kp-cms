@@ -12,6 +12,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@types/pdfmake": "^0.2.12",
     "axios": "^1.13.2",
+    "lucide-vue-next": "^0.563.0",
     "pdfmake": "^0.3.3",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.1.18",
