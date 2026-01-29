@@ -155,6 +155,15 @@
         <UiButton @click="confirmDeleteField" variant="danger">Delete</UiButton>
       </template>
     </UiModal>
+
+    <!-- Delete Array Item Confirmation -->
+    <UiModal v-model:open="showDeleteArrayItemConfirm" title="Remove Item">
+      <p class="text-gray-700">Are you sure you want to remove this item?</p>
+      <template #footer>
+        <UiButton @click="showDeleteArrayItemConfirm = false">Cancel</UiButton>
+        <UiButton @click="confirmRemoveArrayItem" variant="danger">Remove</UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>
 
@@ -190,6 +199,8 @@ const dateError = ref('');
 const showAddFieldModal = ref(false);
 const showDeleteFieldConfirm = ref(false);
 const fieldToDelete = ref('');
+const showDeleteArrayItemConfirm = ref(false);
+const arrayItemToDelete = ref<{ key: string; index: number } | null>(null);
 const newField = ref({ name: '', isArray: false, initialValue: '' });
 
 // Form State
@@ -294,8 +305,18 @@ function addArrayItem(key: string) {
 }
 
 function removeArrayItem(key: string, index: number) {
-  if (Array.isArray(editForm.value.fields[key])) {
-    editForm.value.fields[key].splice(index, 1);
+  arrayItemToDelete.value = { key, index };
+  showDeleteArrayItemConfirm.value = true;
+}
+
+function confirmRemoveArrayItem() {
+  if (arrayItemToDelete.value) {
+    const { key, index } = arrayItemToDelete.value;
+    if (Array.isArray(editForm.value.fields[key])) {
+      editForm.value.fields[key].splice(index, 1);
+    }
+    arrayItemToDelete.value = null;
+    showDeleteArrayItemConfirm.value = false;
   }
 }
 
