@@ -2,12 +2,13 @@
 import { RouterView, useRouter } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
 import { AuthService } from '@/modules/auth/services/authService';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { Menu, X, FileText, BarChart3, Settings, LogOut } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const sidebarOpen = ref(false);
 
-const isAuthenticated = computed(() => authStore.isAuthenticated);
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 const username = computed(() => authStore.user?.id || '');
 
@@ -15,63 +16,109 @@ async function logout() {
   await AuthService.logout();
   router.push('/login');
 }
+
+function closeSidebar() {
+  sidebarOpen.value = false;
+}
+
+function navigateTo(path: string) {
+  router.push(path);
+  closeSidebar();
+}
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation Header -->
-    <nav v-if="isAuthenticated" class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="shrink-0 flex items-center">
-              <span class="text-xl font-bold text-gray-900">KPCMS</span>
-            </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <router-link
-                to="/documents"
-                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-blue-500 text-gray-900"
-                inactive-class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              >
-                Documents
-              </router-link>
-              <router-link
-                v-if="isAdmin"
-                to="/reports/export"
-                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-blue-500 text-gray-900"
-                inactive-class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              >
-                Reports
-              </router-link>
-              <router-link
-                v-if="isAdmin"
-                to="/admin"
-                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-blue-500 text-gray-900"
-                inactive-class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              >
-                Admin
-              </router-link>
-            </div>
-          </div>
-          <div class="flex items-center gap-4">
-            <span class="text-sm text-gray-700">{{ username }}</span>
-            <button
-              @click="logout"
-              class="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Logout
-            </button>
-          </div>
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white border-b border-gray-200">
+      <div class="px-4 py-4 flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">KPCMS</h1>
+        <div class="flex items-center gap-4">
+          <span class="hidden sm:block text-sm text-gray-600">{{ username }}</span>
+          <button
+            @click="sidebarOpen = !sidebarOpen"
+            class="sm:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+          >
+            <Menu v-if="!sidebarOpen" :size="24" class="text-gray-900" />
+            <X v-else :size="24" class="text-gray-900" />
+          </button>
+          <button
+            @click="logout"
+            class="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+          >
+            <LogOut :size="18" />
+            Logout
+          </button>
         </div>
       </div>
-    </nav>
+    </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
-      <RouterView />
-    </main>
+    <!-- Content Container -->
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside
+        class="fixed top-16 left-0 bottom-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 flex flex-col sm:sticky sm:top-16 sm:translate-x-0 sm:h-[calc(100vh-4rem)] overflow-hidden"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+      >
+        <nav class="flex-1 pt-4 pb-4 overflow-y-auto">
+          <div class="px-4 space-y-2">
+            <!-- Documents Link -->
+            <button
+              @click="navigateTo('/documents')"
+              class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              :class="$route.path === '/documents' ? 'bg-blue-50 text-blue-600' : ''"
+            >
+              <FileText :size="20" />
+              <span class="text-sm font-medium">Documents</span>
+            </button>
+
+            <!-- Reports Link (Admin only) -->
+            <button
+              v-if="isAdmin"
+              @click="navigateTo('/reports/export')"
+              class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              :class="$route.path.startsWith('/reports') ? 'bg-blue-50 text-blue-600' : ''"
+            >
+              <BarChart3 :size="20" />
+              <span class="text-sm font-medium">Reports</span>
+            </button>
+
+            <!-- Admin Link (Admin only) -->
+            <button
+              v-if="isAdmin"
+              @click="navigateTo('/admin')"
+              class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              :class="$route.path === '/admin' ? 'bg-blue-50 text-blue-600' : ''"
+            >
+              <Settings :size="20" />
+              <span class="text-sm font-medium">Admin</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Logout Button -->
+        <div class="shrink-0 px-4 py-4 border-t border-gray-200">
+          <button
+            @click="logout"
+            class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+          >
+            <LogOut :size="20" />
+            <span class="text-sm font-medium">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Overlay (Mobile) -->
+      <div
+        v-if="sidebarOpen"
+        @click="closeSidebar"
+        class="fixed inset-0 z-20 bg-black/50 sm:hidden"
+      />
+
+      <!-- Main Content -->
+      <main class="flex-1 min-h-[calc(100vh-4rem)] px-4 py-6 sm:max-w-5xl sm:mx-auto sm:w-full">
+        <RouterView />
+      </main>
+    </div>
   </div>
 </template>
