@@ -42,13 +42,6 @@ function navigateTo(path: string) {
             <Menu v-if="!sidebarOpen" :size="24" class="text-gray-900" />
             <X v-else :size="24" class="text-gray-900" />
           </button>
-          <button
-            @click="logout"
-            class="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-          >
-            <LogOut :size="18" />
-            Logout
-          </button>
         </div>
       </div>
     </header>
