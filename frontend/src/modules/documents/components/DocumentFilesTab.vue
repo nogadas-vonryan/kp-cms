@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <UiCard>  
       <div 
-        class="mb-4 border-2 border-dashed rounded-lg p-8 transition-colors duration-200 text-center"
+        class="mb-4 border-2 border-dashed rounded-lg p-4 sm:p-8 transition-colors duration-200 text-center"
         :class="[
           isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50',
           isUploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer',
@@ -14,41 +14,41 @@
       >
         <input type="file" ref="fileInput" class="hidden" @change="handleFileSelect" />
         <div class="space-y-1">
-          <p class="text-sm font-medium text-gray-700 uppercase tracking-wide">
+          <p class="text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wide">
             {{ isUploading ? 'Uploading...' : 'Click or drag to upload' }}
           </p>
-          <p class="text-[11px] text-gray-400 uppercase tracking-widest">Max 32MB per file</p>
+          <p class="text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-widest">Max 32MB per file</p>
         </div>
       </div>
 
       <div v-if="document.files?.length > 0" class="mb-6 space-y-3">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <label class="block text-sm font-medium text-gray-700">Filter Files</label>
           <div class="flex gap-0 border border-gray-300">
             <button
               @click="viewMode = 'list'"
               :title="viewMode === 'list' ? 'List view (active)' : 'List view'"
               :class="[
-                'px-2.5 py-1 text-sm transition-colors',
+                'px-3 py-1.5 transition-colors flex items-center justify-center rounded',
                 viewMode === 'list' 
                   ? 'bg-gray-900 text-white' 
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               ]"
             >
-              ≡
+              <List :size="16" />
             </button>
             <div class="w-px bg-gray-300"></div>
             <button
               @click="viewMode = 'grid'"
               :title="viewMode === 'grid' ? 'Grid view (active)' : 'Grid view'"
               :class="[
-                'px-2.5 py-1 text-sm transition-colors',
+                'px-3 py-1.5 transition-colors flex items-center justify-center',
                 viewMode === 'grid' 
                   ? 'bg-gray-900 text-white' 
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               ]"
             >
-              ⊞
+              <Grid3x3 :size="16" />
             </button>
           </div>
         </div>
@@ -74,9 +74,9 @@
             </button>
             <span v-if="availableTags.length === 0" class="text-xs text-gray-400 italic shrink-0">No tags available</span>
           </div>
-          <div class="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-widest">
-            <span>Search and/or pick tags; all selected tags must be present.</span>
-            <button v-if="selectedTags.length" type="button" @click="clearTags" class="text-blue-600 hover:text-blue-800 font-semibold">Clear tags</button>
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-[10px] sm:text-[11px] text-gray-500 uppercase tracking-widest">
+            <span class="text-left">Search and/or pick tags; all selected tags must be present.</span>
+            <button v-if="selectedTags.length" type="button" @click="clearTags" class="text-blue-600 hover:text-blue-800 font-semibold whitespace-nowrap">Clear tags</button>
           </div>
         </div>
       </div>
@@ -97,48 +97,51 @@
           v-for="file in filteredFiles" 
           :key="file.file_name"
           :class="[
-            'group py-3 px-3 transition-colors hover:bg-gray-50',
+            'group py-3 px-2 sm:px-3 transition-colors hover:bg-gray-50',
             highlightActive === file.file_name
               ? 'bg-yellow-100 shadow-sm'
               : ''
           ]"
           :ref="el => setRowRef(file.file_name, el as HTMLElement | null)"
         >
-          <div class="flex items-start justify-between gap-4">
+          <div class="flex items-start justify-between gap-2">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-sm font-medium text-gray-900 truncate">{{ file.file_name }}</span>
-                <span class="text-[11px] font-mono text-gray-400 shrink-0">{{ formatSize(file.size) }}</span>
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-xs sm:text-sm font-medium text-gray-900 break-all">{{ file.file_name }}</span>
+                <span class="text-[10px] sm:text-[11px] font-mono text-gray-400 shrink-0">{{ formatSize(file.size) }}</span>
               </div>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-600">
-                <div v-if="file.description"><span class="text-gray-500">Desc:</span> {{ file.description }}</div>
-                <div v-if="file.note"><span class="text-gray-500">Note:</span> {{ file.note }}</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-600">
+                <div v-if="file.description" class="break-words"><span class="text-gray-500">Desc:</span> {{ file.description }}</div>
+                <div v-if="file.note" class="break-words"><span class="text-gray-500">Note:</span> {{ file.note }}</div>
                 <div v-if="file.tags && file.tags.length > 0">
                   <span class="text-gray-500">Tags:</span> {{ formatTags(file.tags) }}
                 </div>
               </div>
             </div>
 
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0">
+            <div class="flex items-center gap-1 shrink-0">
               <button 
                 @click="downloadFile(file.file_name)" 
-                class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-colors"
+                :title="'Download ' + file.file_name"
+                class="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-colors"
               >
-                Download
+                <Download :size="16" />
               </button>
               
               <template v-if="isAdmin">
                 <button 
                   @click="startEdit(file)" 
-                  class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-800 hover:text-white rounded transition-colors"
+                  :title="'Edit ' + file.file_name"
+                  class="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-800 hover:text-white rounded transition-colors"
                 >
-                  Edit
+                  <Edit :size="16" />
                 </button>
                 <button 
                   @click="deleteFile(file.file_name)" 
-                  class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors"
+                  :title="'Delete ' + file.file_name"
+                  class="p-1.5 sm:p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors"
                 >
-                  Delete
+                  <Trash2 :size="16" />
                 </button>
               </template>
             </div>
@@ -146,11 +149,11 @@
 
           <div v-if="editingFileName === file.file_name" class="mt-3 p-3 bg-gray-50 rounded border border-gray-200 space-y-3">
             <!-- Edit Tabs -->
-            <div class="flex gap-0 border border-gray-300 rounded bg-white w-md">
+            <div class="flex gap-0 border border-gray-300 rounded bg-white">
               <button
                 @click="editTab = 'metadata'"
                 :class="[
-                  'flex-1 px-2 py-1 text-xs font-bold transition-colors',
+                  'flex-1 px-2 py-1.5 text-xs font-bold transition-colors',
                   editTab === 'metadata'
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -161,7 +164,7 @@
               <button
                 @click="editTab = 'update'"
                 :class="[
-                  'flex-1 px-2 py-1 text-xs font-bold transition-colors border-l border-gray-300',
+                  'flex-1 px-2 py-1.5 text-xs font-bold transition-colors border-l border-gray-300',
                   editTab === 'update'
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -172,7 +175,7 @@
               <button
                 @click="editTab = 'rename'"
                 :class="[
-                  'flex-1 px-2 py-1 text-xs font-bold transition-colors border-l border-gray-300',
+                  'flex-1 px-2 py-1.5 text-xs font-bold transition-colors border-l border-gray-300',
                   editTab === 'rename'
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -199,16 +202,18 @@
                   <UiInput v-model="editForm.tags[index]" placeholder="Enter tag" class="flex-1" />
                   <button 
                     @click="editForm.tags.splice(index, 1)" 
-                    class="px-2 py-2 text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors"
+                    :title="'Remove tag'"
+                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
                   >
-                    Remove
+                    <X :size="16" />
                   </button>
                 </div>
                 <button 
                   @click="editForm.tags.push('')" 
-                  class="w-full px-2 py-2 text-xs font-bold text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                  class="w-full px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center justify-center gap-1"
                 >
-                  + Add Tag
+                  <Plus :size="16" />
+                  <span>Add Tag</span>
                 </button>
               </div>
             </div>
@@ -258,7 +263,7 @@
       </div>
 
       <!-- Grid View -->
-      <div v-else class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-2 border-t border-gray-200 pt-3">
+      <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 border-t border-gray-200 pt-3">
         <div 
           v-for="file in filteredFiles" 
           :key="file.file_name"
@@ -271,65 +276,73 @@
           :ref="el => setRowRef(file.file_name, el as HTMLElement | null)"
         >
           <div class="p-2 space-y-1">
-            <div class="flex items-start justify-between gap-0.5">
+            <div class="flex items-start justify-between gap-1">
               <div class="flex-1 min-w-0">
-                <div class="h-6 flex items-center">
-                  <span class="text-xs font-medium text-gray-900 truncate leading-tight">{{ file.file_name }}</span>
+                <div class="h-10 sm:h-8 flex items-start">
+                  <span class="text-xs font-medium text-gray-900 break-words line-clamp-2 leading-tight">{{ file.file_name }}</span>
                 </div>
               </div>
-              <div class="text-xs text-gray-400 shrink-0 font-mono whitespace-nowrap">{{ formatSize(file.size) }}</div>
+              <div class="text-[10px] text-gray-400 shrink-0 font-mono whitespace-nowrap">{{ formatSize(file.size) }}</div>
             </div>
             
-            <div class="h-8 text-xs text-gray-600 overflow-hidden">
-              <div v-if="file.description" class="line-clamp-2">{{ file.description }}</div>
+            <div class="h-10 sm:h-8 text-xs text-gray-600 overflow-hidden">
+              <div v-if="file.description" class="line-clamp-2 break-words">{{ file.description }}</div>
               <div v-else class="text-gray-400 italic text-xs">No desc</div>
             </div>
 
             <div v-if="file.tags && file.tags.length > 0" class="flex flex-wrap gap-0.5">
-              <span v-for="tag in (Array.isArray(file.tags) ? file.tags : [file.tags]).slice(0, 1)" :key="tag" class="inline-block text-[8px] bg-gray-100 text-gray-700 px-1 py-0.5 rounded">
+              <span v-for="tag in (Array.isArray(file.tags) ? file.tags : [file.tags]).slice(0, 2)" :key="tag" class="inline-block text-[8px] bg-gray-100 text-gray-700 px-1 py-0.5 rounded">
                 {{ tag }}
               </span>
-              <span v-if="(Array.isArray(file.tags) ? file.tags : [file.tags]).length > 1" class="text-[8px] text-gray-500">+{{ (Array.isArray(file.tags) ? file.tags : [file.tags]).length - 1 }}</span>
+              <span v-if="(Array.isArray(file.tags) ? file.tags : [file.tags]).length > 2" class="text-[8px] text-gray-500">+{{ (Array.isArray(file.tags) ? file.tags : [file.tags]).length - 2 }}</span>
             </div>
           </div>
 
-          <div class="border-t border-gray-200 p-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+          <div class="border-t border-gray-200 p-1 flex gap-0.5 justify-center">
             <button 
               @click="downloadFile(file.file_name)"
-              title="Download"
-              class="w-6 h-6 flex items-center justify-center text-sm text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-colors"
+              :title="'Download ' + file.file_name"
+              class="flex-1 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-colors"
             >
-              ↓
+              <Download :size="16" />
             </button>
             
             <template v-if="isAdmin">
               <button 
                 @click="startEdit(file)"
-                title="Edit"
-                class="w-6 h-6 flex items-center justify-center text-sm text-gray-600 hover:bg-gray-800 hover:text-white rounded transition-colors"
+                :title="'Edit ' + file.file_name"
+                class="flex-1 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-800 hover:text-white rounded transition-colors"
               >
-                ✎
+                <Edit :size="16" />
               </button>
               <button 
                 @click="deleteFile(file.file_name)"
-                title="Delete"
-                class="w-6 h-6 flex items-center justify-center text-sm text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors"
+                :title="'Delete ' + file.file_name"
+                class="flex-1 h-8 flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors"
               >
-                ✕
+                <Trash2 :size="16" />
               </button>
             </template>
           </div>
 
-          <div v-if="editingFileName === file.file_name" class="absolute inset-0 bg-white rounded border border-blue-400 shadow-lg z-10 p-3 space-y-2 overflow-y-auto max-h-96">
-            <button @click="editingFileName = null" class="absolute top-1 right-1 text-lg text-gray-400 hover:text-gray-600">x</button>
-            <h3 class="text-xs font-bold text-gray-900 pr-4">{{ file.file_name }}</h3>
+          <div v-if="editingFileName === file.file_name" class="absolute inset-0 bg-white rounded border border-blue-400 shadow-lg z-10 p-2 sm:p-3 space-y-2 overflow-y-auto max-h-96">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-xs font-bold text-gray-900 pr-4 break-words line-clamp-1">{{ file.file_name }}</h3>
+              <button 
+                @click="editingFileName = null" 
+                class="shrink-0 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                title="Close"
+              >
+                <X :size="16" />
+              </button>
+            </div>
             
             <!-- Grid Tabs -->
             <div class="flex gap-0 border border-gray-300 rounded bg-white">
               <button
                 @click="editTab = 'metadata'"
                 :class="[
-                  'flex-1 px-2 py-1 text-[10px] font-bold transition-colors',
+                  'flex-1 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs font-bold transition-colors',
                   editTab === 'metadata'
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -340,7 +353,7 @@
               <button
                 @click="editTab = 'update'"
                 :class="[
-                  'flex-1 px-2 py-1 text-[10px] font-bold transition-colors border-l border-gray-300',
+                  'flex-1 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs font-bold transition-colors border-l border-gray-300',
                   editTab === 'update'
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -351,7 +364,7 @@
               <button
                 @click="editTab = 'rename'"
                 :class="[
-                  'flex-1 px-2 py-1 text-[10px] font-bold transition-colors border-l border-gray-300',
+                  'flex-1 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs font-bold transition-colors border-l border-gray-300',
                   editTab === 'rename'
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -374,13 +387,27 @@
               <div>
                 <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Tags</label>
                 <div class="space-y-1">
-                  <input v-for="(_, index) in editForm.tags" :key="index" v-model="editForm.tags[index]" placeholder="Tag" class="w-full text-xs p-1 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+                  <div v-for="(_, index) in editForm.tags" :key="index" class="flex gap-1">
+                    <input 
+                      v-model="editForm.tags[index]" 
+                      placeholder="Tag" 
+                      class="flex-1 text-xs p-1 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" 
+                    />
+                    <button 
+                      @click="editForm.tags.splice(index, 1)"
+                      :title="'Remove tag'"
+                      class="p-1 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
+                    >
+                      <X :size="14" />
+                    </button>
+                  </div>
                 </div>
                 <button 
                   @click="editForm.tags.push('')" 
-                  class="w-full mt-1 text-[10px] font-bold text-blue-600 hover:bg-blue-50 rounded p-0.5 transition-colors"
+                  class="w-full mt-1 text-[10px] font-bold text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors flex items-center justify-center gap-1"
                 >
-                  + Tag
+                  <Plus :size="12" />
+                  <span>Tag</span>
                 </button>
               </div>
               <div class="flex justify-end gap-1 pt-2 border-t border-gray-200">
@@ -433,6 +460,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue';
+import { Download, Edit, Trash2, X, Plus, List, Grid3x3 } from 'lucide-vue-next';
 import { UiCard } from '@/core/ui';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
