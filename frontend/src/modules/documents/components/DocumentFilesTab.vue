@@ -203,7 +203,7 @@
                 <Edit :size="16" />
               </button>
               <button 
-                @click="deleteFile(file.file_name)"
+                @click="openDeleteFileConfirm(file.file_name)"
                 :title="'Delete ' + file.file_name"
                 class="flex-1 h-8 flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors"
               >
@@ -375,6 +375,64 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete File Modal -->
+    <div 
+      v-if="showDeleteFileConfirm"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      @click.self="showDeleteFileConfirm = false"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white">
+          <h2 class="text-sm sm:text-base font-bold text-gray-900">Delete File</h2>
+          <button 
+            @click="showDeleteFileConfirm = false" 
+            class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors shrink-0"
+            title="Close"
+          >
+            <X :size="20" />
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-4 sm:p-6 space-y-4">
+          <p class="text-gray-700 wrap-break-word mb-2">
+            Are you sure you want to delete "<strong>{{ fileToDelete }}</strong>"?
+          </p>
+          <div class="bg-red-50 p-3 rounded border border-red-100">
+            <p class="text-sm text-red-800 font-medium">This action is permanent.</p>
+            <p class="text-sm text-red-700 mt-1 mb-2">
+              To confirm, please type <span class="font-mono font-bold">"I want to delete it"</span> below:
+            </p>
+            <input 
+              v-model="deleteFileConfirmInput" 
+              type="text"
+              placeholder="Type the confirmation phrase"
+              @keyup.enter="canDeleteFile && fileToDelete && deleteFile(fileToDelete)"
+              class="w-full bg-white border border-gray-300 text-sm p-2 rounded focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end gap-2 p-4 sm:p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+          <button 
+            @click="showDeleteFileConfirm = false" 
+            class="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            @click="fileToDelete && deleteFile(fileToDelete)" 
+            :disabled="!canDeleteFile"
+            class="text-sm font-bold bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete Permanently
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -403,6 +461,12 @@ const pendingHighlight = ref('');
 const highlightTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const rowRefs = ref<Record<string, HTMLElement | null>>({});
 const isHighlighting = ref(false);
+
+const showDeleteFileConfirm = ref(false);
+const fileToDelete = ref<string | null>(null);
+const deleteFileConfirmInput = ref('');
+const REQUIRED_PHRASE_FILE = 'i want to delete it';
+const canDeleteFile = computed(() => deleteFileConfirmInput.value.toLowerCase() === REQUIRED_PHRASE_FILE);
 
 const searchQuery = ref('');
 const selectedTags = ref<(string | number)[]>([]);
@@ -576,13 +640,22 @@ async function updateFile(fileName: string, file: File) {
   }
 }
 
+function openDeleteFileConfirm(fileName: string) {
+  fileToDelete.value = fileName;
+  showDeleteFileConfirm.value = true;
+}
+
 async function deleteFile(fileName: string) {
-  if (!confirm(`Confirm Deletion: ${fileName}`)) return;
+  if (!fileToDelete.value) return;
   try {
     await DocumentService.deleteFile(props.document.uuid, fileName);
+    showDeleteFileConfirm.value = false;
+    fileToDelete.value = null;
     emit('refresh');
+    statusMessage.value = { type: 'success', text: `${fileName} deleted successfully` };
   } catch (err: any) {
     statusMessage.value = { type: 'error', text: 'DELETE_FAILED' };
+    showDeleteFileConfirm.value = false;
   }
 }
 
@@ -700,6 +773,10 @@ watch(filteredFiles, () => {
     highlightAndScroll(target);
     pendingHighlight.value = '';
   }
+});
+
+watch(showDeleteFileConfirm, (isOpen) => {
+  if (!isOpen) deleteFileConfirmInput.value = '';
 });
 
 function formatSize(bytes?: number) {

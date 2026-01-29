@@ -149,10 +149,29 @@
 
     <!-- Delete Field Confirmation -->
     <UiModal v-model:open="showDeleteFieldConfirm" title="Delete Field">
-      <p class="text-gray-700">Are you sure you want to delete "<strong>{{ formatLabel(fieldToDelete) }}</strong>"?</p>
+      <p class="text-gray-700 wrap-break-word mb-2">
+        Are you sure you want to delete "<strong>{{ formatLabel(fieldToDelete) }}</strong>"?
+      </p>
+      <div class="bg-red-50 p-3 rounded border border-red-100">
+        <p class="text-sm text-red-800 font-medium">This action is permanent.</p>
+        <p class="text-sm text-red-700 mt-1 mb-2">
+          To confirm, please type <span class="font-mono font-bold">"I want to delete it"</span> below:
+        </p>
+        <UiInput 
+          v-model="deleteFieldConfirmInput" 
+          placeholder="Type the confirmation phrase"
+          @keyup.enter="canDeleteField && confirmDeleteField()"
+        />
+      </div>
       <template #footer>
-        <UiButton @click="showDeleteFieldConfirm = false">Cancel</UiButton>
-        <UiButton @click="confirmDeleteField" variant="danger">Delete</UiButton>
+        <UiButton @click="showDeleteFieldConfirm = false" variant="secondary">Cancel</UiButton>
+        <UiButton 
+          @click="confirmDeleteField" 
+          variant="danger" 
+          :disabled="!canDeleteField"
+        >
+          Delete Permanently
+        </UiButton>
       </template>
     </UiModal>
 
@@ -199,6 +218,9 @@ const dateError = ref('');
 const showAddFieldModal = ref(false);
 const showDeleteFieldConfirm = ref(false);
 const fieldToDelete = ref('');
+const deleteFieldConfirmInput = ref('');
+const REQUIRED_PHRASE_FIELD = 'i want to delete it';
+const canDeleteField = computed(() => deleteFieldConfirmInput.value.toLowerCase() === REQUIRED_PHRASE_FIELD);
 const showDeleteArrayItemConfirm = ref(false);
 const arrayItemToDelete = ref<{ key: string; index: number } | null>(null);
 const newField = ref({ name: '', isArray: false, initialValue: '' });
@@ -236,6 +258,11 @@ watch(() => props.isEditing, (isEditing) => {
       fields: JSON.parse(JSON.stringify(props.document.fields || {}))
     };
   }
+});
+
+// Clear delete confirmation input when modal closes
+watch(showDeleteFieldConfirm, (isOpen) => {
+  if (!isOpen) deleteFieldConfirmInput.value = '';
 });
 
 const sortedFields = computed(() => getSortedFields(editForm.value.fields));
