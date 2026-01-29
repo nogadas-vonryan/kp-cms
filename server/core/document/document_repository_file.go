@@ -79,8 +79,11 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	codes := r.getNextCode()
-	nextCode := r.namingStrategy.CalculateNextCode(codes)
+	nextCode := doc.Code
+	if doc.Code == "" {
+		codes := r.getCodes()
+		nextCode = r.namingStrategy.CalculateNextCode(codes)
+	}
 	doc.FolderName = r.namingStrategy.GenerateDirName(nextCode, doc.Title)
 	doc.Code = nextCode
 

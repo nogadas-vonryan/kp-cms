@@ -174,6 +174,11 @@
           <UiInput v-model="form.title" required />
         </div>
 
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
+          <UiInput v-model="form.code" placeholder="Document code (optional)" />
+        </div>
+
         <div class="pt-4 border-t border-gray-200">
           <h3 class="font-semibold text-gray-900 mb-3">Document Details</h3>
           
@@ -500,6 +505,7 @@ async function handleCreate() {
   try {
     await DocumentService.create({
       title: form.value.title,
+      code: form.value.code,
       fields: form.value.fields
     });
     showCreateModal.value = false;

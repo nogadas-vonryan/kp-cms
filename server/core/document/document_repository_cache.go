@@ -233,7 +233,7 @@ func (r *FileDocumentRepository) clearCache() {
 	r.cacheByCode = make(map[string]*Document)
 }
 
-func (r *FileDocumentRepository) getNextCode() []string {
+func (r *FileDocumentRepository) getCodes() []string {
 	codes := make([]string, 0, len(r.cacheByCode))
 	for code := range r.cacheByCode {
 		codes = append(codes, code)
