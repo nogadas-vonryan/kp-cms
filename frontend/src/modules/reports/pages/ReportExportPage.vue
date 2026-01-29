@@ -93,7 +93,7 @@
         <template v-if="previewDocs.length > 0">
           <!-- Mobile Table (Code & Title only) -->
           <div class="hidden md:block">
-            <table class="text-sm min-w-max">
+            <table class="text-sm w-full">
               <thead class="border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th v-for="col in tableColumns" :key="col.key" class="text-left px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
@@ -118,7 +118,7 @@
 
           <!-- Desktop Table (All columns) -->
           <div class="md:hidden">
-            <table class="text-sm min-w-max">
+            <table class="text-sm w-full">
               <thead class="border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th v-for="col in mobileColumns" :key="col.key" class="text-left px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
