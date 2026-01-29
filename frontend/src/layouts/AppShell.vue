@@ -70,7 +70,7 @@ async function logout() {
     </nav>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
       <RouterView />
     </main>
   </div>
