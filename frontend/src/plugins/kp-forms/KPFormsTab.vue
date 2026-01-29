@@ -1,54 +1,114 @@
 <template>
 	<div class="space-y-4">
-		<div class="flex items-center justify-between gap-3">
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
 			<div>
-				<h2 class="text-xl font-semibold text-gray-900">Katarungang Pambarangay Forms</h2>
-				<p class="text-sm text-gray-600">Select a template, fill the fields, and generate a PDF.</p>
+				<h2 class="text-lg sm:text-xl font-semibold text-gray-900">Katarungang Pambarangay Forms</h2>
+				<p class="text-xs sm:text-sm text-gray-600">Select a template, fill the fields, and generate a PDF.</p>
 			</div>
-			<UiButton variant="ghost" @click="resetForm" :disabled="!selectedTemplate">Reset</UiButton>
+			<button 
+				@click="resetForm" 
+				:disabled="!selectedTemplate"
+				class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+			>
+				<RotateCcw :size="14" />
+				<span>Reset</span>
+			</button>
+		</div>
+
+		<!-- Mobile: Toggle between template list and form -->
+		<div class="lg:hidden">
+			<div class="flex gap-0 border border-gray-300 rounded bg-white">
+				<button
+					@click="mobileView = 'templates'"
+					:class="[
+						'flex-1 px-3 py-2 text-xs font-bold transition-colors flex items-center justify-center gap-1',
+						mobileView === 'templates'
+							? 'bg-gray-900 text-white'
+							: 'text-gray-600 hover:bg-gray-100'
+					]"
+				>
+					<FileText :size="14" />
+					<span>Templates</span>
+				</button>
+				<button
+					@click="mobileView = 'form'"
+					:class="[
+						'flex-1 px-3 py-2 text-xs font-bold transition-colors flex items-center justify-center gap-1 border-l border-gray-300',
+						mobileView === 'form'
+							? 'bg-gray-900 text-white'
+							: 'text-gray-600 hover:bg-gray-100'
+					]"
+				>
+					<Edit :size="14" />
+					<span>Form</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="grid gap-4 lg:grid-cols-3">
 			<!-- Template Picker -->
-			<div class="space-y-3">
+			<div class="space-y-3" :class="mobileView === 'templates' ? 'block' : 'hidden lg:block'">
 				<div class="flex gap-2">
-					<UiInput v-model="search" placeholder="Search templates" class="flex-1" />
-					<UiButton variant="ghost" @click="search = ''" :disabled="!search">Clear</UiButton>
+					<div class="relative flex-1">
+						<Search class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" :size="16" />
+						<input 
+							v-model="search" 
+							placeholder="Search templates" 
+							class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+						/>
+					</div>
+					<button 
+						@click="search = ''" 
+						:disabled="!search"
+						class="px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+					>
+						<X :size="14" />
+					</button>
 				</div>
 
-			<div class="rounded-lg overflow-hidden bg-white shadow-sm max-h-140 overflow-y-auto">
+			<div class="rounded-lg overflow-hidden bg-white shadow-sm max-h-[60vh] lg:max-h-[70vh] overflow-y-auto border border-gray-200">
 					<button
 						v-for="template in filteredTemplates"
 						:key="template.id"
 						type="button"
-						class="w-full text-left px-4 py-3 hover:bg-gray-50 transition flex flex-col gap-1"
-						:class="template.id === selectedTemplateId ? 'bg-blue-50' : ''"
-						@click="selectTemplate(template.id)"
+						class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gray-50 transition flex flex-col gap-1 border-b border-gray-100 last:border-b-0"
+						:class="template.id === selectedTemplateId ? 'bg-blue-50 border-blue-200' : ''"
+						@click="selectTemplate(template.id); mobileView = 'form'"
 					>
 						<div class="flex items-center justify-between gap-2">
-							<span class="font-medium text-gray-900">{{ template.name }}</span>
-							<span class="text-xs text-gray-500">{{ template.fields.length }} fields</span>
+							<span class="text-sm font-medium text-gray-900">{{ template.name }}</span>
+							<span class="text-[10px] sm:text-xs text-gray-500 shrink-0">{{ template.fields.length }} fields</span>
 						</div>
-						<p class="text-sm text-gray-600 line-clamp-2">{{ template.description }}</p>
+						<p class="text-xs sm:text-sm text-gray-600 line-clamp-2">{{ template.description }}</p>
 					</button>
 				</div>
 			</div>
 
 			<!-- Form Renderer -->
-			<div class="lg:col-span-2">
-				<div v-if="!selectedTemplate" class="p-6 rounded-lg bg-white shadow-sm text-gray-600">
-					No templates available.
+			<div class="lg:col-span-2" :class="mobileView === 'form' ? 'block' : 'hidden lg:block'">
+				<div v-if="!selectedTemplate" class="p-4 sm:p-6 rounded-lg bg-white shadow-sm border border-gray-200 text-center">
+					<FileQuestion class="mx-auto mb-2 text-gray-400" :size="32" />
+					<p class="text-sm text-gray-600">No templates available.</p>
 				</div>
 
-				<div v-else class="p-6 rounded-lg bg-white shadow-sm space-y-4">
-					<div>
-						<h3 class="text-lg font-semibold text-gray-900">{{ selectedTemplate.name }}</h3>
-						<p class="text-sm text-gray-600">{{ selectedTemplate.description }}</p>
+				<div v-else class="p-4 sm:p-6 rounded-lg bg-white shadow-sm border border-gray-200 space-y-4">
+					<div class="flex items-start justify-between gap-2">
+						<div class="flex-1">
+							<h3 class="text-base sm:text-lg font-semibold text-gray-900">{{ selectedTemplate.name }}</h3>
+							<p class="text-xs sm:text-sm text-gray-600">{{ selectedTemplate.description }}</p>
+						</div>
+						<button
+							@click="mobileView = 'templates'"
+							class="lg:hidden p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+							title="Back to templates"
+						>
+							<ChevronLeft :size="20" />
+						</button>
 					</div>
 
-					<form class="space-y-4" @submit.prevent="onGenerate">
+					<form class="space-y-3 sm:space-y-4" @submit.prevent="onGenerate">
 						<div v-for="field in selectedTemplate.fields" :key="field.key" class="space-y-1">
-							<label class="text-sm font-medium text-gray-800 flex items-center gap-1">
+							<label class="text-xs sm:text-sm font-medium text-gray-800 flex items-center gap-1">
 								<span>{{ field.label }}</span>
 								<span v-if="field.required" class="text-red-500">*</span>
 							</label>
@@ -78,52 +138,67 @@
 
 							<!-- Array field for dynamic inputs -->
 							<div v-else-if="field.type === 'array'" class="space-y-2">
-								<div v-for="(_, index) in (formData[field.key] as string[])" :key="index" class="flex gap-2">
-									<UiInput
+								<div v-for="(_, index) in (formData[field.key] as string[])" :key="index" class="flex gap-1.5">
+									<input
 										v-model="(formData[field.key] as string[])[index]"
 										:placeholder="field.placeholder"
 										:required="field.required && index === 0"
-										class="flex-1"
+										class="flex-1 text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none"
 									/>
-									<UiButton
+									<button
 										type="button"
-										variant="ghost"
 										@click="removeArrayItem(field.key, index)"
-										class="px-2 py-1 text-red-600 hover:bg-red-50"
+										class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
+										title="Remove"
 									>
-										Remove
-									</UiButton>
+										<Trash2 :size="16" />
+									</button>
 								</div>
-								<UiButton
+								<button
 									type="button"
-									variant="ghost"
 									@click="addArrayItem(field.key)"
-									class="text-blue-600 hover:bg-blue-50"
+									class="w-full px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center justify-center gap-1"
 								>
-									+ Add
-								</UiButton>
+									<Plus :size="14" />
+									<span>Add {{ field.label }}</span>
+								</button>
 							</div>
 
 							<input v-else v-model="formData[field.key]" class="hidden" />
 
 							<p v-if="field.helpText" class="text-xs text-gray-500">{{ field.helpText }}</p>
-							<p v-if="errors[field.key]" class="text-xs text-red-600">{{ errors[field.key] }}</p>
+							<p v-if="errors[field.key]" class="text-xs text-red-600 flex items-center gap-1">
+								<AlertCircle :size="12" />
+								<span>{{ errors[field.key] }}</span>
+							</p>
 						</div>
 
-						<div class="flex items-center gap-3">
-							<UiButton type="submit" variant="primary" :loading="isGenerating" :disabled="!selectedTemplate">
-								Generate PDF
-							</UiButton>
-							<UiButton
-								type="button"
-								variant="primary"
-								:loading="isUploading"
-								:disabled="!selectedTemplate || !(props.uuid || props.documentId || props.context?.document?.uuid)"
-								@click="onUpload"
+						<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-gray-200">
+							<button
+								type="submit"
+								:disabled="isGenerating || !selectedTemplate"
+								class="flex-1 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 							>
-								Upload PDF
-							</UiButton>
-							<UiButton type="button" variant="ghost" @click="resetForm">Reset</UiButton>
+								<Download :size="16" :class="isGenerating ? 'animate-pulse' : ''" />
+								<span>{{ isGenerating ? 'Generating...' : 'Generate PDF' }}</span>
+							</button>
+							<button
+								type="button"
+								@click="onUpload"
+								:disabled="isUploading || !selectedTemplate || !(props.uuid || props.documentId || props.context?.document?.uuid)"
+								class="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							>
+								<Upload :size="16" :class="isUploading ? 'animate-pulse' : ''" />
+								<span>{{ isUploading ? 'Uploading...' : 'Upload PDF' }}</span>
+							</button>
+							<button
+								type="button"
+								@click="resetForm"
+								class="px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded transition-colors flex items-center justify-center gap-2"
+							>
+								<RotateCcw :size="16" />
+								<span class="hidden sm:inline">Reset</span>
+							</button>
 						</div>
 					</form>
 
@@ -138,8 +213,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { Download, Upload, Edit, Trash2, X, Plus, RotateCcw, Search, FileText, FileQuestion, AlertCircle, ChevronLeft } from 'lucide-vue-next';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
-import UiButton from '@/core/ui/components/UiButton.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
 import UiSelect from '@/core/ui/components/UiSelect.vue';
 import UiTextarea from '@/core/ui/components/UiTextarea.vue';
@@ -159,6 +234,7 @@ const errors = reactive<Record<string, string>>({});
 const isGenerating = ref(false);
 const isUploading = ref(false);
 const statusMessage = ref<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+const mobileView = ref<'templates' | 'form'>('templates');
 
 const filteredTemplates = computed(() => {
 	const term = search.value.toLowerCase().trim();
