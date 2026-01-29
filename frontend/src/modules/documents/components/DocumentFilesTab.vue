@@ -111,8 +111,8 @@
                 <span class="text-[10px] sm:text-[11px] font-mono text-gray-400 shrink-0">{{ formatSize(file.size) }}</span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-600">
-                <div v-if="file.description" class="break-words"><span class="text-gray-500">Desc:</span> {{ file.description }}</div>
-                <div v-if="file.note" class="break-words"><span class="text-gray-500">Note:</span> {{ file.note }}</div>
+                <div v-if="file.description" class="wrap-break-word"><span class="text-gray-500">Desc:</span> {{ file.description }}</div>
+                <div v-if="file.note" class="wrap-break-word"><span class="text-gray-500">Note:</span> {{ file.note }}</div>
                 <div v-if="file.tags && file.tags.length > 0">
                   <span class="text-gray-500">Tags:</span> {{ formatTags(file.tags) }}
                 </div>
@@ -130,7 +130,7 @@
               
               <template v-if="isAdmin">
                 <button 
-                  @click="startEdit(file)" 
+                  @click="openEditModal(file)"
                   :title="'Edit ' + file.file_name"
                   class="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-800 hover:text-white rounded transition-colors"
                 >
@@ -146,119 +146,6 @@
               </template>
             </div>
           </div>
-
-          <div v-if="editingFileName === file.file_name" class="mt-3 p-3 bg-gray-50 rounded border border-gray-200 space-y-3">
-            <!-- Edit Tabs -->
-            <div class="flex gap-0 border border-gray-300 rounded bg-white">
-              <button
-                @click="editTab = 'metadata'"
-                :class="[
-                  'flex-1 px-2 py-1.5 text-xs font-bold transition-colors',
-                  editTab === 'metadata'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                ]"
-              >
-                Metadata
-              </button>
-              <button
-                @click="editTab = 'update'"
-                :class="[
-                  'flex-1 px-2 py-1.5 text-xs font-bold transition-colors border-l border-gray-300',
-                  editTab === 'update'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                ]"
-              >
-                Update
-              </button>
-              <button
-                @click="editTab = 'rename'"
-                :class="[
-                  'flex-1 px-2 py-1.5 text-xs font-bold transition-colors border-l border-gray-300',
-                  editTab === 'rename'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                ]"
-              >
-                Rename
-              </button>
-            </div>
-
-            <!-- Metadata Tab -->
-            <div v-if="editTab === 'metadata'" class="space-y-3">
-            <div>
-              <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Description</label>
-              <input v-model="editForm.description" class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Note</label>
-              <textarea v-model="editForm.note" class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" rows="2"></textarea>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Tags</label>
-              <div class="space-y-2">
-                <div v-for="(_, index) in editForm.tags" :key="index" class="flex gap-2">
-                  <UiInput v-model="editForm.tags[index]" placeholder="Enter tag" class="flex-1" />
-                  <button 
-                    @click="editForm.tags.splice(index, 1)" 
-                    :title="'Remove tag'"
-                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
-                  >
-                    <X :size="16" />
-                  </button>
-                </div>
-                <button 
-                  @click="editForm.tags.push('')" 
-                  class="w-full px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center justify-center gap-1"
-                >
-                  <Plus :size="16" />
-                  <span>Add Tag</span>
-                </button>
-              </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2 border-t border-gray-200">
-              <button @click="editingFileName = null" class="text-xs font-medium text-gray-500 hover:text-gray-700">Cancel</button>
-              <button @click="saveMetadata(file.file_name)" class="text-xs font-bold bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
-            </div>
-            </div>
-
-            <!-- Update Tab -->
-            <div v-if="editTab === 'update'" class="space-y-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Upload New Version</label>
-                <input type="file" :id="`edit-file-input-list-${editingFileName}`" class="hidden" @change="(e) => {
-                  const file = (e.target as HTMLInputElement).files?.[0];
-                  if (file && editingFileName) updateFile(editingFileName, file);
-                }" />
-                <button 
-                  @click="triggerFileInput(`edit-file-input-list-${editingFileName}`)"
-                  class="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded text-xs font-bold text-gray-600 hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                >
-                  Click to select new file
-                </button>
-              </div>
-              <div class="flex justify-end gap-2 pt-2 border-t border-gray-200">
-                <button @click="editingFileName = null" class="text-xs font-medium text-gray-500 hover:text-gray-700">Cancel</button>
-              </div>
-            </div>
-
-            <!-- Rename Tab -->
-            <div v-if="editTab === 'rename'" class="space-y-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Current Name</label>
-                <div class="w-full text-xs p-2 bg-gray-200 border border-gray-300 rounded text-gray-700 font-mono">{{ file.file_name }}</div>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">New Name</label>
-                <input v-model="editForm.new_name" class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-              </div>
-              <div class="flex justify-end gap-2 pt-2 border-t border-gray-200">
-                <button @click="editingFileName = null" class="text-xs font-medium text-gray-500 hover:text-gray-700">Cancel</button>
-                <button @click="renameFile(file.file_name)" class="text-xs font-bold bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Rename</button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -268,25 +155,25 @@
           v-for="file in filteredFiles" 
           :key="file.file_name"
           :class="[
-            'group relative rounded border transition-colors hover:shadow-md',
+            'group relative rounded border transition-colors hover:shadow-md flex flex-col',
             highlightActive === file.file_name
               ? 'border-yellow-400 bg-yellow-50 shadow-md'
               : 'border-gray-200 bg-white hover:border-gray-300'
           ]"
           :ref="el => setRowRef(file.file_name, el as HTMLElement | null)"
         >
-          <div class="p-2 space-y-1">
+          <div class="p-2 space-y-1 flex-1">
             <div class="flex items-start justify-between gap-1">
               <div class="flex-1 min-w-0">
                 <div class="h-10 sm:h-8 flex items-start">
-                  <span class="text-xs font-medium text-gray-900 break-words line-clamp-2 leading-tight">{{ file.file_name }}</span>
+                  <span class="text-xs font-medium text-gray-900 wrap-break-word line-clamp-2 leading-tight">{{ file.file_name }}</span>
                 </div>
               </div>
               <div class="text-[10px] text-gray-400 shrink-0 font-mono whitespace-nowrap">{{ formatSize(file.size) }}</div>
             </div>
             
             <div class="h-10 sm:h-8 text-xs text-gray-600 overflow-hidden">
-              <div v-if="file.description" class="line-clamp-2 break-words">{{ file.description }}</div>
+              <div v-if="file.description" class="line-clamp-2 wrap-break-word">{{ file.description }}</div>
               <div v-else class="text-gray-400 italic text-xs">No desc</div>
             </div>
 
@@ -309,7 +196,7 @@
             
             <template v-if="isAdmin">
               <button 
-                @click="startEdit(file)"
+                @click="openEditModal(file)"
                 :title="'Edit ' + file.file_name"
                 class="flex-1 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-800 hover:text-white rounded transition-colors"
               >
@@ -324,137 +211,170 @@
               </button>
             </template>
           </div>
-
-          <div v-if="editingFileName === file.file_name" class="absolute inset-0 bg-white rounded border border-blue-400 shadow-lg z-10 p-2 sm:p-3 space-y-2 overflow-y-auto max-h-96">
-            <div class="flex items-center justify-between mb-1">
-              <h3 class="text-xs font-bold text-gray-900 pr-4 break-words line-clamp-1">{{ file.file_name }}</h3>
-              <button 
-                @click="editingFileName = null" 
-                class="shrink-0 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                title="Close"
-              >
-                <X :size="16" />
-              </button>
-            </div>
-            
-            <!-- Grid Tabs -->
-            <div class="flex gap-0 border border-gray-300 rounded bg-white">
-              <button
-                @click="editTab = 'metadata'"
-                :class="[
-                  'flex-1 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs font-bold transition-colors',
-                  editTab === 'metadata'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                ]"
-              >
-                Meta
-              </button>
-              <button
-                @click="editTab = 'update'"
-                :class="[
-                  'flex-1 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs font-bold transition-colors border-l border-gray-300',
-                  editTab === 'update'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                ]"
-              >
-                Update
-              </button>
-              <button
-                @click="editTab = 'rename'"
-                :class="[
-                  'flex-1 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs font-bold transition-colors border-l border-gray-300',
-                  editTab === 'rename'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                ]"
-              >
-                Rename
-              </button>
-            </div>
-
-            <!-- Metadata Tab -->
-            <div v-if="editTab === 'metadata'" class="space-y-2">
-              <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Description</label>
-                <input v-model="editForm.description" class="w-full text-xs p-1 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Note</label>
-                <textarea v-model="editForm.note" class="w-full text-xs p-1 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" rows="2"></textarea>
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Tags</label>
-                <div class="space-y-1">
-                  <div v-for="(_, index) in editForm.tags" :key="index" class="flex gap-1">
-                    <input 
-                      v-model="editForm.tags[index]" 
-                      placeholder="Tag" 
-                      class="flex-1 text-xs p-1 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" 
-                    />
-                    <button 
-                      @click="editForm.tags.splice(index, 1)"
-                      :title="'Remove tag'"
-                      class="p-1 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
-                    >
-                      <X :size="14" />
-                    </button>
-                  </div>
-                </div>
-                <button 
-                  @click="editForm.tags.push('')" 
-                  class="w-full mt-1 text-[10px] font-bold text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Plus :size="12" />
-                  <span>Tag</span>
-                </button>
-              </div>
-              <div class="flex justify-end gap-1 pt-2 border-t border-gray-200">
-                <button @click="editingFileName = null" class="text-[10px] font-medium text-gray-500 hover:text-gray-700">Cancel</button>
-                <button @click="saveMetadata(file.file_name)" class="text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700">Save</button>
-              </div>
-            </div>
-
-            <!-- Rename Tab -->
-            <div v-if="editTab === 'rename'" class="space-y-2">
-              <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Current Name</label>
-                <div class="w-full text-[10px] p-1 bg-gray-200 border border-gray-300 rounded text-gray-700 font-mono truncate">{{ file.file_name }}</div>
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">New Name</label>
-                <input v-model="editForm.new_name" class="w-full text-xs p-1 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-              </div>
-              <div class="flex justify-end gap-1 pt-2 border-t border-gray-200">
-                <button @click="editingFileName = null" class="text-[10px] font-medium text-gray-500 hover:text-gray-700">Cancel</button>
-                <button @click="renameFile(file.file_name)" class="text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700">Rename</button>
-              </div>
-            </div>
-
-            <!-- Update Tab -->
-            <div v-if="editTab === 'update'" class="space-y-2">
-              <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Upload New Version</label>
-                <input type="file" :id="`edit-file-input-grid-${editingFileName}`" class="hidden" @change="(e) => {
-                  const f = (e.target as HTMLInputElement).files?.[0];
-                  if (f && editingFileName) updateFile(editingFileName, f);
-                }" />
-                <button 
-                  @click="triggerFileInput(`edit-file-input-grid-${editingFileName}`)"
-                  class="w-full px-2 py-1 border-2 border-dashed border-gray-300 rounded text-[10px] font-bold text-gray-600 hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                >
-                  Click to select
-                </button>
-              </div>
-              <div class="flex justify-end gap-1 pt-2 border-t border-gray-200">
-                <button @click="editingFileName = null" class="text-[10px] font-medium text-gray-500 hover:text-gray-700">Cancel</button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </UiCard>
+
+    <!-- Edit Modal -->
+    <div 
+      v-if="editingFileName"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      @click.self="closeEditModal"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white">
+          <h2 class="text-sm sm:text-base font-bold text-gray-900 truncate pr-4">{{ editingFileName }}</h2>
+          <button 
+            @click="closeEditModal" 
+            class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors shrink-0"
+            title="Close"
+          >
+            <X :size="20" />
+          </button>
+        </div>
+
+        <!-- Modal Tabs -->
+        <div class="flex gap-0 border-b border-gray-300 bg-gray-50 px-4 sm:px-6">
+          <button
+            @click="editTab = 'metadata'"
+            :class="[
+              'flex-1 px-3 py-3 text-xs sm:text-sm font-bold transition-colors border-b-2',
+              editTab === 'metadata'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            ]"
+          >
+            Metadata
+          </button>
+          <button
+            @click="editTab = 'update'"
+            :class="[
+              'flex-1 px-3 py-3 text-xs sm:text-sm font-bold transition-colors border-b-2',
+              editTab === 'update'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            ]"
+          >
+            Update File
+          </button>
+          <button
+            @click="editTab = 'rename'"
+            :class="[
+              'flex-1 px-3 py-3 text-xs sm:text-sm font-bold transition-colors border-b-2',
+              editTab === 'rename'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            ]"
+          >
+            Rename
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-4 sm:p-6 space-y-4">
+          <!-- Metadata Tab -->
+          <div v-if="editTab === 'metadata'" class="space-y-4">
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-600 uppercase mb-2">Description</label>
+              <input 
+                v-model="editForm.description" 
+                class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" 
+              />
+            </div>
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-600 uppercase mb-2">Note</label>
+              <textarea 
+                v-model="editForm.note" 
+                class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" 
+                rows="3"
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-600 uppercase mb-2">Tags</label>
+              <div class="space-y-2">
+                <div v-for="(_, index) in editForm.tags" :key="index" class="flex gap-2">
+                  <input 
+                    v-model="editForm.tags[index]" 
+                    placeholder="Enter tag" 
+                    class="flex-1 text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"
+                  />
+                  <button 
+                    @click="editForm.tags.splice(index, 1)" 
+                    :title="'Remove tag'"
+                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
+                  >
+                    <X :size="18" />
+                  </button>
+                </div>
+                <button 
+                  @click="editForm.tags.push('')" 
+                  class="w-full px-3 py-2 text-xs sm:text-sm font-bold text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus :size="18" />
+                  <span>Add Tag</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Update Tab -->
+          <div v-if="editTab === 'update'" class="space-y-4">
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-600 uppercase mb-2">Upload New Version</label>
+              <input 
+                type="file" 
+                :id="`edit-file-input-modal-${editingFileName}`" 
+                class="hidden" 
+                @change="(e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file && editingFileName) updateFile(editingFileName, file);
+                }" 
+              />
+              <button 
+                @click="triggerFileInput(`edit-file-input-modal-${editingFileName}`)"
+                class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded text-sm font-bold text-gray-600 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              >
+                Click to select new file
+              </button>
+            </div>
+          </div>
+
+          <!-- Rename Tab -->
+          <div v-if="editTab === 'rename'" class="space-y-4">
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-600 uppercase mb-2">Current Name</label>
+              <div class="w-full text-sm p-2 bg-gray-100 border border-gray-300 rounded text-gray-700 font-mono break-all">
+                {{ editingFileName }}
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-600 uppercase mb-2">New Name</label>
+              <input 
+                v-model="editForm.new_name" 
+                class="w-full text-sm p-2 border bg-white border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" 
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end gap-2 p-4 sm:p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+          <button 
+            @click="closeEditModal" 
+            class="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            @click="handleModalSave" 
+            class="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          >
+            {{ editTab === 'metadata' ? 'Save Metadata' : editTab === 'rename' ? 'Rename' : 'Close' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -464,7 +384,6 @@ import { Download, Edit, Trash2, X, Plus, List, Grid3x3 } from 'lucide-vue-next'
 import { UiCard } from '@/core/ui';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
-import UiInput from '@/core/ui/components/UiInput.vue';
 
 const props = defineProps<{
   document: any;
@@ -573,7 +492,7 @@ async function downloadFile(fileName: string) {
   }
 }
 
-function startEdit(file: any) {
+function openEditModal(file: any) {
   editingFileName.value = file.file_name;
   const tags = Array.isArray(file.tags) ? [...file.tags] : [];
   editTab.value = 'metadata';
@@ -583,6 +502,18 @@ function startEdit(file: any) {
     tags,
     new_name: file.file_name
   };
+}
+
+function closeEditModal() {
+  editingFileName.value = null;
+}
+
+function handleModalSave() {
+  if (editTab.value === 'metadata' && editingFileName.value) {
+    saveMetadata(editingFileName.value);
+  } else if (editTab.value === 'rename' && editingFileName.value) {
+    renameFile(editingFileName.value);
+  }
 }
 
 function toggleTag(tag: string) {
