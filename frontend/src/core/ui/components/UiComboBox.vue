@@ -33,7 +33,7 @@ const props = defineProps({
   placeholder: { type: String, default: '' }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'option-selected'])
 const showDropdown = ref(false)
 const internalValue = ref(props.modelValue)
 
@@ -50,6 +50,7 @@ const filteredOptions = computed(() => {
 const selectOption = (opt: string) => {
   internalValue.value = opt
   showDropdown.value = false
+  emit('option-selected', opt)
 }
 
 const close = () => showDropdown.value = false

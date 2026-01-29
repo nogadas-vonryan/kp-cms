@@ -1,91 +1,147 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4 px-2 sm:px-0">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">Documents</h1>
-      <UiButton v-if="isAdmin" @click="showCreateModal = true">
-        Create Document
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Documents</h1>
+      <UiButton v-if="isAdmin" @click="showCreateModal = true" class="w-full sm:w-auto flex items-center justify-center gap-2">
+        <Plus :size="18" />
+        <span>Create Document</span>
       </UiButton>
     </div>
 
     <!-- Search & Filters -->
     <UiCard>
-      <form @submit.prevent="performSearch()">
-        <div class="space-y-3">
-          <div class="flex gap-2">
-            <UiInput
+      <form @submit.prevent="performSearch()" class="space-y-3">
+        <!-- Search Input with Quick Actions -->
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" :size="16" />
+            <input
               v-model="uuidSearchQuery"
               placeholder="Search by code..."
-              class="flex-1"
+              class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              @keyup.enter="performSearch()"
             />
-            <UiInput
-              v-model="titleSearchQuery"
-              placeholder="Filter by title..."
-              class="flex-1"
-            />
-            <UiInput
-              v-model="filters.folder_name"
-              placeholder="Filter by folder..."
-              class="flex-1"
-            />
-            <UiSelect
-              v-model="filters.sort_by"
-              :options="sortOptions"
-              placeholder="Sort by..."
-              class="flex-1"
-            />
-          <UiButton 
-              v-if="filters.sort_by"
-              type="button" 
-              variant="secondary" 
-              class="px-3"
-              @click="filters.sort_desc = !filters.sort_desc"
-              :title="filters.sort_desc ? 'Sort Descending' : 'Sort Ascending'"
-            >
-              <span class="text-lg leading-none">
-                {{ filters.sort_desc ? '↓' : '↑' }}
-              </span>
-            </UiButton>
-            <UiButton type="submit">Search</UiButton>
-            <UiButton type="button" @click="resetSearch" variant="secondary">Reset</UiButton>
           </div>
+          <UiButton 
+            type="submit" 
+            variant="secondary"
+            class="shrink-0 flex items-center justify-center gap-2"
+          >
+            <Search :size="16" />
+            <span class="hidden sm:inline">Search</span>
+          </UiButton>
+        </div>
+
+        <!-- Quick Sort & Filter Controls -->
+        <div class="flex gap-2 flex-wrap items-center">
+          <select
+            v-model="filters.sort_by"
+            class="flex-1 min-w-35 text-sm p-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          >
+            <option value="">Sort by...</option>
+            <option value="created_at">Created Date</option>
+            <option value="code">Code</option>
+            <option value="title">Title</option>
+          </select>
           
-          <details class="group">
-            <summary class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium list-none flex items-center gap-1 select-none">
-              <span class="group-open:rotate-90 transition-transform">›</span>
-              Advanced Filters
-            </summary>
-            
-            <div class="pt-3 space-y-3 border-t border-gray-100 mt-2">
-              <div class="grid grid-cols-2 gap-3">
-                <UiInput
+          <button
+            v-if="filters.sort_by"
+            type="button"
+            @click="toggleSortDirection"
+            :title="filters.sort_desc ? 'Sort Descending' : 'Sort Ascending'"
+            class="p-2.5 transition-colors flex items-center justify-center rounded-lg text-gray-800 bg-white hover:bg-gray-100 border border-gray-300"
+          >
+            <ArrowDown v-if="filters.sort_desc" :size="16" />
+            <ArrowUp v-else :size="16" />
+          </button>
+
+          <UiButton 
+            type="button" 
+            @click="resetSearch"
+            class="shrink-0 flex items-center justify-center gap-1"
+          >
+            <RotateCcw :size="16" />
+            <span class="hidden sm:inline">Reset</span>
+          </UiButton>
+        </div>
+
+        <!-- Advanced Filters Toggle -->
+        <details class="group">
+          <summary class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium list-none flex items-center gap-2 select-none p-2 hover:bg-blue-50 rounded transition-colors">
+            <ChevronRight :size="16" class="group-open:rotate-90 transition-transform" />
+            <span>More Filters</span>
+          </summary>
+          
+          <div class="pt-4 space-y-3 border-t border-gray-100 mt-2">
+            <!-- Title Search -->
+            <div>
+              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5 block">Title</label>
+              <input
+                v-model="titleSearchQuery"
+                placeholder="Search by title..."
+                class="w-full text-sm p-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
+            </div>
+
+            <!-- Folder Filter -->
+            <div>
+              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5 block">Folder</label>
+              <input
+                v-model="filters.folder_name"
+                placeholder="Filter by folder..."
+                class="w-full text-sm p-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
+            </div>
+
+            <!-- Date Range -->
+            <div>
+              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5 block">Date Range</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
                   v-model="filters.date_from"
                   type="date"
-                  placeholder="From date"
+                  @change="performSearch()"
+                  class="text-sm p-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
-                <UiInput
+                <input
                   v-model="filters.date_to"
                   type="date"
-                  placeholder="To date"
-                />
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <UiComboBox 
-                  v-model="filters.field_key" 
-                  placeholder="Select field..." 
-                  :options="fieldOptions" 
-                />
-
-                <UiComboBox 
-                  v-model="filters.field_value" 
-                  :placeholder="filters.field_key ? `Select ${filters.field_key}...` : 'Select value...'" 
-                  :options="dynamicValueOptions"
-                  :disabled="!filters.field_key" 
+                  @change="performSearch()"
+                  class="text-sm p-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
             </div>
-          </details>
-        </div>
+
+            <!-- Field Filters -->
+            <div>
+              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5 block">Document Field</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select
+                  v-model="filters.field_key"
+                  class="text-sm p-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                >
+                  <option value="">Select field...</option>
+                  <option v-for="opt in fieldOptions" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+
+                <UiComboBox
+                  v-model="filters.field_value"
+                  :options="dynamicValueOptions"
+                  :placeholder="filters.field_key ? `Enter ${filters.field_key}...` : 'Select value...'"
+                  @option-selected="handleFieldValueSelected"
+                />
+              </div>
+            </div>
+
+            <!-- Active Filters Summary -->
+            <div v-if="hasActiveFilters" class="p-2 bg-blue-50 rounded-lg">
+              <p class="text-xs text-blue-700 font-medium">
+                {{ getActiveFiltersCount }} filter{{ getActiveFiltersCount !== 1 ? 's' : '' }} applied
+              </p>
+            </div>
+          </div>
+        </details>
       </form>
     </UiCard>
 
@@ -100,7 +156,7 @@
         </div>
       </div>
       
-      <div class="w-full">
+      <div class="w-full overflow-x-auto">
         <UiSystemNotice 
           v-if="error" 
           type="error" 
@@ -115,35 +171,72 @@
           </template>
         </UiSystemNotice>
 
-        <template v-if="documents.length > 0">
-          <div class="table-wrapper" @click="handleRowClick">
-            <UiTable :columns="columns" :rows="documents">
-              <template #cell:code="{ value }">
-                <span class="font-mono text-sm">{{ value }}</span>
-              </template>
-              <template #cell:title="{ value }">
-                <span class="text-gray-600 truncate block max-w-xl">{{ value }}</span>
-              </template>
-              <template #cell:status="{ row }">
-                <span 
-                  :class="getStatusBadgeClass(((row as unknown) as Document).fields?.status || 'none')"
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                >
-                  {{ formatStatusLabel(((row as unknown) as Document).fields?.status || 'none') }}
-                </span>
-              </template>
-              <template #cell:folder_name="{ value }">
-                <span class="text-sm text-gray-600 truncate block max-w-50">{{ value }}</span>
-              </template>
-              <template #cell:files="{ row }">
-                <span class="text-sm text-gray-600">{{ ((row as unknown) as Document).files.length }} file(s)</span>
-              </template>
-              <template #cell:created_at="{ value }">
-                <span class="text-sm text-gray-600">{{ formatDate(value as string) }}</span>
-              </template>
-            </UiTable>
+        <!-- Mobile Card View -->
+        <div v-if="documents.length > 0 && isMobileView" class="divide-y divide-gray-200 border-t border-gray-200">
+          <div 
+            v-for="(doc) in documents" 
+            :key="doc.uuid"
+            @click="router.push(`/documents/${doc.uuid}`)"
+            class="p-4 hover:bg-gray-50 transition-colors cursor-pointer space-y-2"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <span class="font-mono text-xs text-gray-500">{{ doc.code }}</span>
+                <p class="font-medium text-gray-900 wrap-break-word line-clamp-2">{{ doc.title }}</p>
+              </div>
+              <span 
+                :class="getStatusBadgeClass(doc.fields?.status || 'none')"
+                class="text-[10px] font-medium px-2 py-1 rounded-full shrink-0 whitespace-nowrap"
+              >
+                {{ formatStatusLabel(doc.fields?.status || 'none') }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+              <div>
+                <span class="text-gray-500">Folder:</span> {{ doc.folder_name }}
+              </div>
+              <div>
+                <span class="text-gray-500">Files:</span> {{ doc.files.length }}
+              </div>
+              <div class="col-span-2">
+                <span class="text-gray-500">Created:</span> {{ formatDate(doc.created_at) }}
+              </div>
+            </div>
           </div>
-        </template>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div v-else-if="documents.length > 0" class="table-wrapper" @click="handleRowClick">
+          <table class="w-full text-sm">
+            <thead class="border-b border-gray-200 bg-gray-50">
+              <tr>
+                <th class="text-left px-4 py-3 font-semibold text-gray-900">Code</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-900">Title</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-900">Status</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-900">Folder</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-900">Files</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-900">Created</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="doc in documents" :key="doc.uuid" class="hover:bg-gray-50 transition-colors cursor-pointer">
+                <td class="px-4 py-3"><span class="font-mono text-xs text-gray-600">{{ doc.code }}</span></td>
+                <td class="px-4 py-3"><span class="text-gray-600 truncate block max-w-xs">{{ doc.title }}</span></td>
+                <td class="px-4 py-3">
+                  <span 
+                    :class="getStatusBadgeClass(doc.fields?.status || 'none')"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  >
+                    {{ formatStatusLabel(doc.fields?.status || 'none') }}
+                  </span>
+                </td>
+                <td class="px-4 py-3"><span class="text-gray-600 truncate block max-w-xs">{{ doc.folder_name }}</span></td>
+                <td class="px-4 py-3"><span class="text-gray-600">{{ doc.files.length }}</span></td>
+                <td class="px-4 py-3"><span class="text-gray-600">{{ formatDate(doc.created_at) }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <div v-else-if="!loading" class="p-8 text-center text-gray-600">
           No documents found
@@ -152,35 +245,45 @@
     </UiCard>
 
     <!-- Pagination -->
-    <div v-if="documents.length > 0" class="flex justify-between items-center">
-      <span class="text-sm text-gray-600">
+    <div v-if="documents.length > 0" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <span class="text-xs sm:text-sm text-gray-600">
         Showing {{ offset + 1 }}-{{ Math.min(offset + limit, offset + documents.length) }}
       </span>
-      <div class="flex gap-2">
-        <UiButton @click="prevPage" :disabled="offset === 0">
-          Previous
+      <div class="flex gap-2 w-full sm:w-auto">
+        <UiButton 
+          @click="prevPage" 
+          :disabled="offset === 0"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-1"
+        >
+          <ChevronLeft :size="16" />
+          <span class="hidden sm:inline">Previous</span>
         </UiButton>
-        <UiButton @click="nextPage" :disabled="documents.length < limit">
-          Next
+        <UiButton 
+          @click="nextPage" 
+          :disabled="documents.length < limit"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-1"
+        >
+          <span class="hidden sm:inline">Next</span>
+          <ChevronRight :size="16" />
         </UiButton>
       </div>
     </div>
 
     <!-- Create Modal -->
     <UiModal v-model:open="showCreateModal" title="Create Document">
-      <form @submit.prevent="handleCreate" class="space-y-4">
+      <form @submit.prevent="handleCreate" class="space-y-4 max-h-[70vh] overflow-y-auto">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
-          <UiInput v-model="form.title" required />
+          <input v-model="form.title" required class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
-          <UiInput v-model="form.code" placeholder="Document code (optional)" />
+          <input v-model="form.code" placeholder="Document code (optional)" class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
         </div>
 
         <div class="pt-4 border-t border-gray-200">
-          <h3 class="font-semibold text-gray-900 mb-3">Document Details</h3>
+          <h3 class="font-semibold text-gray-900 mb-3 text-sm">Document Details</h3>
           
           <div class="space-y-4">
             
@@ -188,21 +291,20 @@
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900 text-sm">Nature</span>
               </div>
-              <UiSelect 
-                v-model="form.fields.nature" 
-                :options="[
-                  { label: 'Civil', value: 'civil' }, 
-                  { label: 'Criminal', value: 'criminal' } 
-                ]"
-                placeholder="Select nature" 
-              />
+              <select 
+                v-model="form.fields.nature"
+                class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+              >
+                <option value="civil">Civil</option>
+                <option value="criminal">Criminal</option>
+              </select>
             </div>
 
             <div class="rounded p-3 border border-gray-200">
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900 text-sm">Complaint</span>
               </div>
-              <UiTextarea v-model="form.fields.complaint" :rows="3" />
+              <textarea v-model="form.fields.complaint" rows="3" class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
             </div>
 
             <div class="rounded p-3 border border-gray-200">
@@ -211,22 +313,25 @@
               </div>
               <div class="space-y-2">
                 <div v-for="(_, index) in form.fields.complainants" :key="index" class="flex gap-2 items-start">
-                  <UiInput v-model="form.fields.complainants![index]" class="flex-1" placeholder="Name" />
+                  <input v-model="form.fields.complainants![index]" class="flex-1 text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Name" />
                   <button 
                     type="button" 
-                    @click="form.fields.complainants?.splice(index, 1)" 
-                    class="text-red-600 hover:text-red-800 text-sm px-2 mt-2"
+                    @click="form.fields.complainants?.splice(index, 1)"
+                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
+                    title="Remove"
                   >
-                    Remove
+                    <Trash2 :size="16" />
                   </button>
                 </div>
-                <button
+                <UiButton
                   type="button"
                   @click="form.fields.complainants?.push('')"
-                  class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2"
+                  block
+                  class="flex items-center justify-center gap-1 text-xs"
                 >
-                  + Add Item
-                </button>
+                  <Plus :size="14" />
+                  <span>Add Complainant</span>
+                </UiButton>
               </div>
             </div>
 
@@ -236,22 +341,25 @@
               </div>
               <div class="space-y-2">
                 <div v-for="(_, index) in form.fields.respondents" :key="index" class="flex gap-2 items-start">
-                  <UiInput v-model="form.fields.respondents![index]" class="flex-1" placeholder="Name" />
+                  <input v-model="form.fields.respondents![index]" class="flex-1 text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Name" />
                   <button 
                     type="button" 
-                    @click="form.fields.respondents?.splice(index, 1)" 
-                    class="text-red-600 hover:text-red-800 text-sm px-2 mt-2"
+                    @click="form.fields.respondents?.splice(index, 1)"
+                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
+                    title="Remove"
                   >
-                    Remove
+                    <Trash2 :size="16" />
                   </button>
                 </div>
-                <button
+                <UiButton
                   type="button"
                   @click="form.fields.respondents?.push('')"
-                  class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2"
+                  block
+                  class="flex items-center justify-center gap-1 text-xs"
                 >
-                  + Add Item
-                </button>
+                  <Plus :size="14" />
+                  <span>Add Respondent</span>
+                </UiButton>
               </div>
             </div>
 
@@ -263,8 +371,11 @@
         <div class="flex w-full">
           <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
         </div>
-        <UiButton @click="showCreateModal = false" variant="secondary">Cancel</UiButton>
-        <UiButton @click="handleCreate" :loading="submitting">Create</UiButton>
+        <UiButton @click="showCreateModal = false">Cancel</UiButton>
+        <UiButton @click="handleCreate" :disabled="submitting" variant="primary" class="flex items-center gap-2">
+          <Check :size="16" />
+          <span>{{ submitting ? 'Creating...' : 'Create' }}</span>
+        </UiButton>
       </template>
     </UiModal>
 
@@ -272,26 +383,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { Plus, Search, RotateCcw, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Trash2, Check } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import { extractErrorMessage } from '@/core/api';
 import type { Document, CreateDocumentRequest } from '@/types';
 import UiCard from '@/core/ui/components/UiCard.vue';
-import UiInput from '@/core/ui/components/UiInput.vue';
-import UiButton from '@/core/ui/components/UiButton.vue';
-import UiTable from '@/core/ui/components/UiTable.vue';
-import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
-import UiSelect from '@/core/ui/components/UiSelect.vue';
-import UiComboBox from '@/core/ui/components/UiComboBox.vue';
-import UiTextarea from '@/core/ui/components/UiTextarea.vue';
+import UiModal from '@/core/ui/components/UiModal.vue';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
+import UiButton from '@/core/ui/components/UiButton.vue';
+import UiComboBox from '@/core/ui/components/UiComboBox.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
+
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
+const isMobileView = computed(() => windowWidth.value < 1024);
+
+onMounted(() => {
+  const handleResize = () => {
+    windowWidth.value = window.innerWidth;
+  };
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+});
 
 const documents = ref<Document[]>([]);
 const loading = ref(false);
@@ -311,7 +430,6 @@ const filters = ref({
   field_value: ''
 });
 
-// ComboBox Search relationship
 const fieldOptions = ['Nature', 'Status', 'Complainants', 'Respondents'];
 
 // Display values (user-facing)
@@ -348,11 +466,32 @@ watch(() => filters.value.field_key, () => {
   filters.value.field_value = '';
 });
 
-const sortOptions = [
-  { value: 'created_at', label: 'Created Date' },
-  { value: 'code', label: 'Code' },
-  { value: 'title', label: 'Title' }
-];
+// Compute active filters for display
+const hasActiveFilters = computed(() => {
+  return (
+    uuidSearchQuery.value !== '' ||
+    titleSearchQuery.value !== '' ||
+    filters.value.folder_name !== '' ||
+    filters.value.date_from !== '' ||
+    filters.value.date_to !== '' ||
+    filters.value.field_key !== '' ||
+    filters.value.field_value !== '' ||
+    filters.value.sort_by !== ''
+  );
+});
+
+const getActiveFiltersCount = computed(() => {
+  let count = 0;
+  if (uuidSearchQuery.value !== '') count++;
+  if (titleSearchQuery.value !== '') count++;
+  if (filters.value.folder_name !== '') count++;
+  if (filters.value.date_from !== '') count++;
+  if (filters.value.date_to !== '') count++;
+  if (filters.value.field_key !== '') count++;
+  if (filters.value.field_value !== '') count++;
+  if (filters.value.sort_by !== '') count++;
+  return count;
+});
 
 const showCreateModal = ref(false);
 const submitting = ref(false);
@@ -370,15 +509,6 @@ const form = ref<CreateDocumentRequest>({
     complaint: '',
   }
 });
-
-const columns = [
-  { key: 'code', label: 'Code' },
-  { key: 'title', label: 'Title' },
-  { key: 'status', label: 'Status'},
-  { key: 'folder_name', label: 'Folder Name' },
-  { key: 'files', label: 'Files' },
-  { key: 'created_at', label: 'Created' }
-];
 
 const parseSystemError = (err: any): string => {
   const extracted = extractErrorMessage(err);
@@ -541,6 +671,16 @@ function isSearchActive(): boolean {
     filters.value.field_key !== '' ||
     filters.value.field_value !== ''
   );
+}
+
+function toggleSortDirection() {
+  filters.value.sort_desc = !filters.value.sort_desc;
+  performSearch();
+}
+
+function handleFieldValueSelected() {
+  // Use nextTick to ensure the v-model is synced before performing search
+  nextTick(() => performSearch());
 }
 
 function handleRowClick(event: MouseEvent) {
