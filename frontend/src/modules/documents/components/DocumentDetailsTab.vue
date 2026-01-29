@@ -95,11 +95,11 @@
               <div v-else>
                  <div v-if="!Array.isArray(value)" class="space-y-2">
                     <UiSelect v-if="getFieldOptions(key)" :model-value="value" @update:model-value="(v: any) => editForm.fields[key] = v" :options="getFieldOptions(key)!" />
-                    <UiTextarea v-else :model-value="value" @update:model-value="(v: any) => editForm.fields[key] = v" :rows="getTextareaRows(value)" />
+                    <UiTextarea v-else :model-value="value" @update:model-value="(v: any) => editForm.fields[key] = v" :rows="getTextareaRows(value, key)" />
                  </div>
                  <div v-else class="space-y-2">
                     <div v-for="(item, index) in value" :key="index" class="flex gap-2 items-start">
-                      <UiTextarea :model-value="item" @update:model-value="(v) => (editForm.fields[key] as any[])[index] = v" :rows="getTextareaRows(item)" class="flex-1" />
+                      <UiTextarea :model-value="item" @update:model-value="(v) => (editForm.fields[key] as any[])[index] = v" :rows="getTextareaRows(item, key)" class="flex-1" />
                       <button @click="removeArrayItem(key, index)" class="text-red-600 hover:text-red-800 text-sm px-2 mt-2">Remove</button>
                     </div>
                     <button @click="addArrayItem(key)" class="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded mt-2">+ Add Item</button>

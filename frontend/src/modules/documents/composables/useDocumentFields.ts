@@ -46,7 +46,10 @@ export function useDocumentFields() {
       .replace(/__+/g, '_');
   }
 
-  function getTextareaRows(value: any): number {
+  function getTextareaRows(value: any, key?: string): number {
+    // Special case: complaint field gets 5 rows by default
+    if (key === 'complaint') return 5;
+    
     if (!value) return 1;
     const text = value.toString();
     // Use 2 rows if text contains newlines or is longer than 60 characters
