@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto">
+  <div class="mx-auto max-w-full overflow-x-hidden px-2 sm:px-0">
     <div class="mb-4 space-y-3">
       <div class="flex flex-col md:flex-row md:items-end gap-2">
         <div class="md:flex-1">
@@ -89,15 +89,57 @@
       </UiCard>
     </div>
     <UiCard :padded="false" class="relative min-h-31.25">
-
-      <div class="w-full">
+      <div class="w-full overflow-x-auto">
         <template v-if="previewDocs.length > 0">
-          <UiTable :columns="tableColumns" :rows="previewDocs">
-            <template #[`cell:${col.key}`]="{ row }" v-for="col in tableColumns" :key="col.key">
-              <span v-if="Array.isArray(cellValue(row, col.key))" class="text-gray-600">{{ cellValue(row, col.key).join(', ') }}</span>
-              <span v-else class="text-gray-600">{{ cellValue(row, col.key) }}</span>
-            </template>
-          </UiTable>
+          <!-- Mobile Table (Code & Title only) -->
+          <div class="hidden md:block">
+            <table class="text-sm min-w-max">
+              <thead class="border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th v-for="col in tableColumns" :key="col.key" class="text-left px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
+                    {{ col.label }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr v-for="(row, idx) in previewDocs" :key="idx" class="hover:bg-gray-50 transition-colors">
+                  <td v-for="col in tableColumns" :key="col.key" class="px-4 py-3 truncate max-w-xs">
+                    <span v-if="Array.isArray(cellValue(row, col.key))" class="text-gray-600">
+                      {{ cellValue(row, col.key).join(', ') }}
+                    </span>
+                    <span v-else class="text-gray-600">
+                      {{ cellValue(row, col.key) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Desktop Table (All columns) -->
+          <div class="md:hidden">
+            <table class="text-sm min-w-max">
+              <thead class="border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th v-for="col in mobileColumns" :key="col.key" class="text-left px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
+                    {{ col.label }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr v-for="(row, idx) in previewDocs" :key="idx" class="hover:bg-gray-50 transition-colors">
+                  <td v-for="col in mobileColumns" :key="col.key" class="px-4 py-3 truncate max-w-xs">
+                    <span v-if="Array.isArray(cellValue(row, col.key))" class="text-gray-600">
+                      {{ cellValue(row, col.key).join(', ') }}
+                    </span>
+                    <span v-else class="text-gray-600">
+                      {{ cellValue(row, col.key) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </template>
 
         <div v-else class="p-8 text-center text-gray-600">
@@ -110,7 +152,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import UiTable from '@/core/ui/components/UiTable.vue'
 import UiButton from '@/core/ui/components/UiButton.vue'
 import UiInput from '@/core/ui/components/UiInput.vue'
 import UiCheckbox from '@/core/ui/components/UiCheckbox.vue'
@@ -213,6 +254,10 @@ const saveLabel = () => {
 
 const tableColumns = computed(() =>
   selectedFields.value.map(key => ({ key, label: getFieldLabel(key) }))
+)
+
+const mobileColumns = computed(() =>
+  tableColumns.value.filter(col => col.key === 'code' || col.key === 'title')
 )
 
 const toggleField = (key: string) => {
