@@ -7,7 +7,7 @@
         <!-- Title -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-          <div v-if="!isEditing" class="text-lg font-semibold text-gray-900 truncate block max-w-4xl">
+          <div v-if="!isEditing" class="text-base sm:text-lg font-semibold text-gray-900 wrap-break-word">
             {{ document.title }}
           </div>
           <UiInput
@@ -19,10 +19,10 @@
         </div>
 
         <!-- Document Info -->
-        <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
-            <div class="text-sm font-mono text-gray-600">{{ document.code }}</div>
+            <div class="text-sm font-mono text-gray-600 break-all">{{ document.code }}</div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Folder</label>
@@ -30,7 +30,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Created</label>
             <div v-if="!isEditing" class="text-sm text-gray-600">{{ formatDate(document.created_at) }}</div>
@@ -68,7 +68,7 @@
 
           <div v-if="Object.keys(editForm.fields).length > 0" class="space-y-4">
             <div v-for="([key, value]) in sortedFields" :key="key" :class="[
-              'rounded p-3',
+              'rounded p-2 sm:p-3',
               isEditing ? 'border border-gray-200' : 'border-l-4 border-gray-300 bg-gray-50'
             ]">
               <!-- Field Header -->
@@ -114,9 +114,9 @@
         </div>
 
         <!-- Sticky Footer for Save/Cancel -->
-        <div v-if="isEditing" class="sticky bottom-0 z-10 -mx-6 -mb-6 mt-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 p-4 flex gap-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <UiButton @click="saveChanges" :loading="saving" :disabled="!hasChanges || !editForm.title.trim()">Save Changes</UiButton>
-          <UiButton @click="emit('cancel')" variant="secondary">Cancel</UiButton>
+        <div v-if="isEditing" class="sticky bottom-0 z-10 -mx-3 sm:-mx-6 -mb-3 sm:-mb-6 mt-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 p-3 sm:p-4 flex gap-2 flex-wrap sm:flex-nowrap shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <UiButton @click="saveChanges" :loading="saving" :disabled="!hasChanges || !editForm.title.trim()" class="flex-1 sm:flex-none">Save Changes</UiButton>
+          <UiButton @click="emit('cancel')" variant="secondary" class="flex-1 sm:flex-none">Cancel</UiButton>
         </div>
       </div>
     </UiCard>

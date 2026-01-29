@@ -1,51 +1,54 @@
 <template>
   <div class="space-y-4">
     <!-- Breadcrumb -->
-    <div class="flex items-center gap-2 text-sm text-gray-600">
-      <router-link to="/documents" class="hover:text-gray-900">Documents</router-link>
-      <span>/</span>
-      <span class="text-gray-900 font-medium truncate block max-w-4xl">{{ document?.title || 'Loading...' }}</span>
+    <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 min-w-0">
+      <router-link to="/documents" class="hover:text-gray-900 truncate">Documents</router-link>
+      <span class="shrink-0">/</span>
+      <span class="text-gray-900 font-medium wrap-break-word">{{ document?.title || 'Loading...' }}</span>
     </div>
 
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 truncate block max-w-4xl">{{ document?.title }}</h1>
-        <p class="text-sm text-gray-600 mt-1">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 wrap-break-word">{{ document?.title }}</h1>
+        <p class="text-xs sm:text-sm text-gray-600 mt-1">
           Code: <span class="font-mono">{{ document?.code }}</span>
         </p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 shrink-0 ml-auto">
         <!-- Edit Buttons (Only show if in Details tab and Admin) -->
         <template v-if="activeTab === 'details'">
-            <UiButton
+            <button
             v-if="isAdmin && !editMode"
             @click="editMode = true"
-            variant="secondary"
+            title="Edit"
+            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded border border-gray-300 transition-colors"
             >
-            Edit
-            </UiButton>
-            <UiButton
+            <PencilIcon :size="20" :stroke-width="1.4" />
+            </button>
+            <button
             v-if="isAdmin && editMode"
             @click="editMode = false"
-            variant="secondary"
+            title="Cancel"
+            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded border border-gray-300 transition-colors"
             >
-            Cancel
-            </UiButton>
+            <XIcon :size="20" :stroke-width="1.4" />
+            </button>
         </template>
 
-        <UiButton 
+        <button 
           v-if="isAdmin" 
-          @click="handleReload" 
-          :loading="reloading"
-          variant="secondary"
+          @click="handleReload"
+          title="Reload"
+          :disabled="reloading"
+          class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded border border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Reload
-        </UiButton>
+          <RefreshCwIcon :size="20" :stroke-width="1.4" :class="reloading && 'animate-spin'" />
+        </button>
         
-        <UiButton v-if="isAdmin" @click="showDeleteConfirm = true" variant="danger">
-          Delete
-        </UiButton>
+        <button v-if="isAdmin" @click="showDeleteConfirm = true" title="Delete" class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded border border-red-300 transition-colors">
+          <Trash2Icon :size="20" :stroke-width="1.4" />
+        </button>
       </div>
     </div>
 
@@ -61,14 +64,14 @@
     <!-- Main Content -->
     <div v-if="document" class="space-y-4">
       <!-- Tab Navigation -->
-      <div class="border-b border-gray-200">
-        <div class="flex gap-8">
+      <div class="border-b border-gray-200 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div class="flex gap-4 sm:gap-8 min-w-min">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="[
-              'px-4 py-2 font-medium border-b-2 transition-colors',
+              'px-2 sm:px-4 py-2 font-medium border-b-2 transition-colors text-sm sm:text-base whitespace-nowrap',
               activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -103,7 +106,7 @@
 
     <!-- Global Delete Modal -->
     <UiModal v-model:open="showDeleteConfirm" title="Delete Document">
-      <p class="text-gray-700 truncate block max-w-xl mb-2">
+      <p class="text-gray-700 wrap-break-word mb-2">
         Are you sure you want to delete "<strong>{{ document?.title }}</strong>"?
       </p>
       <div class="bg-red-50 p-3 rounded border border-red-100">
@@ -135,15 +138,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { PencilIcon, XIcon, RefreshCwIcon, Trash2Icon } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import { usePluginStore } from '@/core/plugins/pluginRegistry';
 import type { Document, PluginContext } from '@/types';
 import PluginHost from '@/core/plugins/pluginHost';
-import UiButton from '@/core/ui/components/UiButton.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
+import UiButton from '@/core/ui/components/UiButton.vue';
 
 // Sub-components
 import DocumentDetailsTab from '@/modules/documents/components/DocumentDetailsTab.vue';
