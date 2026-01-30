@@ -245,7 +245,7 @@
     </UiCard>
 
     <!-- Pagination -->
-    <div v-if="documents.length > 0" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <div v-if="documents.length > 0 || offset > 0" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <span class="text-xs sm:text-sm text-gray-600">
         Showing {{ offset + 1 }}-{{ Math.min(offset + limit, offset + documents.length) }}
       </span>
