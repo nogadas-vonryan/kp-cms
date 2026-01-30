@@ -135,6 +135,8 @@ async function handleReload() {
 }
 
 onMounted(() => {
+  if (!authStore.user) return;
+  
   loadConflicts();
 });
 </script>

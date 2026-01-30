@@ -736,6 +736,8 @@ function handleRowClick(event: MouseEvent) {
 }
 
 onMounted(() => {
+  if (!authStore.user) return;
+  
   loadDocuments();
 });
 </script>

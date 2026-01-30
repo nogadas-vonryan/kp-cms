@@ -159,6 +159,9 @@ import UiCheckbox from '@/core/ui/components/UiCheckbox.vue'
 import UiCard from '@/core/ui/components/UiCard.vue'
 import UiSelect from '@/core/ui/components/UiSelect.vue'
 import { DocumentService } from '@/modules/documents/services/documentService'
+import { useAuthStore } from '@/modules/auth/store'
+
+const authStore = useAuthStore();
 
 // Available fields from Document schema with display order
 const fetchFields = async () => [
@@ -303,6 +306,8 @@ const applyFilters = async () => {
 }
 
 const load = async () => {
+  if (!authStore.user) return;
+
   availableFields.value = await fetchFields()
   selectedFields.value = availableFields.value
     .filter(f => f.visible !== false)
