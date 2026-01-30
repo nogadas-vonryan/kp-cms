@@ -43,11 +43,19 @@ jobs:
           PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfxPath = Join-Path $pwd "tuf-devs.pfx"
-          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_DATA))
+          $bytes = [System.Convert]::FromBase64String($env:PFX_DATA)
+          [System.IO.File]::WriteAllBytes($pfxPath, $bytes)
           
-          $exePath = Get-ChildItem -Path "build/bin/*.exe" | Select-Object -ExpandProperty FullName
+          $exePath = Get-ChildItem -Path "build/bin/*.exe" | Select-Object -ExpandProperty FullName -First 1
           
-          signtool sign /v /f $pfxPath /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "$exePath"
+          if (-not $exePath) {
+              Write-Error "Could not find the executable in build/bin/"
+              exit 1
+          }
+
+          Write-Host "Signing: $exePath"
+          
+          signtool sign /v /debug /f $pfxPath /p $env:PFX_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 "$exePath"
           
           Remove-Item $pfxPath
 
