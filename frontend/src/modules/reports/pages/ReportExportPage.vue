@@ -103,7 +103,7 @@
               </thead>
               <tbody class="divide-y divide-gray-200">
                 <tr v-for="(row, idx) in previewDocs" :key="idx" class="hover:bg-gray-50 transition-colors">
-                  <td v-for="col in tableColumns" :key="col.key" class="px-4 py-3 truncate max-w-xs">
+                  <td v-for="col in tableColumns" :key="col.key" class="px-4 py-3 truncate max-w-24">
                     <span v-if="Array.isArray(cellValue(row, col.key))" class="text-gray-600">
                       {{ cellValue(row, col.key).join(', ') }}
                     </span>
@@ -128,7 +128,7 @@
               </thead>
               <tbody class="divide-y divide-gray-200">
                 <tr v-for="(row, idx) in previewDocs" :key="idx" class="hover:bg-gray-50 transition-colors">
-                  <td v-for="col in mobileColumns" :key="col.key" class="px-4 py-3 truncate max-w-xs">
+                  <td v-for="col in mobileColumns" :key="col.key" class="px-4 py-3 truncate max-w-24">
                     <span v-if="Array.isArray(cellValue(row, col.key))" class="text-gray-600">
                       {{ cellValue(row, col.key).join(', ') }}
                     </span>
