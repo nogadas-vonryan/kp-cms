@@ -10,12 +10,22 @@
           <div v-if="!isEditing" class="text-base sm:text-lg font-semibold text-gray-900 wrap-break-word">
             {{ document.title }}
           </div>
-          <UiInput
-            v-else
-            v-model="editForm.title"
-            required
-            placeholder="Document title"
-          />
+          <div v-else class="flex gap-2">
+            <UiInput
+              v-model="editForm.title"
+              required
+              placeholder="Document title"
+              class="flex-1"
+            />
+            <UiButton
+              v-if="canAutoGenerateTitle"
+              @click="generateTitle"
+              variant="secondary"
+              class="text-sm whitespace-nowrap"
+            >
+              Auto-Generate
+            </UiButton>
+          </div>
         </div>
 
         <!-- Document Info -->
@@ -267,6 +277,13 @@ watch(showDeleteFieldConfirm, (isOpen) => {
 
 const sortedFields = computed(() => getSortedFields(editForm.value.fields));
 
+const canAutoGenerateTitle = computed(() => {
+  const complainants = props.document.fields.complainants;
+  const respondents = props.document.fields.respondents;
+  return Array.isArray(complainants) && complainants.length > 0 && 
+         Array.isArray(respondents) && respondents.length > 0;
+});
+
 const currentYear = computed(() => new Date().getFullYear());
 const minYear = computed(() => currentYear.value - 100);
 const maxYear = computed(() => currentYear.value + 100);
@@ -403,6 +420,12 @@ async function saveChanges() {
     error.value = err.response?.data?.error || 'Failed to save changes';
   } finally {
     saving.value = false;
+  }
+}
+
+function generateTitle() {
+  if (props.document.fields.complainants && props.document.fields.respondents) {
+    editForm.value.title = `${props.document.fields.complainants[0]} vs ${props.document.fields.respondents[0]}`;
   }
 }
 </script>
