@@ -124,9 +124,11 @@
         </div>
 
         <!-- Sticky Footer for Save/Cancel -->
-        <div v-if="isEditing" class="sticky bottom-0 z-10 -mx-3 sm:-mx-6 -mb-3 sm:-mb-6 mt-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 p-3 sm:p-4 flex gap-2 flex-wrap sm:flex-nowrap shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <UiButton @click="saveChanges" :loading="saving" :disabled="!hasChanges || !editForm.title.trim()" class="flex-1 sm:flex-none">Save Changes</UiButton>
-          <UiButton @click="emit('cancel')" variant="secondary" class="flex-1 sm:flex-none">Cancel</UiButton>
+        <div v-if="isEditing" class="fixed bottom-0 right-0 z-40 left-0 sm:left-64 bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 transition-[left] duration-300 ease-out">
+          <div class="max-w-full mx-auto flex gap-3 justify-end px-4 sm:px-6">
+            <UiButton @click="saveChanges" :loading="saving" :disabled="!hasChanges || !editForm.title.trim()" class="flex-1 sm:flex-none">Save Changes</UiButton>
+            <UiButton @click="emit('cancel')" variant="secondary" class="flex-1 sm:flex-none">Cancel</UiButton>
+          </div>
         </div>
       </div>
     </UiCard>
