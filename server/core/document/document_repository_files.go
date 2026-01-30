@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/hymkor/trash-go"
 )
 
 func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid string, file File) error {
@@ -279,9 +281,9 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 	folderPath := r.getDocumentPath(doc.FolderName)
 	filePath := filepath.Join(folderPath, safeName)
 
-	// Delete physical file
-	if err := os.Remove(filePath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("delete physical file: %w", err)
+	// Move physical file to trash/recycle bin
+	if err := trash.Throw(filePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("move file to trash: %w", err)
 	}
 
 	// Update files.json

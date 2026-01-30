@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hymkor/trash-go"
 )
 
 type SyncIssue struct {
@@ -227,8 +228,8 @@ func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) e
 	}
 
 	folderPath := filepath.Join(r.basePath, doc.FolderName)
-	if err := os.RemoveAll(folderPath); err != nil {
-		return fmt.Errorf("failed to delete folder: %w", err)
+	if err := trash.Throw(folderPath); err != nil {
+		return fmt.Errorf("failed to move folder to trash: %w", err)
 	}
 
 	r.mu.Lock()
