@@ -177,19 +177,63 @@ func StartWebServer(host string, port int, backendHost string, backendPort int) 
 	return srv, nil
 }
 
-func GetLocalIP() (string, error) {
-	addrs, err := net.InterfaceAddrs()
+// GetPreferredIP returns the local IP address the host uses to communicate
+// with the rest of the network.
+func GetPreferredIP() (string, error) {
+	// Use a public address to find the active routing interface.
+	conn, err := net.Dial("udp", "google.com:80")
+	if err == nil {
+		defer conn.Close()
+		localAddr := conn.LocalAddr().(*net.UDPAddr)
+		return localAddr.IP.String(), nil
+	}
+
+	// Scan interfaces (If offline or dial fails)
+	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "", err
 	}
-	for _, addr := range addrs {
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ipNet.IP.To4() != nil {
-				return ipNet.IP.String(), nil
+
+	for _, iface := range ifaces {
+		// Filter out interfaces that are down or are loopbacks
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
 			}
+
+			// Skip IPv6 and Loopback for compatibility
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			ip = ip.To4()
+			if ip == nil {
+				continue
+			}
+
+			// Filter out common "useless" virtual IPs
+			ipStr := ip.String()
+			if strings.HasPrefix(ipStr, "169.254") { // APIPA (No connection)
+				continue
+			}
+
+			return ipStr, nil
 		}
 	}
-	return "", fmt.Errorf("no network interface found")
+
+	return "", fmt.Errorf("could not determine local IP")
 }
 
 func GeneratePasswordIfEmpty(pass string) (string, error) {

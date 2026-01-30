@@ -83,7 +83,7 @@ func (a *App) SelectFolder() (string, error) {
 }
 
 func (a *App) GetNetworkInfo() map[string]interface{} {
-	localIP, err := GetLocalIP()
+	localIP, err := GetPreferredIP()
 	if err != nil {
 		localIP = ""
 	}
@@ -183,7 +183,7 @@ func (a *App) StartBackendServer(host string, port int, user, pass, dataPath str
 	}
 
 	// Log network access info
-	localIP, err := GetLocalIP()
+	localIP, err := GetPreferredIP()
 	if err == nil && localIP != "" {
 		a.Log(fmt.Sprintf("Network access: http://%s:%d", localIP, port))
 	}
