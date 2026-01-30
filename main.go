@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -39,6 +40,8 @@ type Logger struct {
 	logChannel chan string
 }
 
+var appLogger *Logger
+
 func NewLogger(ctx context.Context) *Logger {
 	return &Logger{
 		ctx:        ctx,
@@ -56,7 +59,20 @@ func (l *Logger) Start() {
 }
 
 func (l *Logger) Log(msg string) {
+	log.Print(msg)
 	l.logChannel <- msg
+}
+
+func SetLogger(l *Logger) {
+	appLogger = l
+}
+
+func logMessage(msg string) {
+	if appLogger != nil {
+		appLogger.Log(msg)
+		return
+	}
+	log.Print(msg)
 }
 
 func main() {
@@ -80,7 +96,7 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		logMessage(fmt.Sprintf("Error: %v", err))
 	}
 }
 
@@ -170,7 +186,7 @@ func StartWebServer(host string, port int, backendHost string, backendPort int) 
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Web server error: %v\n", err)
+			logMessage(fmt.Sprintf("Web server error: %v", err))
 		}
 	}()
 
@@ -185,6 +201,12 @@ func GetPreferredIP() (string, error) {
 	if err == nil {
 		defer conn.Close()
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+		ipv4 := localAddr.IP.To4()
+		if ipv4 != nil {
+			return ipv4.String(), nil
+		}
+
 		return localAddr.IP.String(), nil
 	}
 
@@ -255,6 +277,8 @@ func StartBackendServer(host string, port int, user, pass, dataPath string) (*ht
 		port = 8080
 	}
 
+	api.SetLogSink(logMessage)
+
 	// Validate port range
 	if port < 1 || port > 65535 {
 		return nil, fmt.Errorf("invalid port number: %d (must be between 1-65535)", port)
@@ -304,6 +328,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string) (*ht
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logMessage(fmt.Sprintf("Backend server error: %v", err))
 		}
 	}()
 
