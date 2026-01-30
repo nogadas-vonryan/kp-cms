@@ -21,14 +21,33 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
       - name: Build Frontend
         run: |
           cd frontend
           npm install
-          npm run build
+          npm run build 
 
       - name: Build Wails App
-        run: wails build
+        run: wails build -platform windows/amd64
+
+      - name: Sign Wails App
+        shell: powershell
+        env:
+          PFX_DATA: ${{ secrets.PFX_DATA }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+        run: |
+          $pfxPath = Join-Path $pwd "tuf-devs.pfx"
+          $bytes = [System.Convert]::FromBase64String($env:PFX_DATA)
+          [System.IO.File]::WriteAllBytes($pfxPath, $bytes)
+          
+          $exePath = Get-ChildItem -Path "build/bin/*.exe" | Select-Object -ExpandProperty FullName
+          
+          signtool sign /v /f $pfxPath /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "$exePath"
+          
+          Remove-Item $pfxPath
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
