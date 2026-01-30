@@ -197,16 +197,10 @@ func StartWebServer(host string, port int, backendHost string, backendPort int) 
 // with the rest of the network.
 func GetPreferredIP() (string, error) {
 	// Use a public address to find the active routing interface.
-	conn, err := net.Dial("udp", "google.com:80")
+	conn, err := net.Dial("udp4", "google.com:80")
 	if err == nil {
 		defer conn.Close()
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-		ipv4 := localAddr.IP.To4()
-		if ipv4 != nil {
-			return ipv4.String(), nil
-		}
-
 		return localAddr.IP.String(), nil
 	}
 
