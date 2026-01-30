@@ -11,6 +11,7 @@
           <UiSelect v-model="filters.sort_order" :options="[{ label: 'Ascending', value: 'asc' }, { label: 'Descending', value: 'desc' }]" />
         </div>
         <UiButton @click="applyFilters" size="sm">Apply Filters</UiButton>
+        <UiButton @click="resetFilters" size="sm">Reset</UiButton>
         <UiButton @click="exportCSV" variant="secondary" size="sm">Export CSV</UiButton>
       </div>
 
@@ -34,7 +35,7 @@
       </div>
 
       <UiCard>
-        <button @click="showFields = !showFields" class="flex items-center gap-2 font-medium text-sm w-full">
+        <button @click="showFields = !showFields" class="flex items-center gap-2 font-medium text-sm text-blue-600 w-full">
           <span class="transition-transform" :class="{ 'rotate-90': showFields }">›</span>
           Field Selection ({{ selectedFields.length }})
         </button>
@@ -269,6 +270,18 @@ const toggleField = (key: string) => {
   }
   // Reorder to match the master order
   selectedFields.value = getOrderedFields(selectedFields.value)
+}
+
+const resetFilters = async () => {
+  filters.value = {
+    start: '',
+    end: '',
+    offset: 0,
+    limit: 100,
+    sort_by: '',
+    sort_order: 'asc'
+  }
+  await applyFilters()
 }
 
 const applyFilters = async () => {
