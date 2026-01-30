@@ -271,7 +271,7 @@
 
     <!-- Create Modal -->
     <UiModal v-model:open="showCreateModal" title="Create Document">
-      <form @submit.prevent="handleCreate" class="space-y-4 max-h-[70vh] overflow-y-auto">
+      <form @submit.prevent="handleCreate" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
           <input v-model="form.title" required class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
@@ -372,7 +372,7 @@
           <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
         </div>
         <UiButton @click="showCreateModal = false">Cancel</UiButton>
-        <UiButton @click="handleCreate" :disabled="submitting" variant="primary" class="flex items-center gap-2">
+        <UiButton @click="handleCreate" :disabled="submitting" variant="secondary" class="flex items-center gap-2">
           <Check :size="16" />
           <span>{{ submitting ? 'Creating...' : 'Create' }}</span>
         </UiButton>
@@ -474,6 +474,7 @@ const hasActiveFilters = computed(() => {
     filters.value.folder_name !== '' ||
     filters.value.date_from !== '' ||
     filters.value.date_to !== '' ||
+    filters.value.sort_by !== '' ||
     filters.value.field_key !== '' ||
     filters.value.field_value !== '' ||
     filters.value.sort_by !== ''
