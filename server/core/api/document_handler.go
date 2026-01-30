@@ -20,7 +20,7 @@ type CreateDocumentRequest struct {
 	FolderName string         `json:"folder_name"`
 	Title      string         `json:"title"`
 	Fields     map[string]any `json:"fields"`
-	CreatedAt  time.Time      `json:"created_at"`
+	CreatedAt  string         `json:"created_at"`
 }
 
 type UpdateDocumentRequest struct {
@@ -42,12 +42,18 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 			return
 		}
 
+		createdAt, err := parseDate(req.CreatedAt)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid created_at date format")
+			return
+		}
+
 		doc := document.Document{
 			Code:       req.Code,
 			FolderName: req.FolderName,
 			Title:      req.Title,
 			Fields:     req.Fields,
-			CreatedAt:  req.CreatedAt,
+			CreatedAt:  createdAt,
 		}
 
 		created, err := s.documentService.Create(r.Context(), doc)
@@ -605,6 +611,11 @@ func (s *Server) handleSearchDocuments() http.HandlerFunc {
 }
 
 func parseDate(dateStr string) (time.Time, error) {
+	// Return zero time if string is empty
+	if dateStr == "" {
+		return time.Time{}, nil
+	}
+
 	// Try multiple date formats
 	formats := []string{
 		time.RFC3339,

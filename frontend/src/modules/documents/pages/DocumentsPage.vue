@@ -640,7 +640,7 @@ async function handleCreate() {
   submitting.value = true;
   
   try {
-    await DocumentService.create({
+    const response = await DocumentService.create({
       title: form.value.title,
       code: form.value.code,
       created_at: form.value.created_at ? new Date(form.value.created_at).toISOString() : '',
@@ -650,7 +650,12 @@ async function handleCreate() {
     form.value = { title: '', code: '', created_at: '', folder_name: '', fields: {
       nature: 'civil', status: 'case_filed', complainants: [], respondents: [],
     } };
-    loadDocuments();
+    // Redirect to the newly created document
+    if (response.data?.uuid) {
+      router.push(`/documents/${response.data.uuid}`);
+    } else {
+      loadDocuments();
+    }
   } catch (err: any) {
     formError.value = extractErrorMessage(err) || 'Failed to create document';
   } finally {
