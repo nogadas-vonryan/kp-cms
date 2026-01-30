@@ -38,6 +38,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.logger = NewLogger(ctx)
+	SetLogger(a.logger)
 	a.logger.Start()
 	a.logger.Log("Application started")
 

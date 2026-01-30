@@ -260,7 +260,7 @@ func LoadConfig() (*Config, error) {
 		decrypted, err := decryptPassword(config.Password)
 		if err != nil {
 			// Log decryption failure (not silent)
-			fmt.Fprintf(os.Stderr, "Warning: Failed to decrypt saved password: %v\n", err)
+			logMessage(fmt.Sprintf("Warning: Failed to decrypt saved password: %v", err))
 			// If decryption fails, clear the password
 			config.Password = ""
 		} else {

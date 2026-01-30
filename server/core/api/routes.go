@@ -50,7 +50,7 @@ func (s *Server) Addr() string {
 func (s *Server) routes() {
 	s.Router.Use(middleware.RequestID)
 	s.Router.Use(middleware.RealIP)
-	s.Router.Use(middleware.Logger)
+	s.Router.Use(AccessLogMiddleware)
 	s.Router.Use(middleware.Recoverer)
 
 	s.Router.Use(cors.Handler(cors.Options{
