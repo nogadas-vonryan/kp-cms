@@ -11,7 +11,7 @@ export const kp8: KPTemplate = {
     { key: 'hearingDate', label: 'Hearing Date', type: 'date', required: true },
     { key: 'hearingTime', label: 'Hearing Time', type: 'text', required: true, placeholder: 'e.g., 2:00 PM' },
     { key: 'timeOfDay', label: 'Time of Day', type: 'select', options: ['morning', 'afternoon'], required: true, defaultValue: 'afternoon' },
-    { key: 'punongBarangay', label: 'Punong Barangay', type: 'text', required: true, defaultValue: 'Hon. [Name]' },
+    { key: 'punongBarangay', label: 'Punong Barangay', type: 'select', required: true, defaultValue: 'Hon. [Name]' },
     { key: 'noticeDate', label: 'Notice Date', type: 'date', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {

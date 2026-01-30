@@ -14,7 +14,7 @@ export const kp19: KPTemplate = {
     { key: 'hearingDate', label: 'New Hearing Date', type: 'date', required: true },
     { key: 'hearingTime', label: 'New Hearing Time', type: 'text', required: true, placeholder: 'e.g., 2:00 PM' },
     { key: 'oldHearingDate', label: 'Previous (Missed) Date', type: 'date', required: true },
-    { key: 'punongBarangay', label: 'Punong Barangay/Chairman', type: 'text', required: true },
+    { key: 'punongBarangay', label: 'Punong Barangay/Chairman', type: 'select', required: true },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {

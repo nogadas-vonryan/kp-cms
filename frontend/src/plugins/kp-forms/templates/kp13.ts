@@ -15,7 +15,7 @@ export const kp13: KPTemplate = {
     { key: 'appearanceDate', label: 'Appearance Date', type: 'date', required: true },
     { key: 'appearanceTime', label: 'Appearance Time', type: 'text', required: true, placeholder: 'e.g., 9:00 AM' },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true },
-    { key: 'punongBarangay', label: 'Punong Barangay/Lupon Chairman', type: 'text', required: true }
+    { key: 'punongBarangay', label: 'Punong Barangay/Lupon Chairman', type: 'select', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {

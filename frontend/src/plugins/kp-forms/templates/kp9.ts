@@ -13,7 +13,7 @@ export const kp9: KPTemplate = {
     { key: 'for', label: 'For', type: 'text', required: true, placeholder: 'e.g., Unpaid Debt' },
     { key: 'hearingDate', label: 'Hearing Date', type: 'date', required: true },
     { key: 'hearingTime', label: 'Hearing Time', type: 'text', required: true, placeholder: 'e.g., 9:00 AM' },
-    { key: 'punongBarangay', label: 'Punong Barangay/Lupon Chairman', type: 'text', required: true }
+    { key: 'punongBarangay', label: 'Punong Barangay/Lupon Chairman', type: 'select', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {

@@ -14,7 +14,7 @@ export const kp7: KPTemplate = {
     { key: 'complaint', label: 'Complaint Details', type: 'textarea', required: true, helpText: 'Describe how your rights and interests were violated' },
     { key: 'reliefSought', label: 'Relief Sought', type: 'textarea', required: true, helpText: 'State what relief/remedy you are seeking' },
     { key: 'date', label: 'Date Filed', type: 'date', required: true },
-    { key: 'punongBarangay', label: 'Punong Barangay', type: 'text', defaultValue: 'Hon. [Name]', required: true }
+    { key: 'punongBarangay', label: 'Punong Barangay', type: 'select', defaultValue: 'Hon. [Name]', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {

@@ -129,14 +129,12 @@
 								:rows="4"
 							/>
 
-							<UiSelect
+							<UiComboBox
 								v-else-if="field.type === 'select'"
 								v-model="formData[field.key]"
-								:options="(field.options || []).map((opt) => ({ label: opt, value: opt }))"
+								:options="getFieldOptions(field)"
 								:placeholder="field.placeholder || 'Select'"
 							/>
-
-							<!-- Array field for dynamic inputs -->
 							<div v-else-if="field.type === 'array'" class="space-y-2">
 								<div v-for="(_, index) in (formData[field.key] as string[])" :key="index" class="flex gap-1.5">
 									<input
@@ -216,10 +214,10 @@ import { computed, reactive, ref, watch } from 'vue';
 import { Download, Upload, Edit, Trash2, X, Plus, RotateCcw, Search, FileText, FileQuestion, AlertCircle, ChevronLeft } from 'lucide-vue-next';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
-import UiSelect from '@/core/ui/components/UiSelect.vue';
+import UiComboBox from '@/core/ui/components/UiComboBox.vue';
 import UiTextarea from '@/core/ui/components/UiTextarea.vue';
 import type { ArchivistPlugin, PluginContext } from '@/core/plugins/pluginRegistry';
-import type { KPTemplate } from './types';
+import type { KPTemplate, KPFormField } from './types';
 import { kpTemplates } from './templates';
 import { DocumentService } from '@/modules/documents/services/documentService';
 
@@ -252,6 +250,25 @@ watch(selectedTemplate, (tpl) => {
 	if (tpl) initForm(tpl);
 }, { immediate: true });
 
+function getFieldOptions(field: KPFormField): string[] {
+	// For punongBarangay, get options from localStorage
+	if (field.key === 'punongBarangay') {
+		const stored = localStorage.getItem('punongBarangay');
+		if (stored) {
+			try {
+				const list = JSON.parse(stored);
+				if (Array.isArray(list) && list.length > 0) {
+					return list;
+				}
+			} catch (e) {
+				console.error('Failed to parse punongBarangay from localStorage:', e);
+			}
+		}
+	}
+	// Return field's static options or empty array
+	return field.options || [];
+}
+
 function derivePrefill(key: string): string | string[] {
 	const doc = props.context?.document;
 	if (!doc) return key === 'complainants' || key === 'respondents' ? [''] : '';
@@ -263,6 +280,24 @@ function derivePrefill(key: string): string | string[] {
 		return (doc.fields.respondents as string[]);
 	}
 	if (key === 'title' || key === 'subject') return doc.title || '';
+	if (key === 'complaint') return doc.fields.complaint || '';
+	if (key === 'punongBarangay') {
+		// Get from localStorage for select field
+		const stored = localStorage.getItem('punongBarangay');
+		let punongBarangayList: string[] = [];
+		
+		if (stored) {
+			try {
+				punongBarangayList = JSON.parse(stored);
+			} catch (e) {
+				console.error('Failed to parse punongBarangay from localStorage:', e);
+			}
+		}
+		
+		// Return the current value from doc or first from list or empty string
+		const currentValue = doc.fields?.punongBarangay;
+		return currentValue || (punongBarangayList.length > 0 ? punongBarangayList[0] : '');
+	}
 	return '';
 }
 
@@ -348,6 +383,25 @@ async function onGenerate() {
 	try {
 		isGenerating.value = true;
 		
+		// Save punongBarangay to localStorage if it exists and not already saved
+		if (formData.punongBarangay && typeof formData.punongBarangay === 'string' && formData.punongBarangay.trim()) {
+			const stored = localStorage.getItem('punongBarangay');
+			let punongBarangayList: string[] = [];
+			
+			if (stored) {
+				try {
+					punongBarangayList = JSON.parse(stored);
+				} catch (e) {
+					console.error('Failed to parse punongBarangay from localStorage:', e);
+				}
+			}
+			
+			if (!punongBarangayList.includes(formData.punongBarangay)) {
+				punongBarangayList.push(formData.punongBarangay);
+				localStorage.setItem('punongBarangay', JSON.stringify(punongBarangayList));
+			}
+		}
+		
 		// Convert array fields to newline-separated strings for PDF generation
 		const dataForPdf = { ...formData };
 		selectedTemplate.value.fields.forEach((field) => {
@@ -399,6 +453,25 @@ async function onUpload() {
 
 	try {
 		isUploading.value = true;
+
+		// Save punongBarangay to localStorage if it exists and not already saved
+		if (formData.punongBarangay && typeof formData.punongBarangay === 'string' && formData.punongBarangay.trim()) {
+			const stored = localStorage.getItem('punongBarangay');
+			let punongBarangayList: string[] = [];
+			
+			if (stored) {
+				try {
+					punongBarangayList = JSON.parse(stored);
+				} catch (e) {
+					console.error('Failed to parse punongBarangay from localStorage:', e);
+				}
+			}
+			
+			if (!punongBarangayList.includes(formData.punongBarangay)) {
+				punongBarangayList.push(formData.punongBarangay);
+				localStorage.setItem('punongBarangay', JSON.stringify(punongBarangayList));
+			}
+		}
 
 		const dataForPdf = { ...formData };
 		selectedTemplate.value.fields.forEach((field) => {

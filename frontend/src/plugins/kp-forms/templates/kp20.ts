@@ -4,7 +4,7 @@ import { HEADER_BASE64, SEAL_BASE64 } from '../old_templates/image-headers-base6
 
 export const kp20: KPTemplate = {
   id: 'kp20',
-  name: 'Certification to File Action (Lupon Secretary)',
+  name: 'KP Form #20 Certification to File Action (Lupon Secretary)',
   description: 'Certification issued by the Lupon Secretary when a settlement is repudiated',
   fields: [
     { key: 'complainants', label: 'Complainant/s', type: 'array', required: true, placeholder: 'e.g., Juan Dela Cruz' },

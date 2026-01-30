@@ -12,7 +12,7 @@ export const kp10: KPTemplate = {
     { key: 'constitutionDate', label: 'Constitution Date', type: 'date', required: true },
     { key: 'constitutionTime', label: 'Constitution Time', type: 'text', required: true, placeholder: 'e.g., 9:00 AM' },
     { key: 'dateIssued', label: 'Date Issued', type: 'date', required: true },
-    { key: 'punongBarangay', label: 'Punong Barangay', type: 'text', required: true }
+    { key: 'punongBarangay', label: 'Punong Barangay', type: 'select', required: true }
   ],
   generatePdf: (data): TDocumentDefinitions => {
     const formatDate = (dateStr: any): string => {

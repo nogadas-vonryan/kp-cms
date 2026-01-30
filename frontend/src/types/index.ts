@@ -10,6 +10,7 @@ export interface AuthUser {
 
 export type DocumentFields = {
   status?: string;
+  complaint?: string;
   complainants?: string[];
   respondents?: string[];
   [key: string]: any;
