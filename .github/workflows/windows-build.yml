@@ -4,6 +4,7 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: windows-latest
+    environment: windows-build
     steps:
       - uses: actions/checkout@v4
 
