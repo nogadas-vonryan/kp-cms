@@ -17,101 +17,140 @@ async function logout() {
   router.push('/login');
 }
 
-function closeSidebar() {
-  sidebarOpen.value = false;
-}
-
 function navigateTo(path: string) {
   router.push(path);
-  closeSidebar();
+  sidebarOpen.value = false;
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div class="px-4 py-4 flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900">KPCMS</h1>
+  <div class="flex h-screen bg-gray-50">
+    <!-- Sidebar Drawer -->
+    <aside
+      class="fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-300 ease-out flex flex-col shadow-xl sm:static sm:z-auto sm:translate-x-0"
+      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
+      <!-- Background with image and overlay (desktop only) -->
+      <div class="absolute inset-0 hidden sm:block">
+        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/cover_image.jpg')"></div>
+        <div class="absolute inset-0 bg-linear-to-b from-green-700/95 to-green-800/95" />
+      </div>
+
+      <!-- Mobile background (no image) -->
+      <div class="absolute inset-0 sm:hidden bg-linear-to-b from-green-700 to-green-800" />
+      <!-- Sidebar Header with Logo -->
+      <div class="shrink-0 px-4 py-6 border-b border-green-600/30 relative z-10">
         <div class="flex items-center gap-4">
-          <span class="hidden sm:block text-sm text-gray-600">{{ username }}</span>
-          <button
-            @click="sidebarOpen = !sidebarOpen"
-            class="sm:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <Menu v-if="!sidebarOpen" :size="24" class="text-gray-900" />
-            <X v-else :size="24" class="text-gray-900" />
-          </button>
+          <img 
+            src="/brgy_logo.png" 
+            alt="Barangay Logo" 
+            class="w-12 h-12 rounded-full object-cover shrink-0"
+          />
+          <div class="min-w-0">
+            <h2 class="text-xs font-bold text-white truncate">Katarungang Pambarangay</h2>
+            <p class="text-[10px] text-green-100 truncate">Barangay Bagumbayan, Taguig City</p>
+          </div>
         </div>
       </div>
-    </header>
 
-    <!-- Content Container -->
-    <div class="flex">
-      <!-- Sidebar -->
-      <aside
-        class="fixed top-16 left-0 bottom-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 flex flex-col sm:sticky sm:top-16 sm:translate-x-0 sm:h-[calc(100vh-4rem)] overflow-hidden"
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-      >
-        <nav class="flex-1 pt-4 pb-4 overflow-y-auto">
-          <div class="px-4 space-y-2">
-            <!-- Documents Link -->
-            <button
-              @click="navigateTo('/documents')"
-              class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              :class="$route.path === '/documents' ? 'bg-blue-50 text-blue-600' : ''"
-            >
-              <FileText :size="20" />
-              <span class="text-sm font-medium">Documents</span>
-            </button>
-
-            <!-- Reports Link (Admin only) -->
-            <button
-              v-if="isAdmin"
-              @click="navigateTo('/reports/export')"
-              class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              :class="$route.path.startsWith('/reports') ? 'bg-blue-50 text-blue-600' : ''"
-            >
-              <BarChart3 :size="20" />
-              <span class="text-sm font-medium">Reports</span>
-            </button>
-
-            <!-- Admin Link (Admin only) -->
-            <button
-              v-if="isAdmin"
-              @click="navigateTo('/admin')"
-              class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              :class="$route.path === '/admin' ? 'bg-blue-50 text-blue-600' : ''"
-            >
-              <Settings :size="20" />
-              <span class="text-sm font-medium">Admin</span>
-            </button>
-          </div>
-        </nav>
-
-        <!-- Logout Button -->
-        <div class="shrink-0 px-4 py-4 border-t border-gray-200">
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto py-6 px-3 relative z-10">
+        <div class="space-y-1">
+          <!-- Documents Link -->
           <button
-            @click="logout"
-            class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+            @click="navigateTo('/documents')"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200 group"
+            :class="$route.path === '/documents' ? 'bg-amber-500 text-white shadow-md' : ''"
           >
-            <LogOut :size="20" />
-            <span class="text-sm font-medium">Logout</span>
+            <FileText :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <span class="text-sm font-medium">Documents</span>
+          </button>
+
+          <!-- Reports Link (Admin only) -->
+          <button
+            v-if="isAdmin"
+            @click="navigateTo('/reports/export')"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200 group"
+            :class="$route.path.startsWith('/reports') ? 'bg-amber-500 text-white shadow-md' : ''"
+          >
+            <BarChart3 :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <span class="text-sm font-medium">Reports</span>
+          </button>
+
+          <!-- Admin Link (Admin only) -->
+          <button
+            v-if="isAdmin"
+            @click="navigateTo('/admin')"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200 group"
+            :class="$route.path === '/admin' ? 'bg-amber-500 text-white shadow-md' : ''"
+          >
+            <Settings :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <span class="text-sm font-medium">Admin</span>
           </button>
         </div>
-      </aside>
+      </nav>
 
-      <!-- Overlay (Mobile) -->
+      <!-- Logout Section -->
+      <div class="shrink-0 border-t border-green-600/30 px-3 py-4 relative z-10">
+        <button
+          @click="logout"
+          class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-red-600/20 hover:text-red-200 transition-all duration-200 group"
+        >
+          <LogOut :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+          <span class="text-sm font-medium">Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Overlay (Mobile Only) -->
+    <transition name="fade">
       <div
         v-if="sidebarOpen"
-        @click="closeSidebar"
-        class="fixed inset-0 z-20 bg-black/50 sm:hidden"
+        @click="sidebarOpen = false"
+        class="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm sm:hidden"
       />
+    </transition>
 
-      <!-- Main Content -->
-      <main class="flex-1 min-h-[calc(100vh-4rem)] px-4 py-6 sm:max-w-5xl sm:mx-auto sm:w-full">
-        <RouterView />
-      </main>
-    </div>
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="h-full flex flex-col">
+        <!-- Header -->
+        <header class="shrink-0 bg-white border-b border-gray-200 shadow-sm">
+          <div class="h-14 px-4 sm:px-6 flex items-center justify-between">
+            <!-- Mobile Menu Button -->
+            <button
+              @click="sidebarOpen = !sidebarOpen"
+              aria-label="Toggle menu"
+              class="sm:hidden p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+            >
+              <Menu v-if="!sidebarOpen" :size="20" class="text-gray-900" />
+              <X v-else :size="20" class="text-gray-900" />
+            </button>
+
+            <!-- User Info -->
+            <div class="flex items-center gap-4 ml-auto">
+              <span class="text-sm text-gray-600 font-medium">{{ username }}</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+          <RouterView />
+        </div>
+      </div>
+    </main>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 200ms ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
