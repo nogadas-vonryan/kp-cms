@@ -271,15 +271,22 @@
 
     <!-- Create Modal -->
     <UiModal v-model:open="showCreateModal" title="Create Document">
-      <form @submit.prevent="handleCreate" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+      <form @submit.prevent="handleCreate" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
           <input v-model="form.title" required class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
-          <input v-model="form.code" placeholder="Document code (optional)" class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Code <span v-if="isCodeRequired" class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="form.code"
+            :required="isCodeRequired"
+            :placeholder="isCodeRequired ? 'Document code (required)' : 'Document code (optional)'"
+            class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+          />
         </div>
 
         <div>
@@ -373,14 +380,18 @@
       </form>
 
       <template #footer>
-        <div class="flex w-full">
-          <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
+        <div class="flex w-full flex-col gap-2">
+          <UiAlert v-if="formError" type="error" class="max-h-24 overflow-y-auto">
+            <span class="block text-sm wrap-break-word">{{ formError }}</span>
+          </UiAlert>
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <UiButton @click="showCreateModal = false">Cancel</UiButton>
+            <UiButton @click="handleCreate" :disabled="submitting" variant="secondary" class="flex items-center gap-2">
+              <Check :size="16" />
+              <span>{{ submitting ? 'Creating...' : 'Create' }}</span>
+            </UiButton>
+          </div>
         </div>
-        <UiButton @click="showCreateModal = false">Cancel</UiButton>
-        <UiButton @click="handleCreate" :disabled="submitting" variant="secondary" class="flex items-center gap-2">
-          <Check :size="16" />
-          <span>{{ submitting ? 'Creating...' : 'Create' }}</span>
-        </UiButton>
       </template>
     </UiModal>
 
@@ -503,6 +514,8 @@ const showCreateModal = ref(false);
 const submitting = ref(false);
 const formError = ref('');
 
+const isCodeRequired = computed(() => Boolean(form.value.created_at));
+
 const form = ref<CreateDocumentRequest>({
   title: '',
   code: '',
@@ -533,7 +546,7 @@ async function loadDocuments() {
   loading.value = true;
   error.value = '';
   try {
-    const response = await DocumentService.getAll(offset.value, limit.value, 'code', true);
+    const response = await DocumentService.getAll(offset.value, limit.value, 'created_at', true);
     documents.value = response.data;
   } catch (err: any) {
     error.value = parseSystemError(err);
@@ -638,6 +651,12 @@ function formatStatusLabel(status: string): string {
 async function handleCreate() {
   formError.value = '';
   submitting.value = true;
+
+  if (form.value.created_at && !form.value.code?.trim()) {
+    formError.value = 'Code is required when Created At is set.';
+    submitting.value = false;
+    return;
+  }
   
   try {
     const response = await DocumentService.create({
