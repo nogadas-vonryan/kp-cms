@@ -188,6 +188,7 @@ const showModal = ref(false)
 const modalTitle = ref('')
 const modalMessage = ref('')
 const networkInfoRef = ref(null)
+const NETWORK_IP_STORAGE_KEY = 'archivist.networkIP'
 
 // Watch for network info appearing and scroll to it
 watch([networkIP, () => props.frontendStatus], ([ip, status], [prevIp, prevStatus]) => {
@@ -237,6 +238,15 @@ onMounted(async () => {
         dataPath.value = execDir + '/data'
       }
     }
+
+    try {
+      const cachedIP = window?.localStorage?.getItem(NETWORK_IP_STORAGE_KEY)
+      if (cachedIP && !networkIP.value) {
+        networkIP.value = cachedIP
+      }
+    } catch (err) {
+      console.error('Failed to restore cached network IP:', err)
+    }
   } catch (err) {
     console.error('Failed to load configuration:', err)
     // Try to at least get the executable directory
@@ -253,6 +263,18 @@ onMounted(async () => {
     }
   }
 })
+
+  watch(networkIP, (ip) => {
+    try {
+      if (ip) {
+        window?.localStorage?.setItem(NETWORK_IP_STORAGE_KEY, ip)
+      } else {
+        window?.localStorage?.removeItem(NETWORK_IP_STORAGE_KEY)
+      }
+    } catch (err) {
+      console.error('Failed to persist network IP:', err)
+    }
+  })
 
 function showMessage(title, message) {
   modalTitle.value = title
