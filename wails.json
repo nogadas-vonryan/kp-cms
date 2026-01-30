@@ -10,5 +10,12 @@
   "author": {
     "name": "nogadas-vonryan",
     "email": "vonnogadas251@gmail.com"
+  },
+  "info": {
+  "companyName": "TUF Devs",
+  "productName": "KPCMS",
+  "productVersion": "0.1",
+  "copyright": "Copyright © 2026 TUF Devs",
+  "comments": "Built by TUF Devs"
   }
 }
