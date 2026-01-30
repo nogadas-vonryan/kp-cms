@@ -33,32 +33,21 @@ jobs:
       - name: Build Wails App
         run: wails build -platform windows/amd64
 
+      - name: Add SignTool to PATH
+        uses: KamaranL/add-signtool-action@v1
+
       - name: Sign Wails App
         shell: powershell
         env:
           PFX_DATA: ${{ secrets.PFX_DATA }}
           PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $signtool = & $vswhere -latest -products * -find "**/x64/signtool.exe" | Select-Object -First 1
-          
-          if (-not $signtool) {
-              Write-Error "SignTool.exe not found. Ensure Windows SDK is installed."
-              exit 1
-          }
-          Write-Host "Using SignTool at: $signtool"
-
           $pfxPath = Join-Path $pwd "tuf-devs.pfx"
-          $bytes = [System.Convert]::FromBase64String($env:PFX_DATA)
-          [System.IO.File]::WriteAllBytes($pfxPath, $bytes)
+          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_DATA))
           
           $exePath = Get-ChildItem -Path "build/bin/*.exe" | Select-Object -ExpandProperty FullName
-          if (-not $exePath) {
-              Write-Error "No executable found in build/bin/"
-              exit 1
-          }
           
-          & $signtool sign /v /f $pfxPath /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "$exePath"
+          signtool sign /v /f $pfxPath /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "$exePath"
           
           Remove-Item $pfxPath
 
