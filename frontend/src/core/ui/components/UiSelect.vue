@@ -5,7 +5,7 @@
     :disabled="disabled"
     :multiple="multiple"
     :size="multiple ? size : undefined"
-    class="block w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    class="block w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
     :value="multiple ? undefined : (modelValue ?? '')"
     @change="onChange"
   >

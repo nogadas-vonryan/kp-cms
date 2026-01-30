@@ -19,7 +19,7 @@
             <input
               v-model="uuidSearchQuery"
               placeholder="Search by code..."
-              class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring focus:ring-blue-300 focus:border-transparent outline-none transition-all"
               @keyup.enter="performSearch()"
             />
           </div>
