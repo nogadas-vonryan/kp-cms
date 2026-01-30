@@ -4,7 +4,7 @@
       <div class="flex flex-col md:flex-row md:items-end gap-2">
         <div class="md:flex-1">
           <label class="block text-sm font-medium mb-1">Sort By</label>
-          <UiInput v-model="filters.sort_by" placeholder="e.g., code, title, created_at" class="w-full" />
+          <UiComboBox v-model="filters.sort_by" :options="['code','title','created_at']" class="w-full" placeholder="e.g., code, title, created_at" />
         </div>
         <div class="md:w-40">
           <label class="block text-sm font-medium mb-1">Order</label>
@@ -155,6 +155,7 @@
 import { ref, computed, onMounted } from 'vue'
 import UiButton from '@/core/ui/components/UiButton.vue'
 import UiInput from '@/core/ui/components/UiInput.vue'
+import UiComboBox from '@/core/ui/components/UiComboBox.vue'
 import UiCheckbox from '@/core/ui/components/UiCheckbox.vue'
 import UiCard from '@/core/ui/components/UiCard.vue'
 import UiSelect from '@/core/ui/components/UiSelect.vue'
@@ -174,8 +175,8 @@ const fetchFields = async () => [
   { key: 'fields.complainants', label: 'Complainants', visible: true },
   { key: 'fields.respondents', label: 'Respondents', visible: true },
   { key: 'fields.complaint', label: 'Complaint', visible: true },
-  { key: 'created_at', label: 'Date Filed', visible: true },
-  { key: 'updated_at', label: 'Date Updated', visible: false },
+  { key: 'created_at', label: 'Created At', visible: true },
+  { key: 'updated_at', label: 'Updated At', visible: false },
 ]
 
 const filters = ref({ 
