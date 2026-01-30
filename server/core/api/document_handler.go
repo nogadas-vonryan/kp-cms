@@ -20,6 +20,7 @@ type CreateDocumentRequest struct {
 	FolderName string         `json:"folder_name"`
 	Title      string         `json:"title"`
 	Fields     map[string]any `json:"fields"`
+	CreatedAt  time.Time      `json:"created_at"`
 }
 
 type UpdateDocumentRequest struct {
@@ -46,6 +47,7 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 			FolderName: req.FolderName,
 			Title:      req.Title,
 			Fields:     req.Fields,
+			CreatedAt:  req.CreatedAt,
 		}
 
 		created, err := s.documentService.Create(r.Context(), doc)

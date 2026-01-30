@@ -282,6 +282,11 @@
           <input v-model="form.code" placeholder="Document code (optional)" class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
         </div>
 
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Created At</label>
+          <input v-model="form.created_at" type="date" class="w-full text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
+        </div>
+
         <div class="pt-4 border-t border-gray-200">
           <h3 class="font-semibold text-gray-900 mb-3 text-sm">Document Details</h3>
           
@@ -501,6 +506,7 @@ const formError = ref('');
 const form = ref<CreateDocumentRequest>({
   title: '',
   code: '',
+  created_at: '',
   folder_name: '',
   fields: {
     nature: 'civil',
@@ -637,10 +643,11 @@ async function handleCreate() {
     await DocumentService.create({
       title: form.value.title,
       code: form.value.code,
+      created_at: form.value.created_at ? new Date(form.value.created_at).toISOString() : '',
       fields: form.value.fields
     });
     showCreateModal.value = false;
-    form.value = { title: '', code: '', folder_name: '', fields: {
+    form.value = { title: '', code: '', created_at: '', folder_name: '', fields: {
       nature: 'civil', status: 'case_filed', complainants: [], respondents: [],
     } };
     loadDocuments();

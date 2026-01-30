@@ -38,6 +38,7 @@ export interface CreateDocumentRequest {
   folder_name?: string | null;
   title: string;
   fields: DocumentFields;
+  created_at: string;
 }
 
 export interface UpdateDocumentRequest {
