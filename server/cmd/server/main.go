@@ -5,6 +5,7 @@ import (
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
 	"kpcms/server/core/document"
+	"kpcms/server/core/document/store"
 	"log"
 
 	"net/http"
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := document.NewFileDocumentRepository(*dataPath, *backupPath, namingStrategy)
+	documentRepository, err := store.NewFileDocumentRepository(*dataPath, *backupPath, namingStrategy)
 	if err != nil {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}

@@ -1,4 +1,4 @@
-package document
+package store
 
 import (
 	"context"
@@ -6,11 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 )
 
-func readDocument(metaPath string) (*Document, error) {
+func readDocument(metaPath string) (*document.Document, error) {
 	data, err := os.ReadFile(metaPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -19,7 +20,7 @@ func readDocument(metaPath string) (*Document, error) {
 		return nil, fmt.Errorf("read document: %w", err)
 	}
 
-	var doc Document
+	var doc document.Document
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("decode document: %w", err)
 	}
@@ -27,7 +28,7 @@ func readDocument(metaPath string) (*Document, error) {
 	return &doc, nil
 }
 
-func writeDocument(metaPath string, doc *Document) error {
+func writeDocument(metaPath string, doc *document.Document) error {
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode document: %w", err)
@@ -40,7 +41,7 @@ func writeDocument(metaPath string, doc *Document) error {
 	return nil
 }
 
-func writeFilesMetadata(path string, files []File) error {
+func writeFilesMetadata(path string, files []document.File) error {
 	data, err := json.MarshalIndent(files, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode files metadata: %w", err)

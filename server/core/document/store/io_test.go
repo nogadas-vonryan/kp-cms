@@ -1,9 +1,10 @@
-package document
+package store
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,14 +13,14 @@ import (
 func TestFileDocumentRepository_UploadFile_ConflictDetection(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -54,14 +55,14 @@ func TestFileDocumentRepository_UploadFile_ConflictDetection(t *testing.T) {
 func TestFileDocumentRepository_UploadFile_MultipleConflicts(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -90,14 +91,14 @@ func TestFileDocumentRepository_UploadFile_MultipleConflicts(t *testing.T) {
 func TestFileDocumentRepository_UploadFile_MetadataPreservation(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -119,7 +120,7 @@ func TestFileDocumentRepository_UploadFile_MetadataPreservation(t *testing.T) {
 		t.Fatalf("failed to read files.json: %v", err)
 	}
 
-	var files []File
+	var files []document.File
 	err = json.Unmarshal(data, &files)
 	if err != nil {
 		t.Fatalf("failed to unmarshal files.json: %v", err)
@@ -145,14 +146,14 @@ func TestFileDocumentRepository_UploadFile_MetadataPreservation(t *testing.T) {
 func TestFileDocumentRepository_UpdateFileContents(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -189,14 +190,14 @@ func TestFileDocumentRepository_UpdateFileContents(t *testing.T) {
 func TestFileDocumentRepository_UpdateFileContents_PreservesMetadata(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -213,7 +214,7 @@ func TestFileDocumentRepository_UpdateFileContents_PreservesMetadata(t *testing.
 	folderPath := filepath.Join(tmpBase, doc.FolderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	var files []File
+	var files []document.File
 	data, _ := os.ReadFile(filesJSONPath)
 	json.Unmarshal(data, &files)
 
@@ -251,14 +252,14 @@ func TestFileDocumentRepository_UpdateFileContents_PreservesMetadata(t *testing.
 func TestFileDocumentRepository_RenameFile(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -292,7 +293,7 @@ func TestFileDocumentRepository_RenameFile(t *testing.T) {
 	// Check files.json is updated
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 	data, _ := os.ReadFile(filesJSONPath)
-	var files []File
+	var files []document.File
 	json.Unmarshal(data, &files)
 
 	if len(files) != 1 || files[0].FileName != "newname.txt" {
@@ -303,14 +304,14 @@ func TestFileDocumentRepository_RenameFile(t *testing.T) {
 func TestFileDocumentRepository_RenameFile_ConflictResolution(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -345,7 +346,7 @@ func TestFileDocumentRepository_RenameFile_ConflictResolution(t *testing.T) {
 	// Check metadata is updated correctly
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 	data, _ := os.ReadFile(filesJSONPath)
-	var files []File
+	var files []document.File
 	json.Unmarshal(data, &files)
 
 	var found bool
@@ -363,14 +364,14 @@ func TestFileDocumentRepository_RenameFile_ConflictResolution(t *testing.T) {
 func TestFileDocumentRepository_RenameFile_PreservesMetadata(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -387,7 +388,7 @@ func TestFileDocumentRepository_RenameFile_PreservesMetadata(t *testing.T) {
 	folderPath := filepath.Join(tmpBase, doc.FolderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	var files []File
+	var files []document.File
 	data, _ := os.ReadFile(filesJSONPath)
 	json.Unmarshal(data, &files)
 
@@ -431,7 +432,7 @@ func TestFileDocumentRepository_UniqueFileName(t *testing.T) {
 	testFile2 := filepath.Join(tmpBase, "test (Copy).txt")
 	os.WriteFile(testFile2, []byte("test"), 0644)
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -460,14 +461,14 @@ func TestFileDocumentRepository_UniqueFileName(t *testing.T) {
 func TestFileDocumentRepository_UpdateFileContents_CreatesIfNotExists(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -491,7 +492,7 @@ func TestFileDocumentRepository_UpdateFileContents_CreatesIfNotExists(t *testing
 	// Check metadata was added
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 	data, _ := os.ReadFile(filesJSONPath)
-	var files []File
+	var files []document.File
 	json.Unmarshal(data, &files)
 
 	if len(files) != 1 || files[0].FileName != "newfile.txt" {
@@ -502,14 +503,14 @@ func TestFileDocumentRepository_UpdateFileContents_CreatesIfNotExists(t *testing
 func TestFileDocumentRepository_PathTraversalProtection(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
 
 	ctx := context.Background()
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	_, err = repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)

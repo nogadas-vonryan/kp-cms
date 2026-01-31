@@ -1,4 +1,4 @@
-package document
+package store
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	"github.com/hymkor/trash-go"
 )
 
-func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid string, file File) error {
+func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid string, file document.File) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -26,7 +27,7 @@ func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid strin
 	folderPath := r.getDocumentPath(doc.FolderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	var files []File
+	var files []document.File
 	data, err := os.ReadFile(filesJSONPath)
 	if err == nil {
 		if err := json.Unmarshal(data, &files); err != nil {
@@ -34,10 +35,8 @@ func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid strin
 		}
 	}
 
-	// Check if file already exists
 	for i, f := range files {
 		if f.FileName == file.FileName {
-			// Update existing file metadata
 			files[i] = file
 			return writeFilesMetadata(filesJSONPath, files)
 		}
@@ -47,7 +46,7 @@ func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid strin
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
-func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates FileMetadataUpdate) error {
+func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates document.FileMetadataUpdate) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -60,8 +59,7 @@ func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid st
 	folderPath := r.getDocumentPath(doc.FolderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	// Read existing metadata
-	var files []File
+	var files []document.File
 	data, err := os.ReadFile(filesJSONPath)
 	if err != nil {
 		return fmt.Errorf("read metadata: %w", err)
@@ -95,15 +93,14 @@ func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid st
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
-func (r *FileDocumentRepository) scanPhysicalFolder(folderPath string) ([]File, error) {
+func (r *FileDocumentRepository) scanPhysicalFolder(folderPath string) ([]document.File, error) {
 	entries, err := os.ReadDir(folderPath)
 	if err != nil {
 		return nil, err
 	}
 
-	var files []File
+	var files []document.File
 	for _, entry := range entries {
-		// Ignore directories and the metadata file itself
 		if entry.IsDir() || entry.Name() == "meta.json" || entry.Name() == "files.json" {
 			continue
 		}
@@ -113,18 +110,17 @@ func (r *FileDocumentRepository) scanPhysicalFolder(folderPath string) ([]File, 
 			continue
 		}
 
-		files = append(files, File{
+		files = append(files, document.File{
 			FileName:  entry.Name(),
 			Type:      filepath.Ext(entry.Name()),
 			Size:      info.Size(),
 			CreatedAt: info.ModTime(),
-			// Description and Note will be empty because we are recovering from raw files
 		})
 	}
 	return files, nil
 }
 
-func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
+func (r *FileDocumentRepository) readFiles(folderName string) ([]document.File, error) {
 	folderPath := r.getDocumentPath(folderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
@@ -133,11 +129,10 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 		return nil, fmt.Errorf("scanning physical folder: %w", err)
 	}
 
-	// Try to read the existing metadata
-	var metadataMap = make(map[string]File)
+	var metadataMap = make(map[string]document.File)
 	jsonData, err := os.ReadFile(filesJSONPath)
 	if err == nil {
-		var metadataList []File
+		var metadataList []document.File
 		if err := json.Unmarshal(jsonData, &metadataList); err == nil {
 			for _, f := range metadataList {
 				metadataMap[f.FileName] = f
@@ -145,19 +140,15 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]File, error) {
 		}
 	}
 
-	// Loop through physical files and attach metadata if it exists
-	syncedFiles := make([]File, 0, len(physicalFiles))
+	syncedFiles := make([]document.File, 0, len(physicalFiles))
 	newFilesFound := false
 	for _, physFile := range physicalFiles {
 		if meta, exists := metadataMap[physFile.FileName]; exists {
-			// Keep existing metadata (like custom tags/names)
-			// but update physical stats from the scan
 			meta.Size = physFile.Size
 			meta.CreatedAt = physFile.CreatedAt
 			meta.Type = physFile.Type
 			syncedFiles = append(syncedFiles, meta)
 		} else {
-			// It's a brand new file found on disk
 			syncedFiles = append(syncedFiles, physFile)
 			newFilesFound = true
 		}
@@ -248,7 +239,7 @@ func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fi
 		return fmt.Errorf("get file info: %w", err)
 	}
 
-	file := File{
+	file := document.File{
 		FileName:  finalName,
 		Type:      filepath.Ext(finalName),
 		Size:      writtenBytes,
@@ -281,14 +272,12 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 	folderPath := r.getDocumentPath(doc.FolderName)
 	filePath := filepath.Join(folderPath, safeName)
 
-	// Move physical file to trash/recycle bin
 	if err := trash.Throw(filePath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("move file to trash: %w", err)
 	}
 
-	// Update files.json
 	filesJSONPath := filepath.Join(folderPath, "files.json")
-	var files []File
+	var files []document.File
 	data, err := os.ReadFile(filesJSONPath)
 
 	// Parse metadata if it exists
@@ -396,7 +385,7 @@ func (r *FileDocumentRepository) UpdateFileContents(ctx context.Context, uuid st
 	folderPath := r.getDocumentPath(doc.FolderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
-	var files []File
+	var files []document.File
 	data, err := os.ReadFile(filesJSONPath)
 	if err == nil {
 		_ = json.Unmarshal(data, &files) // ignore unmarshal error and proceed
@@ -413,7 +402,7 @@ func (r *FileDocumentRepository) UpdateFileContents(ctx context.Context, uuid st
 		}
 	}
 	if !found {
-		files = append(files, File{
+		files = append(files, document.File{
 			FileName:  safeName,
 			Type:      filepath.Ext(safeName),
 			Size:      writtenBytes,
@@ -471,7 +460,7 @@ func (r *FileDocumentRepository) RenameFile(ctx context.Context, uuid string, ol
 
 	// Update metadata
 	filesJSONPath := filepath.Join(folderPath, "files.json")
-	var files []File
+	var files []document.File
 	data, err := os.ReadFile(filesJSONPath)
 	if err == nil {
 		_ = json.Unmarshal(data, &files) // ignore unmarshal error and rebuild if needed
@@ -498,7 +487,7 @@ func (r *FileDocumentRepository) RenameFile(ctx context.Context, uuid string, ol
 	}
 	if !found {
 		// create new metadata entry if none existed
-		f := File{
+		f := document.File{
 			FileName: finalName,
 			Type:     filepath.Ext(finalName),
 		}

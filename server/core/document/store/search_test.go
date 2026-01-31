@@ -1,7 +1,8 @@
-package document
+package store
 
 import (
 	"context"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,7 @@ import (
 
 func setupSearchTestRepo(t *testing.T) (*FileDocumentRepository, []string) {
 	tmpBase := t.TempDir()
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -64,7 +65,7 @@ func setupSearchTestRepo(t *testing.T) (*FileDocumentRepository, []string) {
 
 	var uuids []string
 	for _, d := range docs {
-		doc := &Document{
+		doc := &document.Document{
 			Title:  d.title,
 			Fields: d.fields,
 		}
@@ -85,7 +86,7 @@ func TestSearch_ByUUID(t *testing.T) {
 	repo, uuids := setupSearchTestRepo(t)
 	ctx := context.Background()
 
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		UUID: uuids[0],
 	})
 
@@ -107,7 +108,7 @@ func TestSearch_ByCode(t *testing.T) {
 	ctx := context.Background()
 
 	// Search by exact code
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		Code: "0001",
 	})
 
@@ -120,7 +121,7 @@ func TestSearch_ByCode(t *testing.T) {
 	}
 
 	// Verify prefix matching works
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		Code: "000", // should match 0001, 0002, etc.
 	})
 
@@ -138,7 +139,7 @@ func TestSearch_ByFolderName(t *testing.T) {
 	ctx := context.Background()
 
 	// Search by folder name substring
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FolderName: "case_0001",
 	})
 
@@ -151,7 +152,7 @@ func TestSearch_ByFolderName(t *testing.T) {
 	}
 
 	// Test case-insensitive matching
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		FolderName: "CASE",
 	})
 
@@ -169,7 +170,7 @@ func TestSearch_ByFieldKey(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for documents that have "status" field
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldKey: "status",
 	})
 
@@ -182,7 +183,7 @@ func TestSearch_ByFieldKey(t *testing.T) {
 	}
 
 	// Search for documents that have "complainants" field
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		FieldKey: "complainants",
 	})
 
@@ -200,7 +201,7 @@ func TestSearch_ByFieldValue(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for status = "mediation"
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"status": "mediation",
 		},
@@ -226,7 +227,7 @@ func TestSearch_ByFieldValue_CaseInsensitive(t *testing.T) {
 	ctx := context.Background()
 
 	// Search with different case
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"status": "MEDIATION",
 		},
@@ -246,7 +247,7 @@ func TestSearch_InArray(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for "John Doe" in complainants array
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"complainants": "John Doe",
 		},
@@ -270,7 +271,7 @@ func TestSearch_InNestedObject(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for "settled" in nested resolution object
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"resolution": "settled",
 		},
@@ -294,7 +295,7 @@ func TestSearch_MultipleFieldFilters(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for status="mediation" AND priority="high"
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"status":   "mediation",
 			"priority": "high",
@@ -323,7 +324,7 @@ func TestSearch_DateRange(t *testing.T) {
 	hourFromNow := now.Add(1 * time.Hour)
 
 	// Search for documents created after an hour ago (should get all)
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		DateFrom: &hourAgo,
 	})
 
@@ -336,7 +337,7 @@ func TestSearch_DateRange(t *testing.T) {
 	}
 
 	// Search for documents created before an hour from now (should get all)
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		DateTo: &hourFromNow,
 	})
 
@@ -350,7 +351,7 @@ func TestSearch_DateRange(t *testing.T) {
 
 	// Search for documents created in the future (should get none)
 	futureDate := now.Add(24 * time.Hour)
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		DateFrom: &futureDate,
 	})
 
@@ -368,7 +369,7 @@ func TestSearch_Pagination(t *testing.T) {
 	ctx := context.Background()
 
 	// Get first 2 results
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		Offset: 0,
 		Limit:  2,
 	})
@@ -382,7 +383,7 @@ func TestSearch_Pagination(t *testing.T) {
 	}
 
 	// Get next 2 results
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		Offset: 2,
 		Limit:  2,
 	})
@@ -396,7 +397,7 @@ func TestSearch_Pagination(t *testing.T) {
 	}
 
 	// Get results beyond available documents
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		Offset: 10,
 		Limit:  2,
 	})
@@ -415,7 +416,7 @@ func TestSearch_CombinedCriteria(t *testing.T) {
 	ctx := context.Background()
 
 	// Combine code prefix, field existence, and field value
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		Code:     "000",
 		FieldKey: "status",
 		FieldFilters: map[string]any{
@@ -444,7 +445,7 @@ func TestSearch_NoResults(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for non-existent UUID
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		UUID: "non-existent-uuid",
 	})
 
@@ -457,7 +458,7 @@ func TestSearch_NoResults(t *testing.T) {
 	}
 
 	// Search for non-existent field value
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"status": "non-existent-status",
 		},
@@ -477,7 +478,7 @@ func TestSearch_EmptyCriteria(t *testing.T) {
 	ctx := context.Background()
 
 	// Empty criteria should return all documents
-	results, err := repo.Search(ctx, SearchCriteria{})
+	results, err := repo.Search(ctx, document.SearchCriteria{})
 
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
@@ -490,7 +491,7 @@ func TestSearch_EmptyCriteria(t *testing.T) {
 
 func TestSearch_WithActualFolders(t *testing.T) {
 	tmpBase := t.TempDir()
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 
 	// Create folders with actual structure
 	doc1Folder := filepath.Join(tmpBase, "case_0001_mediation")
@@ -513,7 +514,7 @@ func TestSearch_WithActualFolders(t *testing.T) {
 	ctx := context.Background()
 
 	// Search by folder name
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FolderName: "mediation",
 	})
 
@@ -535,7 +536,7 @@ func TestSearch_SortByCode(t *testing.T) {
 	ctx := context.Background()
 
 	// Sort by code ascending (default)
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		SortBy: "code",
 		Limit:  10,
 	})
@@ -556,7 +557,7 @@ func TestSearch_SortByCode(t *testing.T) {
 	}
 
 	// Sort by code descending
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		SortBy:   "code",
 		SortDesc: true,
 		Limit:    10,
@@ -579,7 +580,7 @@ func TestSearch_SortByTitle(t *testing.T) {
 	ctx := context.Background()
 
 	// Sort by title ascending
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		SortBy: "title",
 		Limit:  10,
 	})
@@ -602,7 +603,7 @@ func TestSearch_SortByTitle(t *testing.T) {
 	}
 
 	// Sort by title descending
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		SortBy:   "title",
 		SortDesc: true,
 		Limit:    10,
@@ -627,7 +628,7 @@ func TestSearch_SortByCreatedAt(t *testing.T) {
 	ctx := context.Background()
 
 	// Sort by created_at ascending
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		SortBy: "created_at",
 		Limit:  10,
 	})
@@ -648,7 +649,7 @@ func TestSearch_SortByCreatedAt(t *testing.T) {
 	}
 
 	// Sort by created_at descending (newest first)
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		SortBy:   "created_at",
 		SortDesc: true,
 		Limit:    10,
@@ -671,7 +672,7 @@ func TestSearch_SortByFolderName(t *testing.T) {
 	ctx := context.Background()
 
 	// Sort by folder_name ascending
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		SortBy: "folder_name",
 		Limit:  10,
 	})
@@ -694,7 +695,7 @@ func TestSearch_SortByFolderName(t *testing.T) {
 	}
 
 	// Sort by folder_name descending
-	results, err = repo.Search(ctx, SearchCriteria{
+	results, err = repo.Search(ctx, document.SearchCriteria{
 		SortBy:   "folder_name",
 		SortDesc: true,
 		Limit:    10,
@@ -719,7 +720,7 @@ func TestSearch_SortWithFilter(t *testing.T) {
 	ctx := context.Background()
 
 	// Search for mediation documents and sort by title ascending
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		FieldFilters: map[string]any{
 			"status": "mediation",
 		},
@@ -746,7 +747,7 @@ func TestSearch_DefaultSort(t *testing.T) {
 	ctx := context.Background()
 
 	// When SortBy is empty, should default to "code"
-	results, err := repo.Search(ctx, SearchCriteria{
+	results, err := repo.Search(ctx, document.SearchCriteria{
 		Limit: 10,
 	})
 

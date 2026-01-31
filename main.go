@@ -18,6 +18,7 @@ import (
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
 	"kpcms/server/core/document"
+	"kpcms/server/core/document/store"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -298,7 +299,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 
 	// Create document repository
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := document.NewFileDocumentRepository(dataPath, backupPath, namingStrategy)
+	documentRepository, err := store.NewFileDocumentRepository(dataPath, backupPath, namingStrategy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create document repository: %v", err)
 	}

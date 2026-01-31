@@ -1,7 +1,8 @@
-package document
+package store
 
 import (
 	"context"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,7 +14,7 @@ import (
 func TestFix1_ConcurrentCreateDoesNotDuplicateCodes(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -30,7 +31,7 @@ func TestFix1_ConcurrentCreateDoesNotDuplicateCodes(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			doc := &Document{Title: "Test Document " + string(rune(idx))}
+			doc := &document.Document{Title: "Test Document " + string(rune(idx))}
 			created, err := repo.Create(ctx, doc)
 			if err != nil {
 				t.Errorf("Create failed: %v", err)
@@ -61,7 +62,7 @@ func TestFix1_ConcurrentCreateDoesNotDuplicateCodes(t *testing.T) {
 func TestFix2_PathTraversalRejection(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -70,7 +71,7 @@ func TestFix2_PathTraversalRejection(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a document
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	created, err := repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -103,7 +104,7 @@ func TestFix2_PathTraversalRejection(t *testing.T) {
 func TestFix3_DeleteFileMetadataAlwaysUpdated(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -112,7 +113,7 @@ func TestFix3_DeleteFileMetadataAlwaysUpdated(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a document
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	created, err := repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -127,7 +128,7 @@ func TestFix3_DeleteFileMetadataAlwaysUpdated(t *testing.T) {
 	}
 
 	// Add file to metadata
-	err = repo.AddFileMetadata(ctx, created.UUID, File{
+	err = repo.AddFileMetadata(ctx, created.UUID, document.File{
 		FileName:  "testfile.txt",
 		Type:      ".txt",
 		Size:      12,
@@ -163,7 +164,7 @@ func TestFix3_DeleteFileMetadataAlwaysUpdated(t *testing.T) {
 func TestFix4_ConcurrentUploadAndReadDoesNotLoseData(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -172,7 +173,7 @@ func TestFix4_ConcurrentUploadAndReadDoesNotLoseData(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a document
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	created, err := repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -235,7 +236,7 @@ func TestFix4_ConcurrentUploadAndReadDoesNotLoseData(t *testing.T) {
 func TestConcurrentCreationUnderHighLoad(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -252,7 +253,7 @@ func TestConcurrentCreationUnderHighLoad(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			doc := &Document{Title: "Document " + string(rune(idx))}
+			doc := &document.Document{Title: "Document " + string(rune(idx))}
 			created, err := repo.Create(ctx, doc)
 			if err != nil {
 				t.Errorf("Create failed at index %d: %v", idx, err)

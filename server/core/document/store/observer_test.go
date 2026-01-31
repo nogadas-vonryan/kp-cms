@@ -1,8 +1,9 @@
-package document
+package store
 
 import (
 	"context"
 	"encoding/json"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +16,7 @@ import (
 func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -24,7 +25,7 @@ func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a document
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	created, err := repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -45,7 +46,7 @@ func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read files.json: %v", err)
 	}
-	var initialFiles []File
+	var initialFiles []document.File
 	if err := json.Unmarshal(initialData, &initialFiles); err != nil {
 		t.Fatalf("Failed to parse files.json: %v", err)
 	}
@@ -86,7 +87,7 @@ func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read files.json after GetByUUID: %v", err)
 	}
-	var updatedFiles []File
+	var updatedFiles []document.File
 	if err := json.Unmarshal(updatedData, &updatedFiles); err != nil {
 		t.Fatalf("Failed to parse updated files.json: %v", err)
 	}
@@ -108,7 +109,7 @@ func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 	note := "Important note"
 	tags := []string{"manual", "test", "important"}
 
-	updates := FileMetadataUpdate{
+	updates := document.FileMetadataUpdate{
 		Description: &description,
 		Note:        &note,
 		Tags:        &tags,
@@ -126,7 +127,7 @@ func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 		t.Fatalf("GetByUUID failed after update: %v", err)
 	}
 
-	var updatedFile *File
+	var updatedFile *document.File
 	for i, f := range finalDoc.Files {
 		if f.FileName == "manual_file.txt" {
 			updatedFile = &finalDoc.Files[i]
@@ -163,7 +164,7 @@ func TestManuallyAddedFile_AutomaticRegistrationAndUpdate(t *testing.T) {
 func TestManuallyAddedFile_MultipleFiles(t *testing.T) {
 	tmpBase := t.TempDir()
 
-	strategy := NewNamingStrategyCaseDDDD("case")
+	strategy := document.NewNamingStrategyCaseDDDD("case")
 	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -172,7 +173,7 @@ func TestManuallyAddedFile_MultipleFiles(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a document
-	doc := &Document{Title: "Test Document"}
+	doc := &document.Document{Title: "Test Document"}
 	created, err := repo.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -218,7 +219,7 @@ func TestManuallyAddedFile_MultipleFiles(t *testing.T) {
 
 	// Update metadata on one of them to ensure it works
 	desc := "Updated description"
-	err = repo.UpdateFileMetadata(ctx, created.UUID, "file2.pdf", FileMetadataUpdate{
+	err = repo.UpdateFileMetadata(ctx, created.UUID, "file2.pdf", document.FileMetadataUpdate{
 		Description: &desc,
 	})
 	if err != nil {

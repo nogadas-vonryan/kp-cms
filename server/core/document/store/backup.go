@@ -1,10 +1,11 @@
-package document
+package store
 
 import (
 	"archive/zip"
 	"context"
 	"fmt"
 	"io"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,23 +15,17 @@ import (
 	"github.com/hymkor/trash-go"
 )
 
-type BackupFile struct {
-	FileName  string    `json:"file_name"`
-	Size      int64     `json:"size"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 func (r *FileDocumentRepository) GetBackupPath() string {
 	return r.backupPath
 }
 
-func (r *FileDocumentRepository) ListBackups(ctx context.Context) ([]BackupFile, error) {
+func (r *FileDocumentRepository) ListBackups(ctx context.Context) ([]document.BackupFile, error) {
 	entries, err := os.ReadDir(r.backupPath)
 	if err != nil {
 		return nil, fmt.Errorf("read backup directory: %w", err)
 	}
 
-	backups := make([]BackupFile, 0, len(entries))
+	backups := make([]document.BackupFile, 0, len(entries))
 
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".zip") {
@@ -39,7 +34,7 @@ func (r *FileDocumentRepository) ListBackups(ctx context.Context) ([]BackupFile,
 				continue
 			}
 
-			backups = append(backups, BackupFile{
+			backups = append(backups, document.BackupFile{
 				FileName:  entry.Name(),
 				Size:      info.Size(),
 				CreatedAt: info.ModTime(),
@@ -47,7 +42,7 @@ func (r *FileDocumentRepository) ListBackups(ctx context.Context) ([]BackupFile,
 		}
 	}
 
-	slices.SortFunc(backups, func(a, b BackupFile) int {
+	slices.SortFunc(backups, func(a, b document.BackupFile) int {
 		if a.CreatedAt.After(b.CreatedAt) {
 			return -1
 		}

@@ -1,12 +1,13 @@
-package document
+package store
 
 import (
 	"context"
+	"kpcms/server/core/document"
 	"sort"
 	"strings"
 )
 
-func (r *FileDocumentRepository) Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error) {
+func (r *FileDocumentRepository) Search(ctx context.Context, criteria document.SearchCriteria) ([]*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -14,7 +15,7 @@ func (r *FileDocumentRepository) Search(ctx context.Context, criteria SearchCrit
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var results []*Document
+	var results []*document.Document
 
 	// Iterate through cache
 	for _, doc := range r.cacheByUUID {
@@ -28,7 +29,7 @@ func (r *FileDocumentRepository) Search(ctx context.Context, criteria SearchCrit
 			continue
 		}
 
-		result := &Document{
+		result := &document.Document{
 			UUID:       doc.UUID,
 			Code:       doc.Code,
 			FolderName: doc.FolderName,
@@ -48,7 +49,7 @@ func (r *FileDocumentRepository) Search(ctx context.Context, criteria SearchCrit
 	return paginate(results, criteria.Offset, criteria.Limit), nil
 }
 
-func matchesCriteria(doc *Document, criteria SearchCriteria) bool {
+func matchesCriteria(doc *document.Document, criteria document.SearchCriteria) bool {
 	// UUID filter (exact match)
 	if criteria.UUID != "" && doc.UUID != criteria.UUID {
 		return false
@@ -143,7 +144,7 @@ func matchesFieldValue(actual, expected any) bool {
 	return false
 }
 
-func sortResults(docs []*Document, sortBy string, sortDesc bool) {
+func sortResults(docs []*document.Document, sortBy string, sortDesc bool) {
 	if sortBy == "" {
 		sortBy = "code" // default sort
 	}
@@ -173,9 +174,9 @@ func sortResults(docs []*Document, sortBy string, sortDesc bool) {
 	})
 }
 
-func paginate(docs []*Document, offset, limit int) []*Document {
+func paginate(docs []*document.Document, offset, limit int) []*document.Document {
 	if offset >= len(docs) || offset < 0 {
-		return []*Document{}
+		return []*document.Document{}
 	}
 	end := offset + limit
 	if end > len(docs) || limit <= 0 {

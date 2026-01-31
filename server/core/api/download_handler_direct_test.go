@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"kpcms/server/core/document"
+	"kpcms/server/core/document/store"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -20,7 +21,7 @@ func TestDownloadFile_WithSpaces_Direct(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := document.NewFileDocumentRepository(tempDir, "", strategy)
+	repo, err := store.NewFileDocumentRepository(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}
@@ -76,7 +77,7 @@ func TestDownloadFile_WithMultipleSpaces_Direct(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := document.NewFileDocumentRepository(tempDir, "", strategy)
+	repo, err := store.NewFileDocumentRepository(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}

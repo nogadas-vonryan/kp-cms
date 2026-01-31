@@ -46,3 +46,15 @@ type SearchCriteria struct {
 	Offset       int            // pagination offset
 	Limit        int            // pagination limit
 }
+
+type SyncIssue struct {
+	Type    string `json:"type"`
+	Path    string `json:"path"`
+	Message string `json:"message"`
+}
+
+type BackupFile struct {
+	FileName  string    `json:"file_name"`
+	Size      int64     `json:"size"`
+	CreatedAt time.Time `json:"created_at"`
+}

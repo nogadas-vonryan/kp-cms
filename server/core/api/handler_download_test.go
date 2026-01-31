@@ -12,13 +12,14 @@ import (
 
 	"kpcms/server/core/auth"
 	"kpcms/server/core/document"
+	"kpcms/server/core/document/store"
 )
 
 func setupTestServer(t *testing.T) (*Server, string) {
 	tempDir := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := document.NewFileDocumentRepository(tempDir, "", strategy)
+	repo, err := store.NewFileDocumentRepository(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}

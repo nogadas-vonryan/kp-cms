@@ -1,68 +1,20 @@
-package document
+package store
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"io/fs"
+	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/hymkor/trash-go"
 )
 
-type SyncIssue struct {
-	Type    string `json:"type"`
-	Path    string `json:"path"`
-	Message string `json:"message"`
-}
-
-type FileDocumentRepository struct {
-	basePath       string
-	backupPath     string
-	namingStrategy NamingStrategy
-	mu             sync.RWMutex
-	sortedByCode   []string
-	cacheByUUID    map[string]*Document
-	cacheByCode    map[string]*Document
-	lastConflicts  []SyncIssue
-}
-
-var _ DocumentStore = (*FileDocumentRepository)(nil)
-var _ FileStore = (*FileDocumentRepository)(nil)
-var _ CacheStore = (*FileDocumentRepository)(nil)
-var _ BackupStore = (*FileDocumentRepository)(nil)
-
-func NewFileDocumentRepository(basePath string, backupPath string, namingStrategy NamingStrategy) (*FileDocumentRepository, error) {
-	if basePath == "" {
-		return nil, errors.New("base path is required")
-	}
-	if namingStrategy == nil {
-		return nil, errors.New("naming strategy is required")
-	}
-
-	if err := os.MkdirAll(basePath, 0o755); err != nil {
-		return nil, fmt.Errorf("ensure base path: %w", err)
-	}
-
-	repo := &FileDocumentRepository{
-		basePath:       basePath,
-		backupPath:     backupPath,
-		namingStrategy: namingStrategy,
-		cacheByUUID:    make(map[string]*Document),
-		cacheByCode:    make(map[string]*Document),
-		sortedByCode:   make([]string, 0),
-	}
-
-	// Warning: Lock first (so multiple users can read/write at once without crashing)
-	_, err := repo.ReloadCache(context.Background())
-	return repo, err
-}
-
-func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Document, error) {
+func (r *FileDocumentRepository) Create(ctx context.Context, doc *document.Document) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -122,7 +74,7 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *Document) (*Do
 	return doc, nil
 }
 
-func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string) (*Document, error) {
+func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -140,7 +92,7 @@ func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string
 		return nil, err
 	}
 
-	resp := &Document{
+	resp := &document.Document{
 		UUID:       doc.UUID,
 		Code:       doc.Code,
 		FolderName: doc.FolderName,
@@ -153,7 +105,7 @@ func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string
 	return resp, nil
 }
 
-func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*Document, error) {
+func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -171,7 +123,7 @@ func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*D
 		return nil, err
 	}
 
-	resp := &Document{
+	resp := &document.Document{
 		UUID:       doc.UUID,
 		Code:       doc.Code,
 		FolderName: doc.FolderName,
@@ -184,7 +136,7 @@ func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*D
 	return resp, nil
 }
 
-func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, doc *Document) (*Document, error) {
+func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, doc *document.Document) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -246,7 +198,7 @@ func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) e
 	return nil
 }
 
-func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
+func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -254,13 +206,13 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	buildDoc := func(doc *Document) (*Document, error) {
+	buildDoc := func(doc *document.Document) (*document.Document, error) {
 		files, err := r.readFiles(doc.FolderName)
 		if err != nil {
 			return nil, err
 		}
 
-		return &Document{
+		return &document.Document{
 			UUID:       doc.UUID,
 			Code:       doc.Code,
 			FolderName: doc.FolderName,
@@ -272,11 +224,10 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 		}, nil
 	}
 
-	// Fast path for default ascending code order using the prebuilt index
 	if sortBy == "" || (sortBy == "code" && !sortDesc) {
 		total := len(r.sortedByCode)
 		if offset >= total || offset < 0 {
-			return []*Document{}, nil
+			return []*document.Document{}, nil
 		}
 
 		end := offset + limit
@@ -284,7 +235,7 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 			end = total
 		}
 
-		docs := make([]*Document, 0, end-offset)
+		docs := make([]*document.Document, 0, end-offset)
 		pageKeys := r.sortedByCode[offset:end]
 		for _, code := range pageKeys {
 			doc, exists := r.cacheByCode[code]
@@ -302,8 +253,7 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 		return docs, nil
 	}
 
-	// General path: sort using provided field/direction
-	docs := make([]*Document, 0, len(r.cacheByCode))
+	docs := make([]*document.Document, 0, len(r.cacheByCode))
 	for _, doc := range r.cacheByCode {
 		docs = append(docs, doc)
 	}
@@ -311,7 +261,7 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 	sortResults(docs, sortBy, sortDesc)
 	paged := paginate(docs, offset, limit)
 
-	result := make([]*Document, 0, len(paged))
+	result := make([]*document.Document, 0, len(paged))
 	for _, doc := range paged {
 		resp, err := buildDoc(doc)
 		if err != nil {

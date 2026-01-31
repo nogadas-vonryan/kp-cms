@@ -1,8 +1,9 @@
-package document
+package store
 
 import (
 	"context"
 	"fmt"
+	"kpcms/server/core/document"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, error) {
+func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -23,10 +24,10 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 		return nil, fmt.Errorf("failed to read base directory: %w", err)
 	}
 
-	tempUUID := make(map[string]*Document)
-	tempCode := make(map[string]*Document)
+	tempUUID := make(map[string]*document.Document)
+	tempCode := make(map[string]*document.Document)
 	var tempSortedCodes []string
-	var issues []SyncIssue
+	var issues []document.SyncIssue
 
 	for _, entry := range entries {
 		if err := ctxErr(ctx); err != nil {
@@ -42,7 +43,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 
 		doc, err := readDocument(metaPath)
 		if err != nil {
-			issues = append(issues, SyncIssue{
+			issues = append(issues, document.SyncIssue{
 				Type:    "MISSING_META",
 				Path:    folderName,
 				Message: fmt.Sprintf("could not read meta.json: %v", err),
@@ -53,7 +54,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 		folderCode, ok := r.namingStrategy.ExtractCode(folderName)
 		if !ok {
 			if doc.Code == "" {
-				issues = append(issues, SyncIssue{
+				issues = append(issues, document.SyncIssue{
 					Type:    "INVALID_FOLDER",
 					Path:    folderName,
 					Message: "folder name does not match naming strategy and meta.json has no code",
@@ -69,7 +70,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 			doc.Code = folderCode
 
 			// Safety: Capture variables for the goroutine to prevent race conditions
-			go func(path string, d Document, folder string) {
+			go func(path string, d document.Document, folder string) {
 				if err := writeDocument(path, &d); err != nil {
 					log.Printf("[Cache] Auto-heal failed for %s: %v", folder, err)
 				}
@@ -77,7 +78,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 		}
 
 		if existing, exists := tempCode[doc.Code]; exists {
-			issues = append(issues, SyncIssue{
+			issues = append(issues, document.SyncIssue{
 				Type:    "DUPLICATE_CODE",
 				Path:    folderName,
 				Message: fmt.Sprintf("code '%s' already claimed by folder '%s'", doc.Code, existing.FolderName),
@@ -86,7 +87,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 		}
 
 		if existing, exists := tempUUID[doc.UUID]; exists {
-			issues = append(issues, SyncIssue{
+			issues = append(issues, document.SyncIssue{
 				Type:    "DUPLICATE_UUID",
 				Path:    folderName,
 				Message: fmt.Sprintf("UUID '%s' already claimed by folder '%s'", doc.UUID, existing.FolderName),
@@ -115,7 +116,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]SyncIssue, 
 	return issues, nil
 }
 
-func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folderName string) ([]SyncIssue, error) {
+func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folderName string) ([]document.SyncIssue, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -123,7 +124,7 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	log.Printf("[Cache] Starting reload of single document folder: %s", folderName)
 	start := time.Now()
 
-	var issues []SyncIssue
+	var issues []document.SyncIssue
 	metaPath := filepath.Join(r.basePath, folderName, "meta.json")
 
 	// Check if folder exists
@@ -140,7 +141,7 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	// Read document metadata
 	doc, err := readDocument(metaPath)
 	if err != nil {
-		issues = append(issues, SyncIssue{
+		issues = append(issues, document.SyncIssue{
 			Type:    "MISSING_META",
 			Path:    folderName,
 			Message: fmt.Sprintf("could not read meta.json: %v", err),
@@ -152,7 +153,7 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	folderCode, ok := r.namingStrategy.ExtractCode(folderName)
 	if !ok {
 		if doc.Code == "" {
-			issues = append(issues, SyncIssue{
+			issues = append(issues, document.SyncIssue{
 				Type:    "INVALID_FOLDER",
 				Path:    folderName,
 				Message: "folder name does not match naming strategy and meta.json has no code",
@@ -171,7 +172,7 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 		// Write the fix synchronously for single folder reload
 		if err := writeDocument(metaPath, doc); err != nil {
 			log.Printf("[Cache] Auto-heal failed for %s: %v", folderName, err)
-			issues = append(issues, SyncIssue{
+			issues = append(issues, document.SyncIssue{
 				Type:    "AUTO_HEAL_FAILED",
 				Path:    folderName,
 				Message: fmt.Sprintf("failed to fix code mismatch: %v", err),
@@ -191,7 +192,7 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	defer r.mu.Unlock()
 
 	if existing, exists := r.cacheByCode[doc.Code]; exists && existing.FolderName != folderName {
-		issues = append(issues, SyncIssue{
+		issues = append(issues, document.SyncIssue{
 			Type:    "DUPLICATE_CODE",
 			Path:    folderName,
 			Message: fmt.Sprintf("code '%s' already claimed by folder '%s'", doc.Code, existing.FolderName),
@@ -200,7 +201,7 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	}
 
 	if existing, exists := r.cacheByUUID[doc.UUID]; exists && existing.FolderName != folderName {
-		issues = append(issues, SyncIssue{
+		issues = append(issues, document.SyncIssue{
 			Type:    "DUPLICATE_UUID",
 			Path:    folderName,
 			Message: fmt.Sprintf("UUID '%s' already claimed by folder '%s'", doc.UUID, existing.FolderName),
@@ -219,18 +220,18 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	return issues, nil
 }
 
-func (r *FileDocumentRepository) GetConflicts(ctx context.Context) ([]SyncIssue, error) {
+func (r *FileDocumentRepository) GetConflicts(ctx context.Context) ([]document.SyncIssue, error) {
 	return r.lastConflicts, nil
 }
 
-func (r *FileDocumentRepository) addToCache(doc *Document) {
+func (r *FileDocumentRepository) addToCache(doc *document.Document) {
 	r.cacheByUUID[doc.UUID] = doc
 	r.cacheByCode[doc.Code] = doc
 }
 
 func (r *FileDocumentRepository) clearCache() {
-	r.cacheByUUID = make(map[string]*Document)
-	r.cacheByCode = make(map[string]*Document)
+	r.cacheByUUID = make(map[string]*document.Document)
+	r.cacheByCode = make(map[string]*document.Document)
 }
 
 func (r *FileDocumentRepository) getCodes() []string {
