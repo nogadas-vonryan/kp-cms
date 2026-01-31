@@ -8,7 +8,7 @@ data/
 *.sqlite
 *.sqlite3
 *.log
-backup
+/backup/*
 
 # Env and secrets
 .env*
@@ -48,3 +48,5 @@ Thumbs.db
 # Allow icons in the windows build
 !/build/appicon.png
 !/build/windows/
+
+!/backup/pages
