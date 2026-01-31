@@ -22,6 +22,7 @@ type SyncIssue struct {
 
 type FileDocumentRepository struct {
 	basePath       string
+	backupPath     string
 	namingStrategy NamingStrategy
 	mu             sync.RWMutex
 	sortedByCode   []string
@@ -32,7 +33,7 @@ type FileDocumentRepository struct {
 
 var _ DocumentRepository = (*FileDocumentRepository)(nil)
 
-func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (*FileDocumentRepository, error) {
+func NewFileDocumentRepository(basePath string, backupPath string, namingStrategy NamingStrategy) (*FileDocumentRepository, error) {
 	if basePath == "" {
 		return nil, errors.New("base path is required")
 	}
@@ -46,6 +47,7 @@ func NewFileDocumentRepository(basePath string, namingStrategy NamingStrategy) (
 
 	repo := &FileDocumentRepository{
 		basePath:       basePath,
+		backupPath:     backupPath,
 		namingStrategy: namingStrategy,
 		cacheByUUID:    make(map[string]*Document),
 		cacheByCode:    make(map[string]*Document),

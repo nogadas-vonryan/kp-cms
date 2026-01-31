@@ -272,7 +272,7 @@ func GeneratePasswordIfEmpty(pass string) (string, error) {
 	return pass, nil
 }
 
-func StartBackendServer(host string, port int, user, pass, dataPath string) (*http.Server, error) {
+func StartBackendServer(host string, port int, user, pass, dataPath string, backupPath string) (*http.Server, error) {
 	if host == "" {
 		host = "0.0.0.0"
 	}
@@ -292,9 +292,13 @@ func StartBackendServer(host string, port int, user, pass, dataPath string) (*ht
 		dataPath = "./data"
 	}
 
+	if backupPath == "" {
+		backupPath = "./backup"
+	}
+
 	// Create document repository
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := document.NewFileDocumentRepository(dataPath, namingStrategy)
+	documentRepository, err := document.NewFileDocumentRepository(dataPath, backupPath, namingStrategy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create document repository: %v", err)
 	}

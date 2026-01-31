@@ -108,6 +108,12 @@ func (s *Server) routes() {
 					admin.Get("/conflicts", s.handleGetConflicts())
 					admin.Post("/reload", s.handleReloadDocuments())
 					admin.Post("/reload/{folderName}", s.handleReloadDocument())
+
+					admin.Get("/backup", s.handleListBackups())
+					admin.Get("/backup/download/{fileName}", s.handleDownloadBackup())
+					admin.Post("/backup", s.handleCreateBackup())
+					admin.Post("/backup/restore", s.handleRestoreBackup())
+					admin.Get("/backup/restore/status", s.handleGetRestoreStatus())
 				})
 			})
 		})

@@ -8,6 +8,7 @@ data/
 *.sqlite
 *.sqlite3
 *.log
+backup
 
 # Env and secrets
 .env*

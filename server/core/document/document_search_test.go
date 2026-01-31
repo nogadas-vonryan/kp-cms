@@ -12,7 +12,7 @@ import (
 func setupSearchTestRepo(t *testing.T) (*FileDocumentRepository, []string) {
 	tmpBase := t.TempDir()
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -505,7 +505,7 @@ func TestSearch_WithActualFolders(t *testing.T) {
 	os.WriteFile(filepath.Join(doc2Folder, "meta.json"), []byte(metaData2), 0644)
 	os.WriteFile(filepath.Join(doc2Folder, "files.json"), []byte("[]"), 0644)
 
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}

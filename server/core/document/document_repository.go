@@ -34,8 +34,17 @@ type CacheStore interface {
 	ReloadCacheForFolder(ctx context.Context, folderName string) ([]SyncIssue, error)
 }
 
+type BackupStore interface {
+	GetBackupPath() string
+	ListBackups(ctx context.Context) ([]BackupFile, error)
+	CreateBackup(ctx context.Context) (string, error)
+	RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error
+	ImportBackup(ctx context.Context, reader io.Reader, overwrite bool, onProgress func(float64)) error
+}
+
 type DocumentRepository interface {
 	DocumentStore
 	FileStore
 	CacheStore
+	BackupStore
 }

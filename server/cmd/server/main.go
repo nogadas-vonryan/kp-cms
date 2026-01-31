@@ -16,6 +16,7 @@ func main() {
 	user := flag.String("admin", "admin", "Admin username")
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
+	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
 	flag.Parse()
 
 	if *pass == "" {
@@ -27,7 +28,7 @@ func main() {
 	}
 
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := document.NewFileDocumentRepository(*dataPath, namingStrategy)
+	documentRepository, err := document.NewFileDocumentRepository(*dataPath, *backupPath, namingStrategy)
 	if err != nil {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}

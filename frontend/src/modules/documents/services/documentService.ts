@@ -3,6 +3,7 @@ import type {
   Document,
   CreateDocumentRequest,
   UpdateDocumentRequest,
+  BackupFile,
   SyncIssue,
   ReloadResponse,
 } from '@/types';
@@ -122,4 +123,53 @@ export const DocumentService = {
    */
   reloadDocument: (folderName: string) =>
     api.post<ReloadResponse>(`/api/documents/reload/${folderName}`),
+
+  /**
+   * Lists available backup files.  
+   * Matches: GET /api/backup
+   */
+  listBackups: () =>
+    api.get<{ backups: BackupFile[] }>('/api/documents/backup'),
+
+  /**
+   * Downloads a specific backup file by name.
+   * Matches: GET /api/backup/download/{fileName}
+   */
+  downloadBackup: async (fileName: string) => {
+    const response = await api.get(`/api/documents/backup/download/${fileName}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  /**
+   * Triggers the creation of backup in the server.
+   * Matches: GET /api/backup/export
+   */
+  createBackup: async () => {
+    const response = await api.post('/api/documents/backup');
+    return response.data;
+  },
+
+  /**
+   * Restores a backup file that is already on the server.
+   * Returns a JobID for progress tracking.
+   */
+  restoreBackup: (fileName: string, mode: 'merge' | 'overwrite' = 'merge') => {
+    return api.post<{ 
+      job_id: string; 
+      message: string; 
+    }>(`/api/documents/backup/restore?file_name=${fileName}&mode=${mode}`);
+  },
+
+  /**
+   * Polls the status of a restoration job.
+   */
+  getRestoreStatus: (jobId: string) => {
+    return api.get<{
+      job_id: string;
+      progress: number;
+      status: 'processing' | 'completed' | 'failed';
+    }>(`/api/documents/backup/restore/status?job_id=${jobId}`);
+  },
 };

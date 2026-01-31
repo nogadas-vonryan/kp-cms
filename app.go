@@ -138,7 +138,7 @@ func (a *App) StopWebServer() error {
 	return nil
 }
 
-func (a *App) StartBackendServer(host string, port int, user, pass, dataPath string) (*StartBackendServerResult, error) {
+func (a *App) StartBackendServer(host string, port int, user, pass, dataPath string, backupPath string) (*StartBackendServerResult, error) {
 	a.Log(fmt.Sprintf("Starting backend server on %s:%d with data path: %s...", host, port, dataPath))
 
 	result := &StartBackendServerResult{
@@ -159,7 +159,7 @@ func (a *App) StartBackendServer(host string, port int, user, pass, dataPath str
 		result.Password = generatedPass
 	}
 
-	srv, err := StartBackendServer(host, port, user, pass, dataPath)
+	srv, err := StartBackendServer(host, port, user, pass, dataPath, backupPath)
 	if err != nil {
 		a.Log(fmt.Sprintf("Failed to start backend server: %v", err))
 		return nil, err

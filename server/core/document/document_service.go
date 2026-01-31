@@ -148,6 +148,22 @@ func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) (
 	return s.repo.Search(ctx, criteria)
 }
 
+func (s *DocumentService) GetBackupPath() string {
+	return s.repo.GetBackupPath()
+}
+
+func (s *DocumentService) ListBackups(ctx context.Context) ([]BackupFile, error) {
+	return s.repo.ListBackups(ctx)
+}
+
+func (s *DocumentService) CreateBackup(ctx context.Context) (string, error) {
+	return s.repo.CreateBackup(ctx)
+}
+
+func (s *DocumentService) RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error {
+	return s.repo.RestoreFromLocalPath(ctx, fileName, overwrite, onProgress)
+}
+
 func validateDocumentTitle(title string) error {
 	if title == "" {
 		return errors.New("document title is required")

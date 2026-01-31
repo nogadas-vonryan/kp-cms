@@ -49,6 +49,12 @@ export interface UpdateDocumentRequest {
   fields?: DocumentFields;
 }
 
+export interface BackupFile {
+  file_name: string;
+  size: number;
+  created_at: string;
+}
+
 export interface ApiErrorResponse {
   error: string;
 }

@@ -13,7 +13,7 @@ func TestFileDocumentRepository_UploadFile_ConflictDetection(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestFileDocumentRepository_UploadFile_MultipleConflicts(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestFileDocumentRepository_UploadFile_MetadataPreservation(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestFileDocumentRepository_UpdateFileContents(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestFileDocumentRepository_UpdateFileContents_PreservesMetadata(t *testing.
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestFileDocumentRepository_RenameFile(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestFileDocumentRepository_RenameFile_ConflictResolution(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -364,7 +364,7 @@ func TestFileDocumentRepository_RenameFile_PreservesMetadata(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -432,7 +432,7 @@ func TestFileDocumentRepository_UniqueFileName(t *testing.T) {
 	os.WriteFile(testFile2, []byte("test"), 0644)
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -461,7 +461,7 @@ func TestFileDocumentRepository_UpdateFileContents_CreatesIfNotExists(t *testing
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -503,7 +503,7 @@ func TestFileDocumentRepository_PathTraversalProtection(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, strategy)
+	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}

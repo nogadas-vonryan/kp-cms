@@ -8,6 +8,7 @@ import AdminDashboard from '@/pages/AdminDashboard.vue';
 import NotFound from '@/pages/NotFound.vue';
 import ReportExportPage from '@/modules/reports/pages/ReportExportPage.vue';
 import ImportPage from '@/modules/import/pages/ImportPage.vue';
+import BackupPage from '@/modules/backup/pages/BackupPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -42,6 +43,12 @@ const routes: RouteRecordRaw[] = [
     path: '/import',
     name: 'import',
     component: ImportPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/backup',
+    name: 'backup',
+    component: BackupPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

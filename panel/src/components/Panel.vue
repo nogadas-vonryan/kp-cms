@@ -102,8 +102,19 @@
                 <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4.5 7.5h6l1.5 2h7.5v8a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.4" />
                 </svg>
-                <input v-model="dataPath" type="text" placeholder="/var/www/data" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
+                <input v-model="dataPath" type="text" placeholder="Current folder" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
                 <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectFolder">Browse</button>
+              </div>
+            </div>
+            <div class="col-span-2">
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backup Data Folder</label>
+              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 6.5h18v11H3z" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M8 10.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                </svg>
+                <input v-model="backupPath" type="text" placeholder="Optional backup folder" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
+                <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectBackupFolder">Browse</button>
               </div>
             </div>
             <div class="col-span-2">
@@ -111,7 +122,6 @@
                 <input v-model="useRemoteBackend" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
                 <span>Use remote backend (only start frontend proxy)</span>
               </label>
-              <p class="mt-1 text-[10px] text-slate-500">Skips starting the local backend and proxies to the backend host/port above.</p>
             </div>
           </div>
 
@@ -181,6 +191,7 @@ const user = ref('admin')
 const pass = ref('')
 const savedPassword = ref('') // Stored separately for security
 const dataPath = ref('')
+const backupPath = ref('')
 const useRemoteBackend = ref(false)
 const networkIP = ref('')
 
@@ -228,6 +239,8 @@ onMounted(async () => {
           // Don't populate the password field - keep it empty for security
         }
         if (config.dataPath) dataPath.value = config.dataPath
+        // Load backup data path if present in saved config
+        if (config.backupDataPath) backupPath.value = config.backupDataPath
       }
     }
     
@@ -314,6 +327,15 @@ async function handleSave() {
         passwordToSave,
         dataPath.value
       )
+
+      // Try to save backup path if API supports it
+      try {
+        if (typeof appNs.SaveBackupPath === 'function') {
+          await appNs.SaveBackupPath(backupPath.value || '')
+        }
+      } catch (err) {
+        console.warn('Failed to save backup path:', err)
+      }
       
       // Update saved password if a new one was entered
       if (pass.value) {
@@ -353,6 +375,7 @@ async function handleReset() {
           savedPassword.value = config.password || ''
           pass.value = '' // Clear the visible password field for security
           dataPath.value = config.dataPath || ''
+          backupPath.value = config.backupDataPath || ''
           useRemoteBackend.value = false
           networkIP.value = ''
           emit('update-frontend-status', 'stopped')
@@ -374,6 +397,7 @@ async function handleReset() {
     pass.value = ''
     savedPassword.value = ''
     dataPath.value = ''
+    backupPath.value = ''
     useRemoteBackend.value = false
     networkIP.value = ''
     emit('update-frontend-status', 'stopped')
@@ -398,6 +422,21 @@ async function selectFolder() {
   } catch (err) {
     console.error(err)
     showMessage('Error', 'Failed to select folder')
+  }
+}
+
+async function selectBackupFolder() {
+  try {
+    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+    if (appNs && typeof appNs.SelectFolder === 'function') {
+      const selection = await appNs.SelectFolder()
+      if (selection) backupPath.value = selection
+      return
+    }
+    showMessage('Not Available', 'Folder picker not available in this environment')
+  } catch (err) {
+    console.error(err)
+    showMessage('Error', 'Failed to select backup folder')
   }
 }
 
@@ -440,7 +479,8 @@ async function startServers() {
         parseInt(backendPort.value) || 8080,
         user.value || 'admin',
         passwordToUse,
-        dataPath.value
+        dataPath.value,
+        backupPath.value
       )
       // If we get here without exception, it succeeded
       backendStarted = true
@@ -664,3 +704,13 @@ function extractErrorMessage(error, context = '') {
   return context ? `${context}: Unknown error occurred` : 'Unknown error occurred'
 }
 </script>
+
+<style>
+  body {
+      zoom: 0.9;
+      -moz-transform: scale(0.9); /* Firefox support */
+      transform: scale(0.9);
+      -moz-transform-origin: 0 0;
+      transform-origin: 0 0;
+  }
+</style>

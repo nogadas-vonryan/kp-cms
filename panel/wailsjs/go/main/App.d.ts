@@ -16,7 +16,7 @@ export function SaveConfiguration(arg1:string,arg2:number,arg3:string,arg4:numbe
 
 export function SelectFolder():Promise<string>;
 
-export function StartBackendServer(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string):Promise<main.StartBackendServerResult>;
+export function StartBackendServer(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string,arg6:string):Promise<main.StartBackendServerResult>;
 
 export function StartWebServer(arg1:string,arg2:number,arg3:string,arg4:number):Promise<void>;
 

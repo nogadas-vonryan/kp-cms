@@ -30,8 +30,8 @@ export function SelectFolder() {
   return window['go']['main']['App']['SelectFolder']();
 }
 
-export function StartBackendServer(arg1, arg2, arg3, arg4, arg5) {
-  return window['go']['main']['App']['StartBackendServer'](arg1, arg2, arg3, arg4, arg5);
+export function StartBackendServer(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['StartBackendServer'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 export function StartWebServer(arg1, arg2, arg3, arg4) {

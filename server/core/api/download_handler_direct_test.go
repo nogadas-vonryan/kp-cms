@@ -20,7 +20,7 @@ func TestDownloadFile_WithSpaces_Direct(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := document.NewFileDocumentRepository(tempDir, strategy)
+	repo, err := document.NewFileDocumentRepository(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestDownloadFile_WithMultipleSpaces_Direct(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := document.NewFileDocumentRepository(tempDir, strategy)
+	repo, err := document.NewFileDocumentRepository(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}

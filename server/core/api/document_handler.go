@@ -1,13 +1,18 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"kpcms/server/core/document"
@@ -32,6 +37,13 @@ type UpdateDocumentRequest struct {
 
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+var restoreJobs = sync.Map{}
+
+type RestoreResponse struct {
+	JobID   string `json:"job_id"`
+	Message string `json:"message"`
 }
 
 func (s *Server) handleCreateDocument() http.HandlerFunc {
@@ -608,6 +620,131 @@ func (s *Server) handleSearchDocuments() http.HandlerFunc {
 
 		respondJSON(w, http.StatusOK, docs)
 	}
+}
+
+func (s *Server) handleListBackups() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		backups, err := s.documentService.ListBackups(r.Context())
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]any{
+			"backups": backups,
+		})
+	}
+}
+
+func (s *Server) handleDownloadBackup() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fileName := chi.URLParam(r, "fileName")
+
+		if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
+
+		fullPath := filepath.Join(s.documentService.GetBackupPath(), fileName)
+
+		w.Header().Set("Content-Disposition", "attachment; filename="+fileName)
+		w.Header().Set("Content-Type", "application/zip")
+		http.ServeFile(w, r, fullPath)
+	}
+}
+
+func (s *Server) handleCreateBackup() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path, err := s.documentService.CreateBackup(r.Context())
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to create backup: "+err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusCreated, map[string]string{
+			"message": "Backup created successfully",
+			"path":    path,
+			"file":    filepath.Base(path),
+		})
+	}
+}
+
+func (s *Server) handleRestoreBackup() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fileName := r.URL.Query().Get("file_name")
+		mode := r.URL.Query().Get("mode")
+		shouldOverwrite := (mode == "overwrite")
+
+		if fileName == "" {
+			respondError(w, http.StatusBadRequest, "file_name is required")
+			return
+		}
+
+		jobID := fmt.Sprintf("%d", time.Now().UnixNano())
+		restoreJobs.Store(jobID, 0.0)
+
+		go func() {
+			onProgress := func(p float64) {
+				restoreJobs.Store(jobID, p)
+			}
+
+			err := s.documentService.RestoreFromLocalPath(context.Background(), fileName, shouldOverwrite, onProgress)
+
+			if err != nil {
+				fmt.Printf("Job %s failed: %v\n", jobID, err)
+				restoreJobs.Store(jobID, -1.0)
+			} else {
+				restoreJobs.Store(jobID, 100.0)
+			}
+		}()
+
+		respondJSON(w, http.StatusAccepted, RestoreResponse{
+			JobID:   jobID,
+			Message: "Restore started in background",
+		})
+	}
+}
+
+func (s *Server) handleGetRestoreStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		jobID := r.URL.Query().Get("job_id")
+		if jobID == "" {
+			respondError(w, http.StatusBadRequest, "job_id is required")
+			return
+		}
+
+		val, ok := restoreJobs.Load(jobID)
+		if !ok {
+			respondError(w, http.StatusNotFound, "Job not found or already finished")
+			return
+		}
+
+		progress := val.(float64)
+
+		status := "processing"
+		if progress >= 100.0 {
+			status = "completed"
+		} else if progress < 0 {
+			status = "failed"
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"job_id":   jobID,
+			"progress": progress,
+			"status":   status,
+		})
+
+		if status == "completed" || status == "failed" {
+			restoreJobs.Delete(jobID)
+		}
+	}
+}
+
+func cond(c bool, t, f string) string {
+	if c {
+		return t
+	}
+	return f
 }
 
 func parseDate(dateStr string) (time.Time, error) {
