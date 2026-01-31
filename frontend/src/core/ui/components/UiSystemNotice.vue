@@ -12,9 +12,12 @@
           <span :class="['inline-flex items-center px-2 py-1 rounded text-xs font-medium uppercase tracking-tight', config.badgeClass]">
             {{ label || type }}
           </span>
-          <slot name="title">
-            <span class="text-sm font-medium text-gray-900">{{ title }}</span>
-          </slot>
+          
+          <div class="min-w-0 flex-1">
+            <slot name="title">
+              <span class="text-sm font-medium text-gray-900">{{ title }}</span>
+            </slot>
+          </div>
         </div>
         <div v-if="$slots.default" class="mt-1">
           <slot />
