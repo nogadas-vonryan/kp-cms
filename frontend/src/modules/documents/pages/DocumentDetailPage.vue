@@ -277,7 +277,7 @@ async function handleReload() {
 }
 
 onMounted(() => {
-  if (authStore.user) return;
+  if (!authStore.user) return;
   
   loadDocument();
 });
