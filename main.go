@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -83,7 +84,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:         "KPCMS",
 		Width:         440,
-		Height:        700,
+		Height:        710,
 		DisableResize: true,
 		AssetServer: &assetserver.Options{
 			Assets: panelAssets,
@@ -97,6 +98,7 @@ func main() {
 
 	if err != nil {
 		logMessage(fmt.Sprintf("Error: %v", err))
+		os.Exit(1)
 	}
 }
 
@@ -112,6 +114,13 @@ func StartWebServer(host string, port int, backendHost string, backendPort int) 
 	}
 	if backendPort == 0 {
 		backendPort = 8080
+	}
+
+	if port < 1 || port > 65535 {
+		return nil, fmt.Errorf("invalid frontend port %d (must be 1-65535)", port)
+	}
+	if backendPort < 1 || backendPort > 65535 {
+		return nil, fmt.Errorf("invalid backend port %d (must be 1-65535)", backendPort)
 	}
 
 	// 1. Setup Reverse Proxy
