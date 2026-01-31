@@ -8,11 +8,24 @@ import (
 )
 
 type DocumentService struct {
-	repo DocumentRepository
+	docs    DocumentStore
+	files   FileStore
+	cache   CacheStore
+	backups BackupStore
 }
 
-func NewDocumentService(repo DocumentRepository) *DocumentService {
-	return &DocumentService{repo: repo}
+func NewDocumentService(
+	docs DocumentStore,
+	files FileStore,
+	cache CacheStore,
+	backups BackupStore,
+) *DocumentService {
+	return &DocumentService{
+		docs,
+		files,
+		cache,
+		backups,
+	}
 }
 
 func (s *DocumentService) Create(ctx context.Context, doc Document) (*Document, error) {
@@ -20,7 +33,7 @@ func (s *DocumentService) Create(ctx context.Context, doc Document) (*Document, 
 		return nil, err
 	}
 
-	return s.repo.Create(ctx, &doc)
+	return s.docs.Create(ctx, &doc)
 }
 
 func (s *DocumentService) GetByUUID(ctx context.Context, uuid string) (*Document, error) {
@@ -28,7 +41,7 @@ func (s *DocumentService) GetByUUID(ctx context.Context, uuid string) (*Document
 		return nil, errors.New("uuid is required")
 	}
 
-	doc, err := s.repo.GetByUUID(ctx, uuid)
+	doc, err := s.docs.GetByUUID(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("fetching document %s: %w", uuid, err)
 	}
@@ -41,7 +54,7 @@ func (s *DocumentService) GetByCode(ctx context.Context, code string) (*Document
 		return nil, errors.New("code is required")
 	}
 
-	return s.repo.GetByCode(ctx, code)
+	return s.docs.GetByCode(ctx, code)
 }
 
 func (s *DocumentService) Update(ctx context.Context, uuid string, doc Document) (*Document, error) {
@@ -52,7 +65,7 @@ func (s *DocumentService) Update(ctx context.Context, uuid string, doc Document)
 		return nil, err
 	}
 
-	return s.repo.Update(ctx, uuid, &doc)
+	return s.docs.Update(ctx, uuid, &doc)
 }
 
 func (s *DocumentService) Delete(ctx context.Context, uuid string) error {
@@ -60,11 +73,11 @@ func (s *DocumentService) Delete(ctx context.Context, uuid string) error {
 		return errors.New("uuid is required")
 	}
 
-	return s.repo.Delete(ctx, uuid)
+	return s.docs.Delete(ctx, uuid)
 }
 
 func (s *DocumentService) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error) {
-	return s.repo.List(ctx, offset, limit, sortBy, sortDesc)
+	return s.docs.List(ctx, offset, limit, sortBy, sortDesc)
 }
 
 func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {
@@ -78,22 +91,21 @@ func (s *DocumentService) UploadFile(ctx context.Context, uuid string, fileName 
 		return errors.New("file content is required")
 	}
 
-	// Delegate to repository which handles path construction, security, and file I/O
-	return s.repo.UploadFile(ctx, uuid, fileName, content)
+	return s.files.UploadFile(ctx, uuid, fileName, content)
 }
 
 func (s *DocumentService) DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error) {
 	if uuid == "" || fileName == "" {
 		return nil, errors.New("uuid and fileName are required")
 	}
-	return s.repo.DownloadFile(ctx, uuid, fileName)
+	return s.files.DownloadFile(ctx, uuid, fileName)
 }
 
 func (s *DocumentService) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates FileMetadataUpdate) error {
 	if uuid == "" || fileName == "" {
 		return errors.New("uuid and fileName are required")
 	}
-	return s.repo.UpdateFileMetadata(ctx, uuid, fileName, updates)
+	return s.files.UpdateFileMetadata(ctx, uuid, fileName, updates)
 }
 
 func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName string) error {
@@ -104,7 +116,7 @@ func (s *DocumentService) DeleteFile(ctx context.Context, uuid string, fileName 
 		return errors.New("file name is required")
 	}
 
-	return s.repo.DeleteFile(ctx, uuid, fileName)
+	return s.files.DeleteFile(ctx, uuid, fileName)
 }
 
 func (s *DocumentService) UpdateFileContents(ctx context.Context, uuid string, fileName string, content io.Reader) error {
@@ -118,7 +130,7 @@ func (s *DocumentService) UpdateFileContents(ctx context.Context, uuid string, f
 		return errors.New("file content is required")
 	}
 
-	return s.repo.UpdateFileContents(ctx, uuid, fileName, content)
+	return s.files.UpdateFileContents(ctx, uuid, fileName, content)
 }
 
 func (s *DocumentService) RenameFile(ctx context.Context, uuid string, oldName string, newName string) error {
@@ -129,39 +141,39 @@ func (s *DocumentService) RenameFile(ctx context.Context, uuid string, oldName s
 		return errors.New("old and new file names are required")
 	}
 
-	return s.repo.RenameFile(ctx, uuid, oldName, newName)
+	return s.files.RenameFile(ctx, uuid, oldName, newName)
 }
 
 func (s *DocumentService) GetConflicts(ctx context.Context) ([]SyncIssue, error) {
-	return s.repo.GetConflicts(ctx)
+	return s.cache.GetConflicts(ctx)
 }
 
 func (s *DocumentService) ReloadCache(ctx context.Context) ([]SyncIssue, error) {
-	return s.repo.ReloadCache(ctx)
+	return s.cache.ReloadCache(ctx)
 }
 
 func (s *DocumentService) ReloadCacheForFolder(ctx context.Context, folderName string) ([]SyncIssue, error) {
-	return s.repo.ReloadCacheForFolder(ctx, folderName)
+	return s.cache.ReloadCacheForFolder(ctx, folderName)
 }
 
 func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error) {
-	return s.repo.Search(ctx, criteria)
+	return s.docs.Search(ctx, criteria)
 }
 
 func (s *DocumentService) GetBackupPath() string {
-	return s.repo.GetBackupPath()
+	return s.backups.GetBackupPath()
 }
 
 func (s *DocumentService) ListBackups(ctx context.Context) ([]BackupFile, error) {
-	return s.repo.ListBackups(ctx)
+	return s.backups.ListBackups(ctx)
 }
 
 func (s *DocumentService) CreateBackup(ctx context.Context) (string, error) {
-	return s.repo.CreateBackup(ctx)
+	return s.backups.CreateBackup(ctx)
 }
 
 func (s *DocumentService) RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error {
-	return s.repo.RestoreFromLocalPath(ctx, fileName, overwrite, onProgress)
+	return s.backups.RestoreFromLocalPath(ctx, fileName, overwrite, onProgress)
 }
 
 func validateDocumentTitle(title string) error {

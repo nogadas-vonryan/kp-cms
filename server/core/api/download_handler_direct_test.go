@@ -25,7 +25,7 @@ func TestDownloadFile_WithSpaces_Direct(t *testing.T) {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	docService := document.NewDocumentService(repo)
+	docService := document.NewDocumentService(repo, repo, nil, nil)
 	ctx := context.Background()
 
 	// Create a document
@@ -81,7 +81,7 @@ func TestDownloadFile_WithMultipleSpaces_Direct(t *testing.T) {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	docService := document.NewDocumentService(repo)
+	docService := document.NewDocumentService(repo, repo, nil, nil)
 	ctx := context.Background()
 
 	doc := document.Document{Title: "Test"}

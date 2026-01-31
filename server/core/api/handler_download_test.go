@@ -23,7 +23,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo))
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo, repo, nil, nil))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}

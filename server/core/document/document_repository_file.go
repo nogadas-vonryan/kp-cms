@@ -31,7 +31,10 @@ type FileDocumentRepository struct {
 	lastConflicts  []SyncIssue
 }
 
-var _ DocumentRepository = (*FileDocumentRepository)(nil)
+var _ DocumentStore = (*FileDocumentRepository)(nil)
+var _ FileStore = (*FileDocumentRepository)(nil)
+var _ CacheStore = (*FileDocumentRepository)(nil)
+var _ BackupStore = (*FileDocumentRepository)(nil)
 
 func NewFileDocumentRepository(basePath string, backupPath string, namingStrategy NamingStrategy) (*FileDocumentRepository, error) {
 	if basePath == "" {

@@ -6,7 +6,7 @@ import (
 )
 
 type mockRepo struct {
-	DocumentRepository
+	DocumentStore
 	namingStrategy NamingStrategy
 
 	OnGetByUUID   func(ctx context.Context, uuid string) (*Document, error)
@@ -65,7 +65,7 @@ func TestDocumentService_Create(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should fail if all are empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
+		service := NewDocumentService(nil, nil, nil, nil)
 		doc := Document{Title: "", Code: "", FolderName: ""}
 
 		_, err := service.Create(ctx, doc)
@@ -75,7 +75,7 @@ func TestDocumentService_Create(t *testing.T) {
 	})
 
 	t.Run("should fail if title is empty", func(t *testing.T) {
-		service := NewDocumentService(nil) // Repo not needed for title validation
+		service := NewDocumentService(nil, nil, nil, nil) // Repo not needed for title validation
 		doc := Document{Title: "", Code: "0001", FolderName: "case_0001"}
 
 		_, err := service.Create(ctx, doc)
@@ -96,7 +96,7 @@ func TestDocumentService_Create(t *testing.T) {
 				return doc, nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 		doc := Document{Title: "Test Title", Code: "0001", FolderName: "case_0001"}
 
 		_, err := service.Create(ctx, doc)
@@ -110,7 +110,7 @@ func TestDocumentService_GetByUUID(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should fail if uuid is empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
+		service := NewDocumentService(nil, nil, nil, nil)
 
 		_, err := service.GetByUUID(ctx, "")
 		if err == nil || err.Error() != "uuid is required" {
@@ -125,7 +125,7 @@ func TestDocumentService_GetByUUID(t *testing.T) {
 				return expectedDoc, nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 
 		doc, err := service.GetByUUID(ctx, "test-uuid")
 		if err != nil {
@@ -141,7 +141,7 @@ func TestDocumentService_GetByCode(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should fail if code is empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
+		service := NewDocumentService(nil, nil, nil, nil)
 
 		_, err := service.GetByCode(ctx, "")
 		if err == nil || err.Error() != "code is required" {
@@ -156,7 +156,7 @@ func TestDocumentService_GetByCode(t *testing.T) {
 				return expectedDoc, nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 
 		doc, err := service.GetByCode(ctx, "0001")
 		if err != nil {
@@ -172,7 +172,7 @@ func TestDocumentService_Update(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should fail if uuid is empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
+		service := NewDocumentService(nil, nil, nil, nil)
 
 		_, err := service.Update(ctx, "", Document{})
 		if err == nil || err.Error() != "uuid is required" {
@@ -181,7 +181,7 @@ func TestDocumentService_Update(t *testing.T) {
 	})
 
 	t.Run("should fail if title is empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
+		service := NewDocumentService(nil, nil, nil, nil)
 
 		_, err := service.Update(ctx, "test-uuid", Document{Title: ""})
 		if err == nil || err.Error() != "document title is required" {
@@ -198,7 +198,7 @@ func TestDocumentService_Update(t *testing.T) {
 				return doc, nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 
 		_, err := service.Update(ctx, "test-uuid", Document{Title: "Updated Title"})
 		if err != nil {
@@ -211,7 +211,7 @@ func TestDocumentService_Delete(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should fail if uuid is empty", func(t *testing.T) {
-		service := NewDocumentService(nil)
+		service := NewDocumentService(nil, nil, nil, nil)
 
 		err := service.Delete(ctx, "")
 		if err == nil || err.Error() != "uuid is required" {
@@ -227,7 +227,7 @@ func TestDocumentService_Delete(t *testing.T) {
 				return nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 
 		err := service.Delete(ctx, "test-uuid")
 		if err != nil {
@@ -248,7 +248,7 @@ func TestDocumentService_List(t *testing.T) {
 				return []*Document{}, nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 
 		docs, err := service.List(ctx, 0, 100, "", false)
 		if err != nil {
@@ -269,7 +269,7 @@ func TestDocumentService_List(t *testing.T) {
 				return expectedDocs, nil
 			},
 		}
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 
 		docs, err := service.List(ctx, 0, 100, "", false)
 		if err != nil {
@@ -300,7 +300,7 @@ func TestDocumentService_List(t *testing.T) {
 			},
 		}
 
-		service := NewDocumentService(mockRepo)
+		service := NewDocumentService(mockRepo, nil, nil, nil)
 		_, err := service.List(ctx, 5, 10, "created_at", true)
 		if err != nil {
 			t.Fatalf("expected no error, got: %v", err)

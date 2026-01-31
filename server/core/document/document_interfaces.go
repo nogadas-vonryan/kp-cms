@@ -41,10 +41,3 @@ type BackupStore interface {
 	RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error
 	ImportBackup(ctx context.Context, reader io.Reader, overwrite bool, onProgress func(float64)) error
 }
-
-type DocumentRepository interface {
-	DocumentStore
-	FileStore
-	CacheStore
-	BackupStore
-}
