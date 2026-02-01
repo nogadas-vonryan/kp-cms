@@ -21,7 +21,7 @@ func main() {
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
-	dbPath := flag.String("db", "./data/auth.db", "Path to the auth database")
+	dbPath := flag.String("db", "./data/app.db", "Path to the auth database")
 	flag.Parse()
 
 	if *pass == "" {
