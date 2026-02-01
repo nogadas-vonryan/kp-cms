@@ -5,7 +5,7 @@ const FIELD_OPTIONS = {
     { value: 'criminal', label: 'Criminal' }
   ],
   status: [
-    { value: 'case_filed', label: 'Case Filed' },
+    { value: 'filed', label: 'Filed' },
     { value: 'arbitration', label: 'Arbitration' },
     { value: 'mediation', label: 'Mediation' },
     { value: 'conciliation', label: 'Conciliation' },

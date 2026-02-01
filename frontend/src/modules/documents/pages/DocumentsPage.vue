@@ -451,7 +451,7 @@ const fieldOptions = ['Nature', 'Status', 'Complainants', 'Respondents'];
 // Display values (user-facing)
 const valueOptionsMap: any = {
   'Nature': ['Civil', 'Criminal'],
-  'Status': ['Case Filed', 'Mediation', 'Arbitration', 'Conciliation', 'Repudiation', 'Pending', 'Resolved'],
+  'Status': ['Filed', 'Mediation', 'Arbitration', 'Conciliation', 'Repudiation', 'Pending', 'Resolved'],
 };
 
 // Mapping for API conversions to snake_case
@@ -461,7 +461,7 @@ const apiValueMap: Record<string, Record<string, string>> = {
     'Criminal': 'criminal'
   },
   'Status': {
-    'Case Filed': 'case_filed',
+    'Filed': 'filed',
     'Mediation': 'mediation',
     'Arbitration': 'arbitration',
     'Conciliation': 'conciliation',
@@ -523,7 +523,7 @@ const form = ref<CreateDocumentRequest>({
   folder_name: '',
   fields: {
     nature: 'civil',
-    status: 'case_filed', 
+    status: 'filed', 
     complainants: [],
     respondents: [],
     complaint: '',
@@ -622,7 +622,7 @@ function formatDate(dateStr: string) {
 
 function getStatusBadgeClass(status: string): string {
   const statusClasses: Record<string, string> = {
-    'case_filed': 'bg-blue-100 text-blue-800',
+    'filed': 'bg-blue-100 text-blue-800',
     'mediation': 'bg-purple-100 text-purple-800',
     'arbitration': 'bg-orange-100 text-orange-800',
     'conciliation': 'bg-teal-100 text-teal-800',
@@ -636,7 +636,7 @@ function getStatusBadgeClass(status: string): string {
 
 function formatStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    'case_filed': 'Case Filed',
+    'filed': 'Filed',
     'mediation': 'Mediation',
     'arbitration': 'Arbitration',
     'conciliation': 'Conciliation',
@@ -667,7 +667,7 @@ async function handleCreate() {
     });
     showCreateModal.value = false;
     form.value = { title: '', code: '', created_at: '', folder_name: '', fields: {
-      nature: 'civil', status: 'case_filed', complainants: [], respondents: [],
+      nature: 'civil', status: 'filed', complainants: [], respondents: [],
     } };
     // Redirect to the newly created document
     if (response.data?.uuid) {
