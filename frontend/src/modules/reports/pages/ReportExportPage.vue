@@ -2,6 +2,7 @@
   <div class="mx-auto max-w-full overflow-x-hidden px-2 sm:px-0">
     <div class="mb-4 space-y-3">
       <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
+      
       <div class="flex flex-col md:flex-row md:items-end gap-2">
         <div class="md:flex-1">
           <label class="block text-sm font-medium mb-1">Sort By</label>
@@ -13,7 +14,25 @@
         </div>
         <UiButton @click="applyFilters" size="sm">Apply Filters</UiButton>
         <UiButton @click="resetFilters" size="sm">Reset</UiButton>
-        <UiButton @click="exportCSV" variant="secondary" size="sm">Export CSV</UiButton>
+        
+        <div class="flex items-end gap-2 pl-2">
+          <div class="w-32">
+            <label class="block text-xs font-medium mb-1">Array Delimiter</label>
+            <UiSelect 
+              v-model="arrayDelimiter" 
+              :options="[
+                { label: 'Semicolon (;)', value: ';' }, 
+                { label: 'Pipe (|)', value: '|' }, 
+                { label: 'Comma (,)', value: ',' }
+              ]" 
+            />
+          </div>
+          <UiButton @click="exportCSV" variant="secondary" size="sm">Export CSV</UiButton>
+        </div>
+      </div>
+
+      <div v-if="arrayDelimiter === ','" class="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+        <strong>Warning:</strong> Using a comma as an array delimiter may cause columns to shift/misalign in some CSV readers if the values are not handled correctly.
       </div>
 
       <div class="flex flex-col md:flex-row md:items-end gap-2">
@@ -90,10 +109,10 @@
         </div>
       </UiCard>
     </div>
+
     <UiCard :padded="false" class="relative min-h-31.25">
       <div class="w-full overflow-x-auto">
         <template v-if="previewDocs.length > 0">
-          <!-- Mobile Table (Code & Title only) -->
           <div class="hidden md:block">
             <table class="text-sm w-full">
               <thead class="border-b border-gray-200 bg-gray-50">
@@ -118,7 +137,6 @@
             </table>
           </div>
 
-          <!-- Desktop Table (All columns) -->
           <div class="md:hidden">
             <table class="text-sm w-full">
               <thead class="border-b border-gray-200 bg-gray-50">
@@ -165,7 +183,6 @@ import { useAuthStore } from '@/modules/auth/store'
 
 const authStore = useAuthStore();
 
-// Available fields from Document schema with display order
 const fetchFields = async () => [
   { key: 'uuid', label: 'ID', visible: false },
   { key: 'code', label: 'Code', visible: true },
@@ -188,9 +205,11 @@ const filters = ref({
   sort_by: '',
   sort_order: 'asc' as 'asc' | 'desc'
 })
+
+const arrayDelimiter = ref(';') // Default to semicolon to prevent CSV alignment issues
 const availableFields = ref<{ key: string, label: string, visible?: boolean }[]>([])
 const selectedFields = ref<string[]>([])
-const fieldLabels = ref<Record<string, string>>({}) // For custom labels
+const fieldLabels = ref<Record<string, string>>({})
 const previewDocs = ref<any[]>([])
 const customFieldInput = ref('')
 const customFields = ref<string[]>([])
@@ -219,7 +238,6 @@ const cellValue = (row: any, key: string) => {
     value = row[key] ?? ''
   }
   
-  // Format date fields
   if ((key === 'created_at' || key === 'updated_at') && value) {
     return formatDate(value)
   }
@@ -273,7 +291,6 @@ const toggleField = (key: string) => {
   } else {
     selectedFields.value.push(key)
   }
-  // Reorder to match the master order
   selectedFields.value = getOrderedFields(selectedFields.value)
 }
 
@@ -321,28 +338,34 @@ onMounted(load)
 
 const exportCSV = () => {
   if (!previewDocs.value.length) return
-  const rows = [selectedFields.value.map(getFieldLabel)]
+  
+  const headers = selectedFields.value.map(getFieldLabel)
+  const rows = [headers]
+
   for (const doc of previewDocs.value) {
     rows.push(selectedFields.value.map(key => {
       const val = cellValue(doc, key)
-      return Array.isArray(val) ? val.join(', ') : val ?? ''
+      // Use the user-defined delimiter for arrays
+      return Array.isArray(val) ? val.join(`${arrayDelimiter.value} `) : val ?? ''
     }))
   }
-  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
+
+  // Proper CSV escaping: wrap in quotes and escape internal quotes
+  const csv = rows
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   const startDate = filters.value.start
   const endDate = filters.value.end
   const today = new Date().toISOString().split('T')[0]
   const filenameBase = startDate || endDate ? `report_${startDate || ''}${startDate && endDate ? '_to_' : ''}${endDate || ''}` : `report_${today}`
+  
   a.href = url
   a.download = `${filenameBase}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
 </script>
-
-<style scoped>
-/* Minimal, rely on Tailwind */
-</style>
