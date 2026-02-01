@@ -14,7 +14,7 @@ import (
 	"github.com/hymkor/trash-go"
 )
 
-func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid string, file document.File) error {
+func (r *Store) AddFileMetadata(ctx context.Context, uuid string, file document.File) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (r *FileDocumentRepository) AddFileMetadata(ctx context.Context, uuid strin
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
-func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates document.FileMetadataUpdate) error {
+func (r *Store) UpdateFileMetadata(ctx context.Context, uuid string, fileName string, updates document.FileMetadataUpdate) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (r *FileDocumentRepository) UpdateFileMetadata(ctx context.Context, uuid st
 	return writeFilesMetadata(filesJSONPath, files)
 }
 
-func (r *FileDocumentRepository) scanPhysicalFolder(folderPath string) ([]document.File, error) {
+func (r *Store) scanPhysicalFolder(folderPath string) ([]document.File, error) {
 	entries, err := os.ReadDir(folderPath)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (r *FileDocumentRepository) scanPhysicalFolder(folderPath string) ([]docume
 	return files, nil
 }
 
-func (r *FileDocumentRepository) readFiles(folderName string) ([]document.File, error) {
+func (r *Store) readFiles(folderName string) ([]document.File, error) {
 	folderPath := r.getDocumentPath(folderName)
 	filesJSONPath := filepath.Join(folderPath, "files.json")
 
@@ -166,7 +166,7 @@ func (r *FileDocumentRepository) readFiles(folderName string) ([]document.File, 
 	return syncedFiles, nil
 }
 
-func (r *FileDocumentRepository) DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error) {
+func (r *Store) DownloadFile(ctx context.Context, uuid string, fileName string) (io.ReadCloser, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (r *FileDocumentRepository) DownloadFile(ctx context.Context, uuid string, 
 	return file, nil
 }
 
-func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {
+func (r *Store) UploadFile(ctx context.Context, uuid string, fileName string, content io.Reader) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (r *FileDocumentRepository) UploadFile(ctx context.Context, uuid string, fi
 	return r.AddFileMetadata(ctx, uuid, file)
 }
 
-func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fileName string) error {
+func (r *Store) DeleteFile(ctx context.Context, uuid string, fileName string) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (r *FileDocumentRepository) DeleteFile(ctx context.Context, uuid string, fi
 }
 
 // uniqueFileName finds a free filename in folderPath by appending " (Copy)" / " (Copy N)"
-func (r *FileDocumentRepository) uniqueFileName(folderPath, baseName string) (string, error) {
+func (r *Store) uniqueFileName(folderPath, baseName string) (string, error) {
 	if baseName == "" {
 		return "", errors.New("empty base name")
 	}
@@ -336,7 +336,7 @@ func (r *FileDocumentRepository) uniqueFileName(folderPath, baseName string) (st
 }
 
 // UpdateFileContents overwrites an existing file's content and updates its metadata (preserves Description/Note/Tags)
-func (r *FileDocumentRepository) UpdateFileContents(ctx context.Context, uuid string, fileName string, content io.Reader) error {
+func (r *Store) UpdateFileContents(ctx context.Context, uuid string, fileName string, content io.Reader) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func (r *FileDocumentRepository) UpdateFileContents(ctx context.Context, uuid st
 }
 
 // RenameFile renames a file on disk and updates files.json (preserves Description/Note/Tags)
-func (r *FileDocumentRepository) RenameFile(ctx context.Context, uuid string, oldName string, newName string) error {
+func (r *Store) RenameFile(ctx context.Context, uuid string, oldName string, newName string) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}

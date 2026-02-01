@@ -299,7 +299,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 
 	// Create document repository
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := store.NewFileDocumentRepository(dataPath, backupPath, namingStrategy)
+	documentRepository, err := store.New(dataPath, backupPath, namingStrategy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create document repository: %v", err)
 	}

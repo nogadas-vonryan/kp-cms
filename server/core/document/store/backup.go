@@ -15,11 +15,11 @@ import (
 	"github.com/hymkor/trash-go"
 )
 
-func (r *FileDocumentRepository) GetBackupPath() string {
+func (r *Store) GetBackupPath() string {
 	return r.backupPath
 }
 
-func (r *FileDocumentRepository) ListBackups(ctx context.Context) ([]document.BackupFile, error) {
+func (r *Store) ListBackups(ctx context.Context) ([]document.BackupFile, error) {
 	entries, err := os.ReadDir(r.backupPath)
 	if err != nil {
 		return nil, fmt.Errorf("read backup directory: %w", err)
@@ -55,7 +55,7 @@ func (r *FileDocumentRepository) ListBackups(ctx context.Context) ([]document.Ba
 	return backups, nil
 }
 
-func (r *FileDocumentRepository) CreateBackup(ctx context.Context) (string, error) {
+func (r *Store) CreateBackup(ctx context.Context) (string, error) {
 	r.mu.RLock()
 	sourceDir := r.basePath
 	backupDir := r.backupPath
@@ -143,7 +143,7 @@ func (r *FileDocumentRepository) CreateBackup(ctx context.Context) (string, erro
 	return fullOutputPath, nil
 }
 
-func (r *FileDocumentRepository) RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error {
+func (r *Store) RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error {
 	safeName := filepath.Base(fileName)
 	filePath := filepath.Join(r.backupPath, safeName)
 
@@ -181,7 +181,7 @@ func (pw *ProgressWriter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-func (r *FileDocumentRepository) ImportBackup(ctx context.Context, reader io.Reader, overwrite bool, onProgress func(float64)) error {
+func (r *Store) ImportBackup(ctx context.Context, reader io.Reader, overwrite bool, onProgress func(float64)) error {
 	// 1. Create a temporary file to store the incoming stream
 	// We need a real file (not just a pipe) because zip.NewReader requires ReaderAt
 	tempFile, err := os.CreateTemp("", "upload-backup-*.zip")

@@ -19,7 +19,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	tempDir := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := store.NewFileDocumentRepository(tempDir, "", strategy)
+	repo, err := store.New(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}

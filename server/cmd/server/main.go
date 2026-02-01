@@ -29,7 +29,7 @@ func main() {
 	}
 
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := store.NewFileDocumentRepository(*dataPath, *backupPath, namingStrategy)
+	documentRepository, err := store.New(*dataPath, *backupPath, namingStrategy)
 	if err != nil {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}

@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-type FileDocumentRepository struct {
+type Store struct {
 	basePath       string
 	backupPath     string
 	namingStrategy document.NamingStrategy
@@ -20,12 +20,12 @@ type FileDocumentRepository struct {
 	lastConflicts  []document.SyncIssue
 }
 
-var _ document.DocumentStore = (*FileDocumentRepository)(nil)
-var _ document.FileStore = (*FileDocumentRepository)(nil)
-var _ document.CacheStore = (*FileDocumentRepository)(nil)
-var _ document.BackupStore = (*FileDocumentRepository)(nil)
+var _ document.DocumentStore = (*Store)(nil)
+var _ document.FileStore = (*Store)(nil)
+var _ document.CacheStore = (*Store)(nil)
+var _ document.BackupStore = (*Store)(nil)
 
-func NewFileDocumentRepository(basePath string, backupPath string, namingStrategy document.NamingStrategy) (*FileDocumentRepository, error) {
+func New(basePath string, backupPath string, namingStrategy document.NamingStrategy) (*Store, error) {
 	if basePath == "" {
 		return nil, errors.New("base path is required")
 	}
@@ -37,7 +37,7 @@ func NewFileDocumentRepository(basePath string, backupPath string, namingStrateg
 		return nil, fmt.Errorf("ensure base path: %w", err)
 	}
 
-	repo := &FileDocumentRepository{
+	repo := &Store{
 		basePath:       basePath,
 		backupPath:     backupPath,
 		namingStrategy: namingStrategy,

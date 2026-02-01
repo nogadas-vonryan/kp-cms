@@ -14,7 +14,7 @@ import (
 	"github.com/hymkor/trash-go"
 )
 
-func (r *FileDocumentRepository) Create(ctx context.Context, doc *document.Document) (*document.Document, error) {
+func (r *Store) Create(ctx context.Context, doc *document.Document) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (r *FileDocumentRepository) Create(ctx context.Context, doc *document.Docum
 	return doc, nil
 }
 
-func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string) (*document.Document, error) {
+func (r *Store) GetByUUID(ctx context.Context, uuidValue string) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (r *FileDocumentRepository) GetByUUID(ctx context.Context, uuidValue string
 	return resp, nil
 }
 
-func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*document.Document, error) {
+func (r *Store) GetByCode(ctx context.Context, code string) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (r *FileDocumentRepository) GetByCode(ctx context.Context, code string) (*d
 	return resp, nil
 }
 
-func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, doc *document.Document) (*document.Document, error) {
+func (r *Store) Update(ctx context.Context, uuidValue string, doc *document.Document) (*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (r *FileDocumentRepository) Update(ctx context.Context, uuidValue string, d
 	return &updated, nil
 }
 
-func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) error {
+func (r *Store) Delete(ctx context.Context, uuidValue string) error {
 	if err := ctxErr(ctx); err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (r *FileDocumentRepository) Delete(ctx context.Context, uuidValue string) e
 	return nil
 }
 
-func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*document.Document, error) {
+func (r *Store) List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (r *FileDocumentRepository) List(ctx context.Context, offset int, limit int
 	return result, nil
 }
 
-func (r *FileDocumentRepository) GetDocumentFolderPath(ctx context.Context, uuid string) (string, error) {
+func (r *Store) GetDocumentFolderPath(ctx context.Context, uuid string) (string, error) {
 	if err := ctxErr(ctx); err != nil {
 		return "", err
 	}

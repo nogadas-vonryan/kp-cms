@@ -54,11 +54,11 @@ func writeFilesMetadata(path string, files []document.File) error {
 	return nil
 }
 
-func (r *FileDocumentRepository) getDocumentPath(folderName string) string {
+func (r *Store) getDocumentPath(folderName string) string {
 	return filepath.Join(r.basePath, folderName)
 }
 
-func (r *FileDocumentRepository) getDocumentFilePath(folderName, fileName string) string {
+func (r *Store) getDocumentFilePath(folderName, fileName string) string {
 	return filepath.Join(r.basePath, folderName, fileName)
 }
 

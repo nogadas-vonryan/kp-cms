@@ -18,7 +18,7 @@ func TestFileDocumentRepository_ReloadCache(t *testing.T) {
 	os.WriteFile(filepath.Join(docFolder, "meta.json"), []byte(metaData), 0644)
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestFileDocumentRepository_ReloadCacheForFolder_Success(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestFileDocumentRepository_ReloadCacheForFolder_MissingMeta(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}

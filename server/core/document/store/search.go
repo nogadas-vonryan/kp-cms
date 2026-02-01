@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (r *FileDocumentRepository) Search(ctx context.Context, criteria document.SearchCriteria) ([]*document.Document, error) {
+func (r *Store) Search(ctx context.Context, criteria document.SearchCriteria) ([]*document.Document, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}

@@ -15,7 +15,7 @@ func TestFix1_ConcurrentCreateDoesNotDuplicateCodes(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestFix2_PathTraversalRejection(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestFix3_DeleteFileMetadataAlwaysUpdated(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestFix4_ConcurrentUploadAndReadDoesNotLoseData(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -237,7 +237,7 @@ func TestConcurrentCreationUnderHighLoad(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}

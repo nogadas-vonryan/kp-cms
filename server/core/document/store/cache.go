@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
+func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (r *FileDocumentRepository) ReloadCache(ctx context.Context) ([]document.Sy
 	return issues, nil
 }
 
-func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folderName string) ([]document.SyncIssue, error) {
+func (r *Store) ReloadCacheForFolder(ctx context.Context, folderName string) ([]document.SyncIssue, error) {
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
@@ -220,21 +220,21 @@ func (r *FileDocumentRepository) ReloadCacheForFolder(ctx context.Context, folde
 	return issues, nil
 }
 
-func (r *FileDocumentRepository) GetConflicts(ctx context.Context) ([]document.SyncIssue, error) {
+func (r *Store) GetConflicts(ctx context.Context) ([]document.SyncIssue, error) {
 	return r.lastConflicts, nil
 }
 
-func (r *FileDocumentRepository) addToCache(doc *document.Document) {
+func (r *Store) addToCache(doc *document.Document) {
 	r.cacheByUUID[doc.UUID] = doc
 	r.cacheByCode[doc.Code] = doc
 }
 
-func (r *FileDocumentRepository) clearCache() {
+func (r *Store) clearCache() {
 	r.cacheByUUID = make(map[string]*document.Document)
 	r.cacheByCode = make(map[string]*document.Document)
 }
 
-func (r *FileDocumentRepository) getCodes() []string {
+func (r *Store) getCodes() []string {
 	codes := make([]string, 0, len(r.cacheByCode))
 	for code := range r.cacheByCode {
 		codes = append(codes, code)
@@ -245,7 +245,7 @@ func (r *FileDocumentRepository) getCodes() []string {
 
 // rebuildSortedCodesLocked recalculates the sorted codes slice.
 // Caller must hold the write lock.
-func (r *FileDocumentRepository) rebuildSortedCodesLocked() {
+func (r *Store) rebuildSortedCodesLocked() {
 	codes := make([]string, 0, len(r.cacheByCode))
 	for code := range r.cacheByCode {
 		codes = append(codes, code)

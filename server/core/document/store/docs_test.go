@@ -12,7 +12,7 @@ func TestFileDocumentRepository_Create(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestFileDocumentRepository_Create_IgnoresUserFolderName(t *testing.T) {
 	tmpBase := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := NewFileDocumentRepository(tmpBase, "", strategy)
+	repo, err := New(tmpBase, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to init repo: %v", err)
 	}
