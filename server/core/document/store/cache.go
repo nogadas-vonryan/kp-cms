@@ -16,9 +16,6 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 		return nil, err
 	}
 
-	log.Printf("[Cache] Starting reload of documents from %s", r.basePath)
-	start := time.Now()
-
 	entries, err := os.ReadDir(r.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read base directory: %w", err)
@@ -110,9 +107,6 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 	r.sortedByCode = tempSortedCodes
 	r.lastConflicts = issues
 	r.mu.Unlock()
-
-	log.Printf("[Cache] Reloaded %d documents from %s in %v (found %d issues)",
-		len(tempSortedCodes), r.basePath, time.Since(start), len(issues))
 
 	return issues, nil
 }
