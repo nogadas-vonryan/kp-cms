@@ -1,6 +1,7 @@
 <template>
   <div class="mx-auto max-w-full overflow-x-hidden px-2 sm:px-0">
     <div class="mb-4 space-y-3">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
       <div class="flex flex-col md:flex-row md:items-end gap-2">
         <div class="md:flex-1">
           <label class="block text-sm font-medium mb-1">Sort By</label>
