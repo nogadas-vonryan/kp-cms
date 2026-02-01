@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,12 +38,22 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-var restoreJobs = sync.Map{}
+type JobType string
 
-type RestoreResponse struct {
-	JobID   string `json:"job_id"`
-	Message string `json:"message"`
+const (
+	JobTypeBackup  JobType = "backup"
+	JobTypeRestore JobType = "restore"
+)
+
+type JobStatus struct {
+	Type     JobType `json:"type"`
+	Progress float64 `json:"progress"`
+	Status   string  `json:"status"`
+	Error    string  `json:"error,omitempty"`
+	Result   string  `json:"result,omitempty"`
 }
+
+var activeJobs sync.Map
 
 func (s *Server) handleCreateDocument() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -638,7 +647,14 @@ func (s *Server) handleListBackups() http.HandlerFunc {
 
 func (s *Server) handleDownloadBackup() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fileName := chi.URLParam(r, "fileName")
+		fileNameParam := chi.URLParam(r, "fileName")
+
+		// Chi parameters may still contain percent-encoding; normalize to the actual filename on disk
+		fileName, err := url.PathUnescape(fileNameParam)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
 
 		if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") {
 			respondError(w, http.StatusBadRequest, "invalid file name")
@@ -647,7 +663,7 @@ func (s *Server) handleDownloadBackup() http.HandlerFunc {
 
 		fullPath := filepath.Join(s.documentService.GetBackupPath(), fileName)
 
-		w.Header().Set("Content-Disposition", "attachment; filename="+fileName)
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
 		w.Header().Set("Content-Type", "application/zip")
 		http.ServeFile(w, r, fullPath)
 	}
@@ -655,16 +671,36 @@ func (s *Server) handleDownloadBackup() http.HandlerFunc {
 
 func (s *Server) handleCreateBackup() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		path, err := s.documentService.CreateBackup(r.Context())
-		if err != nil {
-			respondError(w, http.StatusInternalServerError, "failed to create backup: "+err.Error())
-			return
-		}
+		jobID := fmt.Sprintf("bak_%d", time.Now().UnixNano())
 
-		respondJSON(w, http.StatusCreated, map[string]string{
-			"message": "Backup created successfully",
-			"path":    path,
-			"file":    filepath.Base(path),
+		// Initial State
+		activeJobs.Store(jobID, JobStatus{Type: JobTypeBackup, Progress: 0.0})
+
+		go func() {
+			update := func(p float64, status string, err string, res string) {
+				activeJobs.Store(jobID, JobStatus{
+					Type:     JobTypeBackup,
+					Progress: p,
+					Status:   status, // Send the status string
+					Error:    err,
+					Result:   res,
+				})
+			}
+
+			path, err := s.documentService.CreateBackup(s.ctx, func(p float64) {
+				update(p, "processing", "", "")
+			})
+
+			if err != nil {
+				update(-1.0, "failed", err.Error(), "")
+			} else {
+				update(100.0, "completed", "", path)
+			}
+		}()
+
+		respondJSON(w, http.StatusAccepted, map[string]string{
+			"job_id":  jobID,
+			"message": "Backup started",
 		})
 	}
 }
@@ -672,71 +708,74 @@ func (s *Server) handleCreateBackup() http.HandlerFunc {
 func (s *Server) handleRestoreBackup() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fileName := r.URL.Query().Get("file_name")
-		mode := r.URL.Query().Get("mode")
-		shouldOverwrite := (mode == "overwrite")
+		shouldOverwrite := (r.URL.Query().Get("mode") == "overwrite")
 
 		if fileName == "" {
 			respondError(w, http.StatusBadRequest, "file_name is required")
 			return
 		}
 
-		jobID := fmt.Sprintf("%d", time.Now().UnixNano())
-		restoreJobs.Store(jobID, 0.0)
+		if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") {
+			respondError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
+
+		jobID := fmt.Sprintf("res_%d", time.Now().UnixNano())
+
+		activeJobs.Store(jobID, JobStatus{
+			Type:     JobTypeRestore,
+			Progress: 0.0,
+			Status:   "processing",
+		})
 
 		go func() {
-			onProgress := func(p float64) {
-				restoreJobs.Store(jobID, p)
+			update := func(p float64, status string, err string) {
+				activeJobs.Store(jobID, JobStatus{
+					Type:     JobTypeRestore,
+					Progress: p,
+					Status:   status,
+					Error:    err,
+				})
 			}
 
-			err := s.documentService.RestoreFromLocalPath(context.Background(), fileName, shouldOverwrite, onProgress)
+			err := s.documentService.RestoreFromLocalPath(s.ctx, fileName, shouldOverwrite, func(p float64) {
+				update(p, "processing", "")
+			})
 
 			if err != nil {
-				fmt.Printf("Job %s failed: %v\n", jobID, err)
-				restoreJobs.Store(jobID, -1.0)
+				update(-1.0, "failed", err.Error())
 			} else {
-				restoreJobs.Store(jobID, 100.0)
+				update(100.0, "completed", "")
 			}
 		}()
 
-		respondJSON(w, http.StatusAccepted, RestoreResponse{
-			JobID:   jobID,
-			Message: "Restore started in background",
+		respondJSON(w, http.StatusAccepted, map[string]string{
+			"job_id":  jobID,
+			"message": "Restore started",
 		})
 	}
 }
 
-func (s *Server) handleGetRestoreStatus() http.HandlerFunc {
+func (s *Server) handleGetJobStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		jobID := r.URL.Query().Get("job_id")
+		jobID := chi.URLParam(r, "jobID")
+
 		if jobID == "" {
-			respondError(w, http.StatusBadRequest, "job_id is required")
+			jobID = r.URL.Query().Get("job_id")
+		}
+
+		if jobID == "" {
+			respondError(w, http.StatusBadRequest, "Job ID is required")
 			return
 		}
 
-		val, ok := restoreJobs.Load(jobID)
+		val, ok := activeJobs.Load(jobID)
 		if !ok {
-			respondError(w, http.StatusNotFound, "Job not found or already finished")
+			respondError(w, http.StatusNotFound, "Job not found")
 			return
 		}
 
-		progress := val.(float64)
-
-		status := "processing"
-		if progress >= 100.0 {
-			status = "completed"
-		} else if progress < 0 {
-			status = "failed"
-		}
-
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"job_id":   jobID,
-			"progress": progress,
-			"status":   status,
-		})
-
-		if status == "completed" || status == "failed" {
-			restoreJobs.Delete(jobID)
-		}
+		respondJSON(w, http.StatusOK, val)
 	}
 }
 

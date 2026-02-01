@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <h1 class="text-xl sm:text-2xl font-bold text-gray-900">System Backups</h1>
-      <div class="flex gap-2 w-full sm:w-auto">
+      <div class="flex flex-col items-end gap-2 w-full sm:w-auto">
         <UiButton 
           variant="secondary" 
           @click="handleCreateBackup"
@@ -12,6 +12,19 @@
           <Save :size="18" />
           <span>{{ exporting ? 'Generating...' : 'Create New Backup' }}</span>
         </UiButton>
+        
+        <div v-if="exporting" class="w-full sm:w-64 space-y-1">
+          <div class="flex justify-between text-[10px] font-bold uppercase text-blue-600">
+            <span>Compressing Files</span>
+            <span>{{ Math.round(backupProgress) }}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+            <div 
+              class="bg-blue-600 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(37,99,235,0.4)]"
+              :style="{ width: `${backupProgress}%` }"
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -100,7 +113,7 @@
           </div>
           <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div 
-              class="bg-blue-600 h-full transition-all duration-300 ease-out"
+              class="bg-blue-600 h-full transition-all duration-700 ease-out"
               :style="{ width: `${restoreProgress}%` }"
             ></div>
           </div>
@@ -137,7 +150,7 @@
             <p class="text-xs text-red-700">
               This will <strong>trash</strong> your current data and replace it. To confirm, type:
               <span class="block font-mono font-bold mt-1 bg-white p-1 border border-red-100 rounded text-center">
-                I want to delete and replace everything
+                {{ OVERWRITE_PHRASE }}
               </span>
             </p>
             <UiInput 
@@ -191,6 +204,7 @@ const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 const backups = ref<BackupFile[]>([]);
 const loading = ref(false);
 const exporting = ref(false);
+const backupProgress = ref(0);
 const error = ref('');
 const isSystemUninitialized = ref(false);
 
@@ -202,7 +216,7 @@ const showRestoreModal = ref(false);
 const fileToRestore = ref<string | null>(null);
 const restoreMode = ref<'merge' | 'overwrite'>('merge');
 const confirmationInput = ref('');
-const OVERWRITE_PHRASE = 'i want to delete and replace everything';
+const OVERWRITE_PHRASE = 'I want to delete and replace everything';
 
 async function fetchBackups() {
   if (!authStore.user) return;
@@ -236,21 +250,10 @@ async function downloadExisting(fileName: string) {
   }
 }
 
-async function handleCreateBackup() {
-  exporting.value = true;
-  try {
-    await DocumentService.createBackup();
-    await fetchBackups();    
-  } catch (err: any) {
-    error.value = 'Backup failed: ' + extractErrorMessage(err);
-  } finally {
-    exporting.value = false;
-  }
-}
-
 function prepareRestore(fileName: string) {
   fileToRestore.value = fileName;
   restoreProgress.value = 0;
+  restoreError.value = '';
   showRestoreModal.value = true;
 }
 
@@ -263,53 +266,111 @@ const canRestore = computed(() => {
 });
 
 /**
- * Initiates the restore job and begins polling for progress
+ * Initiates the backup job
+ */
+async function handleCreateBackup() {
+  if (exporting.value) return;
+  exporting.value = true;
+  // Start at 1% immediately so the bar is visible even before polling
+  backupProgress.value = 1; 
+  
+  try {
+    const response = await DocumentService.createBackup();
+    const jobId = response.job_id; 
+    pollJobStatus(jobId, 'backup');
+  } catch (err: any) {
+    exporting.value = false;
+    error.value = 'Backup failed: ' + extractErrorMessage(err);
+  }
+}
+
+/**
+ * Initiates the restore job
  */
 async function handleRestore() {
   if (!canRestore.value || !fileToRestore.value) return;
   
   restoring.value = true;
   restoreError.value = '';
-  restoreProgress.value = 0;
+  // Start at 1% immediately so the bar is visible
+  restoreProgress.value = 1;
 
   try {
     const response = await DocumentService.restoreBackup(fileToRestore.value, restoreMode.value);
-    const jobId = response.data.job_id;
-    
-    // Begin polling
-    pollRestoreStatus(jobId);
+    pollJobStatus(response.data.job_id, 'restore');
   } catch (err: any) {
     restoring.value = false;
     restoreError.value = extractErrorMessage(err) || 'Failed to start restore';
   }
 }
 
-function pollRestoreStatus(jobId: string) {
-  const interval = setInterval(async () => {
+/**
+ * Enhanced polling with minimum display time for animations
+ */
+function pollJobStatus(jobId: string, type: 'backup' | 'restore') {
+  let retryCount = 0;
+
+  // Reduced interval to 500ms for more frequent updates
+  const intervalId = window.setInterval(async () => {
     try {
-      const { data } = await DocumentService.getRestoreStatus(jobId);
-      
-      restoreProgress.value = data.progress;
+      const { data } = await DocumentService.getJobStatus(jobId);
+      retryCount = 0;
+
+      if (type === 'backup') {
+        backupProgress.value = data.progress;
+      } else {
+        restoreProgress.value = data.progress;
+      }
 
       if (data.status === 'completed') {
-        clearInterval(interval);
+        clearInterval(intervalId);
+        
+        // Force to 100% to ensure the CSS transition triggers
+        if (type === 'backup') backupProgress.value = 100;
+        else restoreProgress.value = 100;
+
+        // VISUAL DELAY: Give the CSS transition 800ms to complete before hiding the bar
         setTimeout(() => {
-          restoring.value = false;
-          showRestoreModal.value = false;
-          fetchBackups();
-          alert('System successfully restored.');
-        }, 500);
+          finalizeJob(type, true);
+        }, 800);
+
       } else if (data.status === 'failed') {
-        clearInterval(interval);
-        restoring.value = false;
-        restoreError.value = 'Restoration process failed on server.';
+        clearInterval(intervalId);
+        finalizeJob(type, false, data.error);
       }
-    } catch (err) {
-      clearInterval(interval);
-      restoring.value = false;
-      fetchBackups();
+    } catch (err: any) {
+      if (err.statusCode === 404 && retryCount < 3) {
+        retryCount++;
+        return; 
+      }
+      clearInterval(intervalId);
+      finalizeJob(type, false, "Job tracking failed or expired");
     }
-  }, 1000);
+  }, 500); 
+}
+
+function finalizeJob(type: 'backup' | 'restore', success: boolean, errMsg?: string) {
+  if (type === 'backup') {
+    exporting.value = false;
+    if (success) {
+      fetchBackups();
+    } else {
+      backupProgress.value = 0;
+      error.value = errMsg || 'Backup process failed';
+    }
+  } else {
+    restoring.value = false;
+    if (success) {
+      setTimeout(() => {
+        showRestoreModal.value = false;
+        fetchBackups();
+        alert('System successfully restored.');
+      }, 500);
+    } else {
+      restoreProgress.value = 0;
+      restoreError.value = errMsg || 'Restore process failed';
+    }
+  }
 }
 
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleString(); }

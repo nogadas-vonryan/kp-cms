@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -21,11 +23,23 @@ type Server struct {
 	userStore       *auth.UserStore
 	sessionManager  *auth.SessionManager
 	sessionTTL      time.Duration
+	ctx             context.Context
+	cancel          context.CancelFunc
 }
 
 func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService) (*Server, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	success := false
+	defer func() {
+		if !success {
+			cancel()
+		}
+	}()
+
 	userStore := auth.NewUserStore()
 	if err := userStore.AddUser(flagUser, flagPass, auth.RoleAdmin); err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to create admin user: %w", err)
 	}
 
@@ -37,9 +51,13 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		userStore:       userStore,
 		sessionManager:  auth.NewSessionManager(24 * time.Hour),
 		sessionTTL:      24 * time.Hour,
+		ctx:             ctx,
+		cancel:          cancel,
 	}
 
 	s.routes()
+
+	success = true
 	return s, nil
 }
 
@@ -113,8 +131,11 @@ func (s *Server) routes() {
 					admin.Get("/backup/download/{fileName}", s.handleDownloadBackup())
 					admin.Post("/backup", s.handleCreateBackup())
 					admin.Post("/backup/restore", s.handleRestoreBackup())
-					admin.Get("/backup/restore/status", s.handleGetRestoreStatus())
 				})
+			})
+
+			r.Route("/jobs", func(r chi.Router) {
+				r.Get("/{jobID}", s.handleGetJobStatus())
 			})
 		})
 	})
@@ -132,4 +153,10 @@ func (s *Server) handleHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.cancel()
+	slog.Info("Server context cancelled, cleaning up...")
+	return nil
 }

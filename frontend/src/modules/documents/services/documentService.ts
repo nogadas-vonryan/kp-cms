@@ -143,11 +143,11 @@ export const DocumentService = {
   },
 
   /**
-   * Triggers the creation of backup in the server.
-   * Matches: GET /api/backup/export
+   * Triggers the creation of backup.
+   * Returns a job_id for progress tracking.
    */
   createBackup: async () => {
-    const response = await api.post('/api/documents/backup');
+    const response = await api.post<{ job_id: string; message: string }>('/api/documents/backup');
     return response.data;
   },
 
@@ -163,13 +163,15 @@ export const DocumentService = {
   },
 
   /**
-   * Polls the status of a restoration job.
+   * Polls the status of any background job (backup or restore).
+   * Matches: GET /api/jobs/{jobID}
    */
-  getRestoreStatus: (jobId: string) => {
+  getJobStatus: (jobId: string) => {
     return api.get<{
-      job_id: string;
+      type: 'backup' | 'restore';
       progress: number;
       status: 'processing' | 'completed' | 'failed';
-    }>(`/api/documents/backup/restore/status?job_id=${jobId}`);
+      error?: string;
+    }>(`/api/jobs/${jobId}`); 
   },
 };

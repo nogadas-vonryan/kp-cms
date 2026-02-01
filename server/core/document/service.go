@@ -168,8 +168,8 @@ func (s *DocumentService) ListBackups(ctx context.Context) ([]BackupFile, error)
 	return s.backups.ListBackups(ctx)
 }
 
-func (s *DocumentService) CreateBackup(ctx context.Context) (string, error) {
-	return s.backups.CreateBackup(ctx)
+func (s *DocumentService) CreateBackup(ctx context.Context, onProgress func(float64)) (string, error) {
+	return s.backups.CreateBackup(ctx, onProgress)
 }
 
 func (s *DocumentService) RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error {

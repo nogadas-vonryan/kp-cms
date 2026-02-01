@@ -55,7 +55,7 @@ func (r *Store) ListBackups(ctx context.Context) ([]document.BackupFile, error) 
 	return backups, nil
 }
 
-func (r *Store) CreateBackup(ctx context.Context) (string, error) {
+func (r *Store) CreateBackup(ctx context.Context, onProgress func(float64)) (string, error) {
 	r.mu.RLock()
 	sourceDir := r.basePath
 	backupDir := r.backupPath
@@ -69,24 +69,50 @@ func (r *Store) CreateBackup(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
-	outFile, err := os.Create(fullOutputPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create backup file: %w", err)
-	}
-	defer outFile.Close()
-
-	zw := zip.NewWriter(outFile)
-
 	resolvedSource, err := filepath.EvalSymlinks(sourceDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve source path: %w", err)
 	}
+
+	var totalSize int64
+	_ = filepath.Walk(resolvedSource, func(_ string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			totalSize += info.Size()
+		}
+		return nil
+	})
+
+	if totalSize == 0 {
+		return "", fmt.Errorf("source directory is empty or inaccessible")
+	}
+
+	outFile, err := os.Create(fullOutputPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create backup file: %w", err)
+	}
+
+	// Use a flag to check if we should cleanup the file on failure
+	success := false
+	defer func() {
+		outFile.Close()
+		if !success {
+			os.Remove(fullOutputPath)
+		}
+	}()
+
+	tracker := &ProgressWriter{
+		Total:      totalSize,
+		OnProgress: onProgress,
+	}
+
+	zw := zip.NewWriter(outFile)
 
 	err = filepath.Walk(resolvedSource, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
+		// Check context cancellation
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -94,18 +120,14 @@ func (r *Store) CreateBackup(ctx context.Context) (string, error) {
 		}
 
 		relPath, err := filepath.Rel(resolvedSource, path)
-		if err != nil {
+		if err != nil || relPath == "." {
 			return err
-		}
-		if relPath == "." {
-			return nil
 		}
 
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
 		}
-
 		header.Name = filepath.ToSlash(relPath)
 
 		if info.IsDir() {
@@ -125,21 +147,27 @@ func (r *Store) CreateBackup(ctx context.Context) (string, error) {
 			return err
 		}
 
-		defer file.Close()
+		// Wrap file reading in a func to ensure closure immediately after use
+		err = func() error {
+			defer file.Close()
+			multi := io.MultiWriter(writer, tracker)
+			_, err = io.Copy(multi, file)
+			return err
+		}()
 
-		_, err = io.Copy(writer, file)
 		return err
 	})
 
 	if err != nil {
 		zw.Close()
-		return "", fmt.Errorf("walk error during backup: %w", err)
+		return "", err
 	}
 
 	if err := zw.Close(); err != nil {
-		return "", fmt.Errorf("failed to close zip writer: %w", err)
+		return "", err
 	}
 
+	success = true
 	return fullOutputPath, nil
 }
 
@@ -181,6 +209,32 @@ func (pw *ProgressWriter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// validateZipFile validates ZIP file structure and security before extraction
+func (r *Store) validateZipFile(zr *zip.Reader) error {
+	if len(zr.File) == 0 {
+		return fmt.Errorf("backup file is empty or not a valid ZIP")
+	}
+
+	// Validate all entries for ZipSlip and basic structure
+	for _, f := range zr.File {
+		// Security check: ZipSlip vulnerability prevention
+		if strings.Contains(f.Name, "..") || strings.HasPrefix(f.Name, "/") {
+			return fmt.Errorf("zipslip detected in file path: %s", f.Name)
+		}
+
+		// Ensure file can be opened to verify backup integrity
+		if !f.FileInfo().IsDir() {
+			rc, err := f.Open()
+			if err != nil {
+				return fmt.Errorf("cannot read file in backup: %s: %w", f.Name, err)
+			}
+			rc.Close()
+		}
+	}
+
+	return nil
+}
+
 func (r *Store) ImportBackup(ctx context.Context, reader io.Reader, overwrite bool, onProgress func(float64)) error {
 	// 1. Create a temporary file to store the incoming stream
 	// We need a real file (not just a pipe) because zip.NewReader requires ReaderAt
@@ -203,7 +257,12 @@ func (r *Store) ImportBackup(ctx context.Context, reader io.Reader, overwrite bo
 		return fmt.Errorf("open zip reader: %w", err)
 	}
 
-	// 4. Calculate total uncompressed size for accurate progress tracking
+	// 4. Validate ZIP file BEFORE any destructive operations
+	if err := r.validateZipFile(zr); err != nil {
+		return fmt.Errorf("backup validation failed: %w", err)
+	}
+
+	// 5. Calculate total uncompressed size for accurate progress tracking
 	var totalSize int64
 	for _, f := range zr.File {
 		if !f.FileInfo().IsDir() {
@@ -216,7 +275,7 @@ func (r *Store) ImportBackup(ctx context.Context, reader io.Reader, overwrite bo
 		OnProgress: onProgress,
 	}
 
-	// 5. Extraction Phase
+	// 6. Extraction Phase
 	// We wrap this in a function literal to ensure r.mu.Unlock() runs
 	// BEFORE we trigger ReloadCache to prevent deadlocks.
 	err = func() error {
@@ -241,11 +300,6 @@ func (r *Store) ImportBackup(ctx context.Context, reader io.Reader, overwrite bo
 		}
 
 		for _, f := range zr.File {
-			// Security check: ZipSlip vulnerability prevention
-			if strings.Contains(f.Name, "..") {
-				continue
-			}
-
 			targetPath := filepath.Join(r.basePath, f.Name)
 
 			if f.FileInfo().IsDir() {
@@ -289,7 +343,6 @@ func (r *Store) ImportBackup(ctx context.Context, reader io.Reader, overwrite bo
 		return err
 	}
 
-	// 6. Reload Cache
 	// This is now safe to call because the Mutex has been released.
 	_, err = r.ReloadCache(ctx)
 	if err != nil {
