@@ -310,7 +310,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		fmt.Sprintf("%d", port),
 		user,
 		pass,
-		document.NewDocumentService(documentRepository, nil, nil, nil),
+		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up server: %v", err)

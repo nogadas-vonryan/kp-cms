@@ -39,7 +39,7 @@ func main() {
 		*port,
 		*user,
 		*pass,
-		document.NewDocumentService(documentRepository, nil, nil, nil),
+		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
 	)
 	if err != nil {
 		log.Fatalf("Failed to set up server: %v", err)
