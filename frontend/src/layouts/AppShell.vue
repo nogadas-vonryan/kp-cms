@@ -3,7 +3,7 @@ import { RouterView, useRouter } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
 import { AuthService } from '@/modules/auth/services/authService';
 import { computed, ref } from 'vue';
-import { Menu, X, FileText, BarChart3, Settings, LogOut, Upload, Save } from 'lucide-vue-next';
+import { Menu, X, FileText, BarChart3, Settings, LogOut, Upload, Save, Users } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -64,6 +64,16 @@ function navigateTo(path: string) {
           >
             <FileText :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
             <span class="text-sm font-medium">Documents</span>
+          </button>
+
+          <!-- Inhabitants Link -->
+          <button
+            @click="navigateTo('/inhabitants')"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200 group"
+            :class="$route.path === '/inhabitants' ? 'bg-amber-500 text-white shadow-md' : ''"
+          >
+            <Users :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <span class="text-sm font-medium">Inhabitants</span>
           </button>
 
           <!-- Reports Link (Admin only) -->

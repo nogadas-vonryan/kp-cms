@@ -9,6 +9,7 @@ import NotFound from '@/pages/NotFound.vue';
 import ReportExportPage from '@/modules/reports/pages/ReportExportPage.vue';
 import ImportPage from '@/modules/import/pages/ImportPage.vue';
 import BackupPage from '@/modules/backup/pages/BackupPage.vue';
+import InhabitantPage from '@/modules/inhabitants/pages/InhabitantPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -31,6 +32,12 @@ const routes: RouteRecordRaw[] = [
     path: '/documents/:documentId',
     name: 'document-detail',
     component: DocumentDetailPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/inhabitants',
+    name: 'inhabitants',
+    component: InhabitantPage,
     meta: { requiresAuth: true },
   },
   {
