@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"kpcms/server/core/document"
+	"kpcms/server/core/inhabitant"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -20,7 +20,7 @@ func TestHandleListInhabitants_Success(t *testing.T) {
 	// Create some inhabitants
 	ctx := context.Background()
 	for i := 0; i < 3; i++ {
-		_, err := db.CreateInhabitant(ctx, &document.Inhabitant{
+		_, err := db.InhabitantStore.CreateInhabitant(ctx, &inhabitant.Inhabitant{
 			FirstName: "User",
 			LastName:  "Name" + string(rune('0'+byte(i))),
 		})
@@ -52,7 +52,7 @@ func TestHandleGetInhabitant_Success(t *testing.T) {
 	server, db := setupTestServerWithDB(t)
 
 	ctx := context.Background()
-	id, err := db.CreateInhabitant(ctx, &document.Inhabitant{
+	id, err := db.InhabitantStore.CreateInhabitant(ctx, &inhabitant.Inhabitant{
 		FirstName: "John",
 		LastName:  "Doe",
 		ContactNo: "555-1234",
@@ -139,7 +139,7 @@ func TestHandleUpdateInhabitant_Success(t *testing.T) {
 	server, db := setupTestServerWithDB(t)
 
 	ctx := context.Background()
-	id, err := db.CreateInhabitant(ctx, &document.Inhabitant{
+	id, err := db.InhabitantStore.CreateInhabitant(ctx, &inhabitant.Inhabitant{
 		FirstName: "John",
 		LastName:  "Doe",
 		ContactNo: "555-1111",
@@ -171,7 +171,7 @@ func TestHandleUpdateInhabitant_Success(t *testing.T) {
 	}
 
 	// Verify the update
-	updated, _ := db.GetInhabitant(ctx, id)
+	updated, _ := db.InhabitantStore.GetInhabitant(ctx, id)
 	if updated.FirstName != "Jonathan" {
 		t.Errorf("expected first name Jonathan, got %q", updated.FirstName)
 	}
@@ -181,7 +181,7 @@ func TestHandleDeleteInhabitant_Success(t *testing.T) {
 	server, db := setupTestServerWithDB(t)
 
 	ctx := context.Background()
-	id, err := db.CreateInhabitant(ctx, &document.Inhabitant{
+	id, err := db.InhabitantStore.CreateInhabitant(ctx, &inhabitant.Inhabitant{
 		FirstName: "Alice",
 		LastName:  "Adams",
 	})
@@ -203,7 +203,7 @@ func TestHandleDeleteInhabitant_Success(t *testing.T) {
 	}
 
 	// Verify the deletion
-	_, err = db.GetInhabitant(ctx, id)
+	_, err = db.InhabitantStore.GetInhabitant(ctx, id)
 	if err == nil {
 		t.Errorf("expected error after deletion")
 	}

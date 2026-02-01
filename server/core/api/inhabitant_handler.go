@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"kpcms/server/core/document"
+	"kpcms/server/core/inhabitant"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -49,7 +49,7 @@ func (s *Server) handleListInhabitants() http.HandlerFunc {
 			}
 		}
 
-		inhabitants, err := s.db.ListInhabitants(r.Context(), limit, offset)
+		inhabitants, err := s.db.InhabitantStore.ListInhabitants(r.Context(), limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to list inhabitants")
 			return
@@ -82,7 +82,7 @@ func (s *Server) handleGetInhabitant() http.HandlerFunc {
 			return
 		}
 
-		inhabitant, err := s.db.GetInhabitant(r.Context(), id)
+		inhabitant, err := s.db.InhabitantStore.GetInhabitant(r.Context(), id)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "inhabitant not found")
 			return
@@ -116,7 +116,7 @@ func (s *Server) handleCreateInhabitant() http.HandlerFunc {
 			return
 		}
 
-		inhabitant := &document.Inhabitant{
+		inhabitant := &inhabitant.Inhabitant{
 			FirstName:  req.FirstName,
 			LastName:   req.LastName,
 			MiddleName: req.MiddleName,
@@ -135,7 +135,7 @@ func (s *Server) handleCreateInhabitant() http.HandlerFunc {
 			inhabitant.Birthday = parsedDate
 		}
 
-		id, err := s.db.CreateInhabitant(r.Context(), inhabitant)
+		id, err := s.db.InhabitantStore.CreateInhabitant(r.Context(), inhabitant)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to create inhabitant")
 			return
@@ -177,7 +177,7 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			return
 		}
 
-		inhabitant := &document.Inhabitant{
+		inhabitant := &inhabitant.Inhabitant{
 			ID:         id,
 			FirstName:  req.FirstName,
 			LastName:   req.LastName,
@@ -197,7 +197,7 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			inhabitant.Birthday = parsedDate
 		}
 
-		if err := s.db.UpdateInhabitant(r.Context(), inhabitant); err != nil {
+		if err := s.db.InhabitantStore.UpdateInhabitant(r.Context(), inhabitant); err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to update inhabitant")
 			return
 		}
@@ -226,7 +226,7 @@ func (s *Server) handleDeleteInhabitant() http.HandlerFunc {
 			return
 		}
 
-		if err := s.db.DeleteInhabitant(r.Context(), id); err != nil {
+		if err := s.db.InhabitantStore.DeleteInhabitant(r.Context(), id); err != nil {
 			respondError(w, http.StatusNotFound, "inhabitant not found")
 			return
 		}
