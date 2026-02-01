@@ -160,6 +160,59 @@ func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) (
 	return s.docs.Search(ctx, criteria)
 }
 
+// SearchByParticipants searches for documents where any of the provided names
+// appears in either the complainants or respondents fields.
+// This method is used by the search aggregator for cross-domain searches.
+func (s *DocumentService) SearchByParticipants(ctx context.Context, names []string) ([]*Document, error) {
+	if len(names) == 0 {
+		return []*Document{}, nil
+	}
+
+	// Use a map to deduplicate results
+	uniqueDocs := make(map[string]*Document)
+
+	// Search for each name in both complainants and respondents fields
+	for _, name := range names {
+		// Search in complainants
+		complainantsCriteria := SearchCriteria{
+			FieldFilters: map[string]any{
+				"complainants": name,
+			},
+			Limit: 1000, // High limit to get all matches
+		}
+		complainantsDocs, err := s.docs.Search(ctx, complainantsCriteria)
+		if err != nil {
+			return nil, fmt.Errorf("searching complainants: %w", err)
+		}
+		for _, doc := range complainantsDocs {
+			uniqueDocs[doc.UUID] = doc
+		}
+
+		// Search in respondents
+		respondentsCriteria := SearchCriteria{
+			FieldFilters: map[string]any{
+				"respondents": name,
+			},
+			Limit: 1000,
+		}
+		respondentsDocs, err := s.docs.Search(ctx, respondentsCriteria)
+		if err != nil {
+			return nil, fmt.Errorf("searching respondents: %w", err)
+		}
+		for _, doc := range respondentsDocs {
+			uniqueDocs[doc.UUID] = doc
+		}
+	}
+
+	// Convert map to slice
+	results := make([]*Document, 0, len(uniqueDocs))
+	for _, doc := range uniqueDocs {
+		results = append(results, doc)
+	}
+
+	return results, nil
+}
+
 func (s *DocumentService) GetBackupPath() string {
 	return s.backups.GetBackupPath()
 }

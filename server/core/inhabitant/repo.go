@@ -18,4 +18,8 @@ type Repository interface {
 
 	// Delete removes an inhabitant from the repository.
 	Delete(ctx context.Context, id int64) error
+
+	// FindByName searches for inhabitants by partial name match.
+	// It searches across first_name, last_name, and middle_name fields.
+	FindByName(ctx context.Context, query string, limit int) ([]Inhabitant, error)
 }

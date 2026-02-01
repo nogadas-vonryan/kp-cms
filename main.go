@@ -22,6 +22,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/search"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -332,6 +333,9 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 	authService := auth.NewService(authRepo)
 	inhabitantService := inhabitant.NewService(inhabitantRepo)
 
+	// Create search aggregator service
+	searchService := search.NewAggregator(inhabitantService, document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository))
+
 	// Create API server
 	apiServer, err := api.NewServer(
 		host,
@@ -341,6 +345,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
 		authService,
 		inhabitantService,
+		searchService,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up server: %v", err)

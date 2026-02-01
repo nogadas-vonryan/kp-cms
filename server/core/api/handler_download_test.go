@@ -16,6 +16,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/search"
 )
 
 func setupTestServer(t *testing.T) (*Server, string, *auth.Service) {
@@ -40,8 +41,10 @@ func setupTestServer(t *testing.T) (*Server, string, *auth.Service) {
 	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
 	authService := auth.NewService(authRepo)
 	inhabitantService := inhabitant.NewService(inhabitantRepo)
+	documentService := document.NewDocumentService(repo, repo, nil, nil)
+	searchService := search.NewAggregator(inhabitantService, documentService)
 
-	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo, repo, nil, nil), authService, inhabitantService)
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password", documentService, authService, inhabitantService, searchService)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}

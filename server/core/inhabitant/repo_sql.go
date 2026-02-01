@@ -173,3 +173,62 @@ func (r *SQLRepository) Delete(ctx context.Context, id int64) error {
 
 	return nil
 }
+
+// FindByName searches for inhabitants by partial name match.
+// It searches across first_name, last_name, and middle_name fields using case-insensitive LIKE.
+func (r *SQLRepository) FindByName(ctx context.Context, query string, limit int) ([]Inhabitant, error) {
+	if limit <= 0 {
+		limit = 20 // Default limit to prevent excessive results
+	}
+
+	// Use wildcards for partial matching
+	searchPattern := "%" + query + "%"
+
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, first_name, last_name, middle_name, suffix, birthday, contact_no, address
+		FROM inhabitants
+		WHERE first_name LIKE ? OR last_name LIKE ? OR middle_name LIKE ?
+		ORDER BY last_name ASC, first_name ASC
+		LIMIT ?
+	`, searchPattern, searchPattern, searchPattern, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var inhabitants []Inhabitant
+	for rows.Next() {
+		var id int64
+		var firstName, lastName, middleName, suffix, contactNo, address string
+		var birthdayStr string
+
+		if err := rows.Scan(&id, &firstName, &lastName, &middleName, &suffix, &birthdayStr, &contactNo, &address); err != nil {
+			return nil, err
+		}
+
+		inhabitant := Inhabitant{
+			ID:         id,
+			FirstName:  firstName,
+			LastName:   lastName,
+			MiddleName: middleName,
+			Suffix:     suffix,
+			ContactNo:  contactNo,
+			Address:    address,
+		}
+
+		if birthdayStr != "" {
+			birthday, err := time.Parse(time.RFC3339, birthdayStr)
+			if err == nil {
+				inhabitant.Birthday = birthday
+			}
+		}
+
+		inhabitants = append(inhabitants, inhabitant)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return inhabitants, nil
+}

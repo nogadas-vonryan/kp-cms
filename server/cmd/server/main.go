@@ -8,6 +8,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/search"
 	"log"
 	"os"
 	"path/filepath"
@@ -60,15 +61,20 @@ func main() {
 	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
 	authService := auth.NewService(authRepo)
 	inhabitantService := inhabitant.NewService(inhabitantRepo)
+	documentService := document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository)
+
+	// Create the aggregator service for cross-domain searches
+	searchService := search.NewAggregator(inhabitantService, documentService)
 
 	server, err := api.NewServer(
 		*host,
 		*port,
 		*user,
 		*pass,
-		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
+		documentService,
 		authService,
 		inhabitantService,
+		searchService,
 	)
 	if err != nil {
 		log.Fatalf("Failed to set up server: %v", err)

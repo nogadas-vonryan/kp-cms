@@ -11,6 +11,7 @@ import (
 	"kpcms/server/core/auth"
 	"kpcms/server/core/document"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/search"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -24,12 +25,13 @@ type Server struct {
 	documentService   *document.DocumentService
 	authService       *auth.Service
 	inhabitantService *inhabitant.Service
+	searchService     *search.AggregatorService
 	sessionTTL        time.Duration
 	ctx               context.Context
 	cancel            context.CancelFunc
 }
 
-func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service) (*Server, error) {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service, searchService *search.AggregatorService) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	success := false
@@ -51,6 +53,7 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		documentService:   documentService,
 		authService:       authService,
 		inhabitantService: inhabitantService,
+		searchService:     searchService,
 		sessionTTL:        24 * time.Hour,
 		ctx:               ctx,
 		cancel:            cancel,
@@ -145,6 +148,10 @@ func (s *Server) routes() {
 				r.Get("/{id}", s.handleGetInhabitant())
 				r.Put("/{id}", s.handleUpdateInhabitant())
 				r.Delete("/{id}", s.handleDeleteInhabitant())
+			})
+
+			r.Route("/search", func(r chi.Router) {
+				r.Get("/advanced", s.handleAdvancedSearch())
 			})
 		})
 	})

@@ -36,3 +36,9 @@ func (s *Service) Update(ctx context.Context, inhabitant *Inhabitant) error {
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
+
+// FindPeopleByName searches for inhabitants whose names partially match the query.
+// This method is used by the search aggregator to find people for cross-domain searches.
+func (s *Service) FindPeopleByName(ctx context.Context, query string, limit int) ([]Inhabitant, error) {
+	return s.repo.FindByName(ctx, query, limit)
+}
