@@ -22,7 +22,7 @@ func (s *Server) SessionMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			identity, err := s.db.GetSession(r.Context(), cookie.Value)
+			identity, err := s.authService.GetSession(r.Context(), cookie.Value)
 			if err != nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return

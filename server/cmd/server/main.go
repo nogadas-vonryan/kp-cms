@@ -7,6 +7,7 @@ import (
 	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
+	"kpcms/server/core/inhabitant"
 	"log"
 	"os"
 	"path/filepath"
@@ -55,13 +56,19 @@ func main() {
 	}
 	defer db.Close()
 
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
+	authService := auth.NewService(authRepo)
+	inhabitantService := inhabitant.NewService(inhabitantRepo)
+
 	server, err := api.NewServer(
 		*host,
 		*port,
 		*user,
 		*pass,
 		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
-		db,
+		authService,
+		inhabitantService,
 	)
 	if err != nil {
 		log.Fatalf("Failed to set up server: %v", err)

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"kpcms/server/core/auth"
-	"kpcms/server/core/database"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -41,13 +40,13 @@ func (s *Server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		identity, err := s.db.Authenticate(r.Context(), req.Username, req.Password)
+		identity, err := s.authService.Authenticate(r.Context(), req.Username, req.Password)
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
 
-		if err := issueSession(r.Context(), w, s.db, identity, s.sessionTTL); err != nil {
+		if err := issueSession(r.Context(), w, s.authService, identity, s.sessionTTL); err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to create session")
 			return
 		}
@@ -67,7 +66,7 @@ func (s *Server) handleRegister() http.HandlerFunc {
 			return
 		}
 
-		if err := s.db.CreateUser(r.Context(), req.Username, req.Password, auth.RoleUser); err != nil {
+		if err := s.authService.CreateUser(r.Context(), req.Username, req.Password, auth.RoleUser); err != nil {
 			status := http.StatusInternalServerError
 			if errors.Is(err, auth.ErrUserExists) {
 				status = http.StatusConflict
@@ -77,7 +76,7 @@ func (s *Server) handleRegister() http.HandlerFunc {
 		}
 
 		identity := auth.Identity{ID: req.Username, Role: auth.RoleUser}
-		if err := issueSession(r.Context(), w, s.db, identity, s.sessionTTL); err != nil {
+		if err := issueSession(r.Context(), w, s.authService, identity, s.sessionTTL); err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to create session")
 			return
 		}
@@ -87,7 +86,7 @@ func (s *Server) handleRegister() http.HandlerFunc {
 func (s *Server) handleLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cookie, err := r.Cookie(auth.SessionCookieName); err == nil {
-			_ = s.db.DeleteSession(r.Context(), cookie.Value)
+			_ = s.authService.DeleteSession(r.Context(), cookie.Value)
 		}
 		clearAuthCookies(w)
 		w.WriteHeader(http.StatusNoContent)
@@ -107,7 +106,7 @@ func (s *Server) handleMe() http.HandlerFunc {
 
 func (s *Server) handleListUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := s.db.ListUsers(r.Context())
+		users, err := s.authService.ListUsers(r.Context())
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to list users")
 			return
@@ -134,7 +133,7 @@ func (s *Server) handleCreateUser() http.HandlerFunc {
 			return
 		}
 
-		if err := s.db.CreateUser(r.Context(), req.Username, req.Password, req.Role); err != nil {
+		if err := s.authService.CreateUser(r.Context(), req.Username, req.Password, req.Role); err != nil {
 			status := http.StatusInternalServerError
 			if errors.Is(err, auth.ErrUserExists) {
 				status = http.StatusConflict
@@ -171,7 +170,7 @@ func (s *Server) handleUpdateUserRole() http.HandlerFunc {
 			return
 		}
 
-		if err := s.db.UpdateRole(r.Context(), username, req.Role); err != nil {
+		if err := s.authService.UpdateRole(r.Context(), username, req.Role); err != nil {
 			status := http.StatusInternalServerError
 			if errors.Is(err, auth.ErrUserNotFound) {
 				status = http.StatusNotFound
@@ -198,7 +197,7 @@ func (s *Server) handleDeleteUser() http.HandlerFunc {
 			return
 		}
 
-		if err := s.db.DeleteUser(r.Context(), username); err != nil {
+		if err := s.authService.DeleteUser(r.Context(), username); err != nil {
 			status := http.StatusInternalServerError
 			if errors.Is(err, auth.ErrUserNotFound) {
 				status = http.StatusNotFound
@@ -211,8 +210,8 @@ func (s *Server) handleDeleteUser() http.HandlerFunc {
 	}
 }
 
-func issueSession(ctx context.Context, w http.ResponseWriter, db *database.Database, identity auth.Identity, ttl time.Duration) error {
-	token, err := db.CreateSession(ctx, identity, ttl)
+func issueSession(ctx context.Context, w http.ResponseWriter, authSvc *auth.Service, identity auth.Identity, ttl time.Duration) error {
+	token, err := authSvc.CreateSession(ctx, identity, ttl)
 	if err != nil {
 		return err
 	}

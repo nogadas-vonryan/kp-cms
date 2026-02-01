@@ -86,6 +86,11 @@ func randomToken(length int) string {
 	return base64.RawURLEncoding.EncodeToString(bytes)[:length]
 }
 
+// NewSessionToken generates a new session token with the specified length.
+func NewSessionToken(length int) string {
+	return randomToken(length)
+}
+
 func NewCSRFToken(length int) string {
 	return randomToken(length)
 }

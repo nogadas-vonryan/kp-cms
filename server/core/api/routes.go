@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"kpcms/server/core/auth"
-	"kpcms/server/core/database"
 	"kpcms/server/core/document"
+	"kpcms/server/core/inhabitant"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,17 +18,18 @@ import (
 )
 
 type Server struct {
-	Host            string
-	Port            string
-	Router          *chi.Mux
-	documentService *document.DocumentService
-	db              *database.Database
-	sessionTTL      time.Duration
-	ctx             context.Context
-	cancel          context.CancelFunc
+	Host              string
+	Port              string
+	Router            *chi.Mux
+	documentService   *document.DocumentService
+	authService       *auth.Service
+	inhabitantService *inhabitant.Service
+	sessionTTL        time.Duration
+	ctx               context.Context
+	cancel            context.CancelFunc
 }
 
-func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, db *database.Database) (*Server, error) {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	success := false
@@ -38,20 +39,21 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		}
 	}()
 
-	if err := db.CreateUser(ctx, flagUser, flagPass, auth.RoleAdmin); err != nil && !errors.Is(err, auth.ErrUserExists) {
+	if err := authService.CreateUser(ctx, flagUser, flagPass, auth.RoleAdmin); err != nil && !errors.Is(err, auth.ErrUserExists) {
 		cancel()
 		return nil, fmt.Errorf("failed to create admin user: %w", err)
 	}
 
 	s := &Server{
-		Host:            host,
-		Port:            port,
-		Router:          chi.NewRouter(),
-		documentService: documentService,
-		db:              db,
-		sessionTTL:      24 * time.Hour,
-		ctx:             ctx,
-		cancel:          cancel,
+		Host:              host,
+		Port:              port,
+		Router:            chi.NewRouter(),
+		documentService:   documentService,
+		authService:       authService,
+		inhabitantService: inhabitantService,
+		sessionTTL:        24 * time.Hour,
+		ctx:               ctx,
+		cancel:            cancel,
 	}
 
 	s.routes()

@@ -12,6 +12,7 @@ import (
 	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
+	"kpcms/server/core/inhabitant"
 )
 
 func setupTestServerWithDB(t *testing.T) (*Server, *database.Database) {
@@ -23,13 +24,19 @@ func setupTestServerWithDB(t *testing.T) (*Server, *database.Database) {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	db, err := database.New("file:auth_api_test?mode=memory&cache=shared", "")
+	db, err := database.New("file:auth_api_test?mode=memory&cache=shared", "file:auth_api_test_auth?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
 
+	// Create repositories and services
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
+	authService := auth.NewService(authRepo)
+	inhabitantService := inhabitant.NewService(inhabitantRepo)
+
 	server, err := NewServer("0.0.0.0", "8080", "admin", "password",
-		document.NewDocumentService(repo, repo, nil, nil), db)
+		document.NewDocumentService(repo, repo, nil, nil), authService, inhabitantService)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -183,7 +190,8 @@ func TestHandleLogout_Success(t *testing.T) {
 	server, db := setupTestServerWithDB(t)
 
 	// Create a session
-	token, err := db.CreateSession(context.Background(),
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	token, err := authRepo.CreateSession(context.Background(),
 		auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
@@ -200,7 +208,7 @@ func TestHandleLogout_Success(t *testing.T) {
 	}
 
 	// Session should be deleted
-	_, err = db.GetSession(context.Background(), token)
+	_, err = authRepo.GetSession(context.Background(), token)
 	if err != auth.ErrInvalidCredentials {
 		t.Errorf("expected ErrInvalidCredentials after logout, got %v", err)
 	}
@@ -210,8 +218,9 @@ func TestHandleMe_Authenticated(t *testing.T) {
 	server, db := setupTestServerWithDB(t)
 
 	// Create a session
+	authRepo := auth.NewSQLRepository(db.AuthDB)
 	identity := auth.Identity{ID: "admin", Role: auth.RoleAdmin}
-	token, err := db.CreateSession(context.Background(), identity, server.sessionTTL)
+	token, err := authRepo.CreateSession(context.Background(), identity, server.sessionTTL)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
@@ -263,8 +272,9 @@ func TestHandleListUsers_Success(t *testing.T) {
 
 	// Create additional users
 	ctx := context.Background()
-	_ = db.CreateUser(ctx, "user1", "password", auth.RoleUser)
-	_ = db.CreateUser(ctx, "user2", "password", auth.RoleUser)
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	_ = authRepo.CreateUser(ctx, "user1", "password", auth.RoleUser)
+	_ = authRepo.CreateUser(ctx, "user2", "password", auth.RoleUser)
 
 	req := httptest.NewRequest("GET", "/api/auth/admin/users", nil)
 	w := httptest.NewRecorder()
@@ -346,7 +356,8 @@ func TestHandleUpdateUserRole_Success(t *testing.T) {
 
 	// Create a user with RoleUser
 	ctx := context.Background()
-	_ = db.CreateUser(ctx, "testuser", "password", auth.RoleUser)
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	_ = authRepo.CreateUser(ctx, "testuser", "password", auth.RoleUser)
 
 	updateReq := updateRoleRequest{Role: auth.RoleAdmin}
 	body, _ := json.Marshal(updateReq)
@@ -370,7 +381,8 @@ func TestHandleDeleteUser_Success(t *testing.T) {
 
 	// Create a user to delete
 	ctx := context.Background()
-	_ = db.CreateUser(ctx, "todelete", "password", auth.RoleUser)
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	_ = authRepo.CreateUser(ctx, "todelete", "password", auth.RoleUser)
 
 	// Set up identity in context
 	identity := auth.Identity{ID: "admin", Role: auth.RoleAdmin}
@@ -393,7 +405,8 @@ func TestSessionMiddleware_ValidToken(t *testing.T) {
 
 	// Create a session
 	identity := auth.Identity{ID: "admin", Role: auth.RoleAdmin}
-	token, err := db.CreateSession(context.Background(), identity, server.sessionTTL)
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	token, err := authRepo.CreateSession(context.Background(), identity, server.sessionTTL)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}

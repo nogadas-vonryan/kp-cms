@@ -9,14 +9,16 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"kpcms/server/core/auth"
 	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
+	"kpcms/server/core/inhabitant"
 )
 
-func setupTestServer(t *testing.T) (*Server, string) {
+func setupTestServer(t *testing.T) (*Server, string, *auth.Service) {
 	tempDir := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
@@ -34,16 +36,21 @@ func setupTestServer(t *testing.T) (*Server, string) {
 		_ = db.Close()
 	})
 
-	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo, repo, nil, nil), db)
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
+	authService := auth.NewService(authRepo)
+	inhabitantService := inhabitant.NewService(inhabitantRepo)
+
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo, repo, nil, nil), authService, inhabitantService)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
 
-	return server, tempDir
+	return server, tempDir, authService
 }
 
 func TestHandleDownloadFile_WithSpaces(t *testing.T) {
-	server, tempDir := setupTestServer(t)
+	server, tempDir, authService := setupTestServer(t)
 	defer os.RemoveAll(tempDir)
 
 	ctx := context.Background()
@@ -68,7 +75,7 @@ func TestHandleDownloadFile_WithSpaces(t *testing.T) {
 	reqURL := fmt.Sprintf("/api/documents/%s/files/%s", createdDoc.UUID, urlEncodedFileName)
 
 	req := httptest.NewRequest("GET", reqURL, nil)
-	addAdminSessionCookie(t, server, req)
+	addAdminSessionCookie(t, authService, req, server.sessionTTL)
 	w := httptest.NewRecorder()
 
 	server.Router.ServeHTTP(w, req)
@@ -84,7 +91,7 @@ func TestHandleDownloadFile_WithSpaces(t *testing.T) {
 }
 
 func TestHandleDownloadFile_WithMultipleSpaces(t *testing.T) {
-	server, tempDir := setupTestServer(t)
+	server, tempDir, authService := setupTestServer(t)
 	defer os.RemoveAll(tempDir)
 
 	ctx := context.Background()
@@ -106,7 +113,7 @@ func TestHandleDownloadFile_WithMultipleSpaces(t *testing.T) {
 	reqURL := fmt.Sprintf("/api/documents/%s/files/%s", createdDoc.UUID, urlEncodedFileName)
 
 	req := httptest.NewRequest("GET", reqURL, nil)
-	addAdminSessionCookie(t, server, req)
+	addAdminSessionCookie(t, authService, req, server.sessionTTL)
 	w := httptest.NewRecorder()
 
 	server.Router.ServeHTTP(w, req)
@@ -122,13 +129,13 @@ func TestHandleDownloadFile_WithMultipleSpaces(t *testing.T) {
 }
 
 func TestHandleDownloadFile_WithSpecialCharacters(t *testing.T) {
-	repo, tempDir := setupTestServer(t)
+	server, tempDir, _ := setupTestServer(t)
 	defer os.RemoveAll(tempDir)
 
 	ctx := context.Background()
 
 	doc := document.Document{Title: "Test"}
-	createdDoc, err := repo.documentService.Create(ctx, doc)
+	createdDoc, err := server.documentService.Create(ctx, doc)
 	if err != nil {
 		t.Fatalf("failed to create document: %v", err)
 	}
@@ -136,13 +143,13 @@ func TestHandleDownloadFile_WithSpecialCharacters(t *testing.T) {
 	// Test the exact filename from the user's issue
 	fileName := "One Day in the Life of a Rice Farmer [s_kLkOOV3CE].webm"
 	fileContent := "Video content here"
-	err = repo.documentService.UploadFile(ctx, createdDoc.UUID, fileName, strings.NewReader(fileContent))
+	err = server.documentService.UploadFile(ctx, createdDoc.UUID, fileName, strings.NewReader(fileContent))
 	if err != nil {
 		t.Fatalf("UploadFile failed: %v", err)
 	}
 
 	// Test Download
-	reader, err := repo.documentService.DownloadFile(ctx, createdDoc.UUID, fileName)
+	reader, err := server.documentService.DownloadFile(ctx, createdDoc.UUID, fileName)
 	if err != nil {
 		t.Fatalf("DownloadFile failed: %v", err)
 	}
@@ -155,8 +162,8 @@ func TestHandleDownloadFile_WithSpecialCharacters(t *testing.T) {
 }
 
 // addAdminSessionCookie attaches a valid admin session cookie to the request so it passes auth middleware
-func addAdminSessionCookie(t *testing.T, server *Server, req *http.Request) {
-	token, err := server.db.CreateSession(context.Background(), auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
+func addAdminSessionCookie(t *testing.T, authService *auth.Service, req *http.Request, sessionTTL time.Duration) {
+	token, err := authService.CreateSession(context.Background(), auth.Identity{ID: "admin", Role: auth.RoleAdmin}, sessionTTL)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
@@ -165,7 +172,7 @@ func addAdminSessionCookie(t *testing.T, server *Server, req *http.Request) {
 
 // Ensure the HTTP route and middleware path correctly serve filenames with brackets/spaces
 func TestHandleDownloadFile_WithBracketsAndSpaces_HTTP(t *testing.T) {
-	server, tempDir := setupTestServer(t)
+	server, tempDir, authService := setupTestServer(t)
 	defer os.RemoveAll(tempDir)
 
 	ctx := context.Background()
@@ -182,7 +189,7 @@ func TestHandleDownloadFile_WithBracketsAndSpaces_HTTP(t *testing.T) {
 	}
 
 	// Create an admin session and attach cookie to bypass auth middleware
-	token, err := server.db.CreateSession(context.Background(), auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
+	token, err := authService.CreateSession(context.Background(), auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}

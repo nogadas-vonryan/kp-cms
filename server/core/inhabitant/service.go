@@ -1,0 +1,38 @@
+package inhabitant
+
+import "context"
+
+// Service provides business logic for inhabitant operations.
+type Service struct {
+	repo Repository
+}
+
+// NewService creates a new inhabitant service.
+func NewService(repo Repository) *Service {
+	return &Service{repo: repo}
+}
+
+// Create adds a new inhabitant and returns its ID.
+func (s *Service) Create(ctx context.Context, inhabitant *Inhabitant) (int64, error) {
+	return s.repo.Create(ctx, inhabitant)
+}
+
+// Get retrieves an inhabitant by ID.
+func (s *Service) Get(ctx context.Context, id int64) (*Inhabitant, error) {
+	return s.repo.Get(ctx, id)
+}
+
+// List retrieves a paginated list of inhabitants.
+func (s *Service) List(ctx context.Context, limit, offset int) ([]Inhabitant, error) {
+	return s.repo.List(ctx, limit, offset)
+}
+
+// Update modifies an existing inhabitant.
+func (s *Service) Update(ctx context.Context, inhabitant *Inhabitant) error {
+	return s.repo.Update(ctx, inhabitant)
+}
+
+// Delete removes an inhabitant.
+func (s *Service) Delete(ctx context.Context, id int64) error {
+	return s.repo.Delete(ctx, id)
+}

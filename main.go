@@ -21,6 +21,7 @@ import (
 	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
+	"kpcms/server/core/inhabitant"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -323,6 +324,14 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		return nil, fmt.Errorf("failed to initialize database: %v", err)
 	}
 
+	// Create repositories
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
+
+	// Create services
+	authService := auth.NewService(authRepo)
+	inhabitantService := inhabitant.NewService(inhabitantRepo)
+
 	// Create API server
 	apiServer, err := api.NewServer(
 		host,
@@ -330,7 +339,8 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		user,
 		pass,
 		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
-		db,
+		authService,
+		inhabitantService,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up server: %v", err)
