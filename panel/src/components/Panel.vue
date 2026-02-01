@@ -239,8 +239,8 @@ onMounted(async () => {
           // Don't populate the password field - keep it empty for security
         }
         if (config.dataPath) dataPath.value = config.dataPath
-        // Load backup data path if present in saved config
-        if (config.backupDataPath) backupPath.value = config.backupDataPath
+        // Load backup path if present in saved config
+        if (config.backupPath) backupPath.value = config.backupPath
       }
     }
     
@@ -325,17 +325,9 @@ async function handleSave() {
         parseInt(backendPort.value) || 8080,
         user.value || 'admin',
         passwordToSave,
-        dataPath.value
+        dataPath.value,
+        backupPath.value || ''
       )
-
-      // Try to save backup path if API supports it
-      try {
-        if (typeof appNs.SaveBackupPath === 'function') {
-          await appNs.SaveBackupPath(backupPath.value || '')
-        }
-      } catch (err) {
-        console.warn('Failed to save backup path:', err)
-      }
       
       // Update saved password if a new one was entered
       if (pass.value) {
@@ -375,7 +367,7 @@ async function handleReset() {
           savedPassword.value = config.password || ''
           pass.value = '' // Clear the visible password field for security
           dataPath.value = config.dataPath || ''
-          backupPath.value = config.backupDataPath || ''
+          backupPath.value = config.backupPath || ''
           useRemoteBackend.value = false
           networkIP.value = ''
           emit('update-frontend-status', 'stopped')

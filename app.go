@@ -55,6 +55,7 @@ func (a *App) startup(ctx context.Context) {
 			Username:     "admin",
 			Password:     "",
 			DataPath:     "./data",
+			BackupPath:   "",
 		}
 	} else {
 		a.logger.Log("Configuration loaded successfully")
@@ -227,7 +228,7 @@ func (a *App) LoadSavedConfig() (*Config, error) {
 }
 
 // SaveConfiguration saves the current configuration to disk
-func (a *App) SaveConfiguration(frontendHost string, frontendPort int, backendHost string, backendPort int, username, password, dataPath string) error {
+func (a *App) SaveConfiguration(frontendHost string, frontendPort int, backendHost string, backendPort int, username, password, dataPath, backupPath string) error {
 	config := &Config{
 		FrontendHost: frontendHost,
 		FrontendPort: frontendPort,
@@ -236,6 +237,7 @@ func (a *App) SaveConfiguration(frontendHost string, frontendPort int, backendHo
 		Username:     username,
 		Password:     password,
 		DataPath:     dataPath,
+		BackupPath:   backupPath,
 	}
 
 	if err := SaveConfig(config); err != nil {

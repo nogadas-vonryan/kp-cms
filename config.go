@@ -23,6 +23,7 @@ type Config struct {
 	Username     string `json:"username"`
 	Password     string `json:"password"`
 	DataPath     string `json:"dataPath"`
+	BackupPath   string `json:"backupPath"`
 }
 
 // GetConfigDir returns the appropriate config directory for the current OS
@@ -242,6 +243,7 @@ func LoadConfig() (*Config, error) {
 			Username:     "admin",
 			Password:     "",
 			DataPath:     "./data",
+			BackupPath:   "./backup",
 		}, nil
 	}
 
