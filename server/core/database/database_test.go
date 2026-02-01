@@ -9,7 +9,7 @@ import (
 )
 
 func setupTestDB(t *testing.T) *Database {
-	db, err := New("file:test_auth?mode=memory&cache=shared")
+	db, err := New("file:test_app?mode=memory&cache=shared", "file:test_auth?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("failed to create test database: %v", err)
 	}

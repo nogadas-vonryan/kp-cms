@@ -21,7 +21,6 @@ func main() {
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
-	dbPath := flag.String("db", "./data/app.db", "Path to the auth database")
 	flag.Parse()
 
 	if *pass == "" {
@@ -38,11 +37,19 @@ func main() {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(*dbPath), 0700); err != nil {
-		log.Fatalf("Failed to create database directory: %v", err)
+	// Initialize app database
+	appDBPath := filepath.Join(*dataPath, "app.db")
+	if err := os.MkdirAll(filepath.Dir(appDBPath), 0700); err != nil {
+		log.Fatalf("Failed to create app database directory: %v", err)
 	}
 
-	db, err := database.New(*dbPath)
+	// Get platform-specific auth database path
+	authDBPath, err := database.GetAuthDBPath()
+	if err != nil {
+		log.Fatalf("Failed to get auth database path: %v", err)
+	}
+
+	db, err := database.New(appDBPath, authDBPath)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}

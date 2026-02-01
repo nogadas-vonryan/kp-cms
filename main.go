@@ -306,12 +306,19 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		return nil, fmt.Errorf("failed to create document repository: %v", err)
 	}
 
-	dbPath := filepath.Join(dataPath, "app.db")
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0700); err != nil {
+	// Initialize app database
+	appDBPath := filepath.Join(dataPath, "app.db")
+	if err := os.MkdirAll(filepath.Dir(appDBPath), 0700); err != nil {
 		return nil, fmt.Errorf("failed to create database directory: %v", err)
 	}
 
-	db, err := database.New(dbPath)
+	// Get platform-specific auth database path
+	authDBPath, err := database.GetAuthDBPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auth database path: %v", err)
+	}
+
+	db, err := database.New(appDBPath, authDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %v", err)
 	}

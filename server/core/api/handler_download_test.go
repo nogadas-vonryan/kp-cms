@@ -26,7 +26,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	}
 
 	memName := strings.ReplaceAll(t.Name(), "/", "_")
-	db, err := database.New(fmt.Sprintf("file:%s?mode=memory&cache=shared", memName))
+	db, err := database.New(fmt.Sprintf("file:%s?mode=memory&cache=shared", memName), "")
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}

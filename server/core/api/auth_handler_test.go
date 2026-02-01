@@ -23,12 +23,12 @@ func setupTestServerWithDB(t *testing.T) (*Server, *database.Database) {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	db, err := database.New("file:auth_api_test?mode=memory&cache=shared")
+	db, err := database.New("file:auth_api_test?mode=memory&cache=shared", "")
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
 
-	server, err := NewServer("0.0.0.0", "8080", "admin", "password", 
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password",
 		document.NewDocumentService(repo, repo, nil, nil), db)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
@@ -183,7 +183,7 @@ func TestHandleLogout_Success(t *testing.T) {
 	server, db := setupTestServerWithDB(t)
 
 	// Create a session
-	token, err := db.CreateSession(context.Background(), 
+	token, err := db.CreateSession(context.Background(),
 		auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
