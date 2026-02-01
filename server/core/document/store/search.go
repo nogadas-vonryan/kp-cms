@@ -18,7 +18,7 @@ func (r *Store) Search(ctx context.Context, criteria document.SearchCriteria) ([
 	var results []*document.Document
 
 	// Iterate through cache
-	for _, doc := range r.cacheByUUID {
+	for _, doc := range r.documents {
 		if !matchesCriteria(doc, criteria) {
 			continue
 		}

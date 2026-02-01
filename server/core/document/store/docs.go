@@ -82,7 +82,7 @@ func (r *Store) GetByUUID(ctx context.Context, uuidValue string) (*document.Docu
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	doc, exists := r.cacheByUUID[uuidValue]
+	doc, exists := r.documents[uuidValue]
 	if !exists {
 		return nil, fs.ErrNotExist
 	}
@@ -113,7 +113,12 @@ func (r *Store) GetByCode(ctx context.Context, code string) (*document.Document,
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	doc, exists := r.cacheByCode[code]
+	uuidValue, exists := r.codeToUUID[code]
+	if !exists {
+		return nil, fs.ErrNotExist
+	}
+
+	doc, exists := r.documents[uuidValue]
 	if !exists {
 		return nil, fs.ErrNotExist
 	}
@@ -190,8 +195,8 @@ func (r *Store) Delete(ctx context.Context, uuidValue string) error {
 	}
 
 	r.mu.Lock()
-	delete(r.cacheByUUID, uuidValue)
-	delete(r.cacheByCode, doc.Code)
+	delete(r.documents, uuidValue)
+	delete(r.codeToUUID, doc.Code)
 	r.rebuildSortedCodesLocked()
 	r.mu.Unlock()
 
@@ -238,7 +243,12 @@ func (r *Store) List(ctx context.Context, offset int, limit int, sortBy string, 
 		docs := make([]*document.Document, 0, end-offset)
 		pageKeys := r.sortedByCode[offset:end]
 		for _, code := range pageKeys {
-			doc, exists := r.cacheByCode[code]
+			uuidValue, exists := r.codeToUUID[code]
+			if !exists {
+				continue
+			}
+
+			doc, exists := r.documents[uuidValue]
 			if !exists {
 				continue
 			}
@@ -253,8 +263,8 @@ func (r *Store) List(ctx context.Context, offset int, limit int, sortBy string, 
 		return docs, nil
 	}
 
-	docs := make([]*document.Document, 0, len(r.cacheByCode))
-	for _, doc := range r.cacheByCode {
+	docs := make([]*document.Document, 0, len(r.documents))
+	for _, doc := range r.documents {
 		docs = append(docs, doc)
 	}
 

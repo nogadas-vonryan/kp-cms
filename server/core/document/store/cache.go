@@ -24,8 +24,8 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 		return nil, fmt.Errorf("failed to read base directory: %w", err)
 	}
 
-	tempUUID := make(map[string]*document.Document)
-	tempCode := make(map[string]*document.Document)
+	tempDocs := make(map[string]*document.Document)
+	tempCodeToUUID := make(map[string]string)
 	var tempSortedCodes []string
 	var issues []document.SyncIssue
 
@@ -77,7 +77,8 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 			}(metaPath, *doc, folderName)
 		}
 
-		if existing, exists := tempCode[doc.Code]; exists {
+		if existingUUID, exists := tempCodeToUUID[doc.Code]; exists {
+			existing := tempDocs[existingUUID]
 			issues = append(issues, document.SyncIssue{
 				Type:    "DUPLICATE_CODE",
 				Path:    folderName,
@@ -86,7 +87,7 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 			continue
 		}
 
-		if existing, exists := tempUUID[doc.UUID]; exists {
+		if existing, exists := tempDocs[doc.UUID]; exists {
 			issues = append(issues, document.SyncIssue{
 				Type:    "DUPLICATE_UUID",
 				Path:    folderName,
@@ -96,16 +97,16 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 		}
 
 		doc.FolderName = folderName
-		tempUUID[doc.UUID] = doc
-		tempCode[doc.Code] = doc
+		tempDocs[doc.UUID] = doc
+		tempCodeToUUID[doc.Code] = doc.UUID
 		tempSortedCodes = append(tempSortedCodes, doc.Code)
 	}
 
 	sort.Strings(tempSortedCodes)
 
 	r.mu.Lock()
-	r.cacheByUUID = tempUUID
-	r.cacheByCode = tempCode
+	r.documents = tempDocs
+	r.codeToUUID = tempCodeToUUID
 	r.sortedByCode = tempSortedCodes
 	r.lastConflicts = issues
 	r.mu.Unlock()
@@ -182,7 +183,7 @@ func (r *Store) ReloadCacheForFolder(ctx context.Context, folderName string) ([]
 		// Update cache - need to remove old code entry if it exists
 		r.mu.Lock()
 		if oldCode != "" && oldCode != folderCode {
-			delete(r.cacheByCode, oldCode)
+			delete(r.codeToUUID, oldCode)
 		}
 		r.mu.Unlock()
 	}
@@ -191,16 +192,19 @@ func (r *Store) ReloadCacheForFolder(ctx context.Context, folderName string) ([]
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if existing, exists := r.cacheByCode[doc.Code]; exists && existing.FolderName != folderName {
-		issues = append(issues, document.SyncIssue{
-			Type:    "DUPLICATE_CODE",
-			Path:    folderName,
-			Message: fmt.Sprintf("code '%s' already claimed by folder '%s'", doc.Code, existing.FolderName),
-		})
-		return issues, fmt.Errorf("duplicate code conflict: %s", doc.Code)
+	if existingUUID, exists := r.codeToUUID[doc.Code]; exists {
+		existing := r.documents[existingUUID]
+		if existing != nil && existing.FolderName != folderName {
+			issues = append(issues, document.SyncIssue{
+				Type:    "DUPLICATE_CODE",
+				Path:    folderName,
+				Message: fmt.Sprintf("code '%s' already claimed by folder '%s'", doc.Code, existing.FolderName),
+			})
+			return issues, fmt.Errorf("duplicate code conflict: %s", doc.Code)
+		}
 	}
 
-	if existing, exists := r.cacheByUUID[doc.UUID]; exists && existing.FolderName != folderName {
+	if existing, exists := r.documents[doc.UUID]; exists && existing.FolderName != folderName {
 		issues = append(issues, document.SyncIssue{
 			Type:    "DUPLICATE_UUID",
 			Path:    folderName,
@@ -225,18 +229,18 @@ func (r *Store) GetConflicts(ctx context.Context) ([]document.SyncIssue, error) 
 }
 
 func (r *Store) addToCache(doc *document.Document) {
-	r.cacheByUUID[doc.UUID] = doc
-	r.cacheByCode[doc.Code] = doc
+	r.documents[doc.UUID] = doc
+	r.codeToUUID[doc.Code] = doc.UUID
 }
 
 func (r *Store) clearCache() {
-	r.cacheByUUID = make(map[string]*document.Document)
-	r.cacheByCode = make(map[string]*document.Document)
+	r.documents = make(map[string]*document.Document)
+	r.codeToUUID = make(map[string]string)
 }
 
 func (r *Store) getCodes() []string {
-	codes := make([]string, 0, len(r.cacheByCode))
-	for code := range r.cacheByCode {
+	codes := make([]string, 0, len(r.codeToUUID))
+	for code := range r.codeToUUID {
 		codes = append(codes, code)
 	}
 
@@ -246,8 +250,8 @@ func (r *Store) getCodes() []string {
 // rebuildSortedCodesLocked recalculates the sorted codes slice.
 // Caller must hold the write lock.
 func (r *Store) rebuildSortedCodesLocked() {
-	codes := make([]string, 0, len(r.cacheByCode))
-	for code := range r.cacheByCode {
+	codes := make([]string, 0, len(r.codeToUUID))
+	for code := range r.codeToUUID {
 		codes = append(codes, code)
 	}
 	sort.Strings(codes)

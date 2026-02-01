@@ -13,11 +13,14 @@ type Store struct {
 	basePath       string
 	backupPath     string
 	namingStrategy document.NamingStrategy
-	mu             sync.RWMutex
-	sortedByCode   []string
-	cacheByUUID    map[string]*document.Document
-	cacheByCode    map[string]*document.Document
-	lastConflicts  []document.SyncIssue
+
+	mu sync.RWMutex
+
+	documents    map[string]*document.Document
+	codeToUUID   map[string]string
+	sortedByCode []string
+
+	lastConflicts []document.SyncIssue
 }
 
 var _ document.DocumentStore = (*Store)(nil)
@@ -41,8 +44,8 @@ func New(basePath string, backupPath string, namingStrategy document.NamingStrat
 		basePath:       basePath,
 		backupPath:     backupPath,
 		namingStrategy: namingStrategy,
-		cacheByUUID:    make(map[string]*document.Document),
-		cacheByCode:    make(map[string]*document.Document),
+		documents:      make(map[string]*document.Document),
+		codeToUUID:     make(map[string]string),
 		sortedByCode:   make([]string, 0),
 	}
 
