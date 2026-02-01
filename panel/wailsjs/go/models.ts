@@ -8,6 +8,7 @@ export namespace main {
 	    username: string;
 	    password: string;
 	    dataPath: string;
+	    backupPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -22,6 +23,7 @@ export namespace main {
 	        this.username = source["username"];
 	        this.password = source["password"];
 	        this.dataPath = source["dataPath"];
+	        this.backupPath = source["backupPath"];
 	    }
 	}
 	export class StartBackendServerResult {

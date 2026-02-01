@@ -12,7 +12,7 @@ export function LoadSavedConfig():Promise<main.Config>;
 
 export function Log(arg1:string):Promise<void>;
 
-export function SaveConfiguration(arg1:string,arg2:number,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string):Promise<void>;
+export function SaveConfiguration(arg1:string,arg2:number,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:string):Promise<void>;
 
 export function SelectFolder():Promise<string>;
 
