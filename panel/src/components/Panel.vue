@@ -704,13 +704,3 @@ function extractErrorMessage(error, context = '') {
   return context ? `${context}: Unknown error occurred` : 'Unknown error occurred'
 }
 </script>
-
-<style>
-  body {
-      zoom: 0.9;
-      -moz-transform: scale(0.9); /* Firefox support */
-      transform: scale(0.9);
-      -moz-transform-origin: 0 0;
-      transform-origin: 0 0;
-  }
-</style>
