@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"kpcms/server/core/auth"
+	"kpcms/server/core/document"
 )
 
 func setupTestDB(t *testing.T) *Database {
@@ -361,5 +362,170 @@ func TestSetPassword_UserNotFound(t *testing.T) {
 	err := db.SetPassword(ctx, "nonexistent", "password")
 	if err != auth.ErrUserNotFound {
 		t.Errorf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
+func TestCreateInhabitant_Success(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	inhabitant := &document.Inhabitant{
+		FirstName:  "John",
+		LastName:   "Doe",
+		MiddleName: "Michael",
+		Suffix:     "Jr.",
+		ContactNo:  "555-1234",
+		Address:    "123 Main St",
+	}
+
+	id, err := db.CreateInhabitant(ctx, inhabitant)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if id <= 0 {
+		t.Errorf("expected positive id, got %d", id)
+	}
+}
+
+func TestGetInhabitant_Success(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	inhabitant := &document.Inhabitant{
+		FirstName:  "Jane",
+		LastName:   "Smith",
+		MiddleName: "Marie",
+		ContactNo:  "555-5678",
+		Address:    "456 Oak Ave",
+	}
+
+	id, err := db.CreateInhabitant(ctx, inhabitant)
+	if err != nil {
+		t.Fatalf("failed to create inhabitant: %v", err)
+	}
+
+	retrieved, err := db.GetInhabitant(ctx, id)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if retrieved.FirstName != inhabitant.FirstName {
+		t.Errorf("expected first name %q, got %q", inhabitant.FirstName, retrieved.FirstName)
+	}
+
+	if retrieved.LastName != inhabitant.LastName {
+		t.Errorf("expected last name %q, got %q", inhabitant.LastName, retrieved.LastName)
+	}
+}
+
+func TestGetInhabitant_NotFound(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	_, err := db.GetInhabitant(ctx, 9999)
+	if err == nil {
+		t.Errorf("expected error for non-existent inhabitant")
+	}
+}
+
+func TestListInhabitants_Success(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	inhabitants := []*document.Inhabitant{
+		{FirstName: "Alice", LastName: "Adams", ContactNo: "555-0001"},
+		{FirstName: "Bob", LastName: "Brown", ContactNo: "555-0002"},
+		{FirstName: "Carol", LastName: "Clark", ContactNo: "555-0003"},
+	}
+
+	for _, inh := range inhabitants {
+		_, err := db.CreateInhabitant(ctx, inh)
+		if err != nil {
+			t.Fatalf("failed to create inhabitant: %v", err)
+		}
+	}
+
+	list, err := db.ListInhabitants(ctx, 10, 0)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(list) < len(inhabitants) {
+		t.Errorf("expected at least %d inhabitants, got %d", len(inhabitants), len(list))
+	}
+}
+
+func TestUpdateInhabitant_Success(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	inhabitant := &document.Inhabitant{
+		FirstName: "David",
+		LastName:  "Davis",
+		ContactNo: "555-9999",
+	}
+
+	id, err := db.CreateInhabitant(ctx, inhabitant)
+	if err != nil {
+		t.Fatalf("failed to create inhabitant: %v", err)
+	}
+
+	inhabitant.ID = id
+	inhabitant.FirstName = "Daniel"
+	inhabitant.ContactNo = "555-8888"
+
+	err = db.UpdateInhabitant(ctx, inhabitant)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	retrieved, err := db.GetInhabitant(ctx, id)
+	if err != nil {
+		t.Fatalf("failed to get inhabitant: %v", err)
+	}
+
+	if retrieved.FirstName != "Daniel" {
+		t.Errorf("expected first name Daniel, got %q", retrieved.FirstName)
+	}
+
+	if retrieved.ContactNo != "555-8888" {
+		t.Errorf("expected contact number 555-8888, got %q", retrieved.ContactNo)
+	}
+}
+
+func TestDeleteInhabitant_Success(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	inhabitant := &document.Inhabitant{
+		FirstName: "Eve",
+		LastName:  "Evans",
+		ContactNo: "555-7777",
+	}
+
+	id, err := db.CreateInhabitant(ctx, inhabitant)
+	if err != nil {
+		t.Fatalf("failed to create inhabitant: %v", err)
+	}
+
+	err = db.DeleteInhabitant(ctx, id)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	_, err = db.GetInhabitant(ctx, id)
+	if err == nil {
+		t.Errorf("expected error after delete")
+	}
+}
+
+func TestDeleteInhabitant_NotFound(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	err := db.DeleteInhabitant(ctx, 9999)
+	if err == nil {
+		t.Errorf("expected error for non-existent inhabitant")
 	}
 }

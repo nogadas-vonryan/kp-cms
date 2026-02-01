@@ -136,6 +136,14 @@ func (s *Server) routes() {
 			r.Route("/jobs", func(r chi.Router) {
 				r.Get("/{jobID}", s.handleGetJobStatus())
 			})
+
+			r.Route("/inhabitants", func(r chi.Router) {
+				r.Get("/", s.handleListInhabitants())
+				r.Post("/", s.handleCreateInhabitant())
+				r.Get("/{id}", s.handleGetInhabitant())
+				r.Put("/{id}", s.handleUpdateInhabitant())
+				r.Delete("/{id}", s.handleDeleteInhabitant())
+			})
 		})
 	})
 }

@@ -58,3 +58,14 @@ type BackupFile struct {
 	Size      int64     `json:"size"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type Inhabitant struct {
+	ID         int64
+	FirstName  string
+	LastName   string
+	MiddleName string
+	Suffix     string
+	Birthday   time.Time
+	ContactNo  string
+	Address    string
+}
