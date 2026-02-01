@@ -12,11 +12,13 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
+	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 
@@ -304,6 +306,16 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		return nil, fmt.Errorf("failed to create document repository: %v", err)
 	}
 
+	dbPath := filepath.Join(dataPath, "app.db")
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0700); err != nil {
+		return nil, fmt.Errorf("failed to create database directory: %v", err)
+	}
+
+	db, err := database.New(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %v", err)
+	}
+
 	// Create API server
 	apiServer, err := api.NewServer(
 		host,
@@ -311,6 +323,7 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		user,
 		pass,
 		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
+		db,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up server: %v", err)
@@ -333,6 +346,9 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		Addr:    addr,
 		Handler: apiServer.Router,
 	}
+	srv.RegisterOnShutdown(func() {
+		_ = db.Close()
+	})
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

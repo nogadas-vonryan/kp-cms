@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"kpcms/server/core/auth"
+	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 
 	"github.com/go-chi/chi/v5"
@@ -20,14 +22,13 @@ type Server struct {
 	Port            string
 	Router          *chi.Mux
 	documentService *document.DocumentService
-	userStore       *auth.UserStore
-	sessionManager  *auth.SessionManager
+	db              *database.Database
 	sessionTTL      time.Duration
 	ctx             context.Context
 	cancel          context.CancelFunc
 }
 
-func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService) (*Server, error) {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, db *database.Database) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	success := false
@@ -37,8 +38,7 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		}
 	}()
 
-	userStore := auth.NewUserStore()
-	if err := userStore.AddUser(flagUser, flagPass, auth.RoleAdmin); err != nil {
+	if err := db.CreateUser(ctx, flagUser, flagPass, auth.RoleAdmin); err != nil && !errors.Is(err, auth.ErrUserExists) {
 		cancel()
 		return nil, fmt.Errorf("failed to create admin user: %w", err)
 	}
@@ -48,8 +48,7 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		Port:            port,
 		Router:          chi.NewRouter(),
 		documentService: documentService,
-		userStore:       userStore,
-		sessionManager:  auth.NewSessionManager(24 * time.Hour),
+		db:              db,
 		sessionTTL:      24 * time.Hour,
 		ctx:             ctx,
 		cancel:          cancel,
@@ -89,7 +88,7 @@ func (s *Server) routes() {
 
 		r.Group(func(r chi.Router) {
 			// Authenticated routes
-			r.Use(auth.SessionMiddleware(s.sessionManager))
+			r.Use(s.SessionMiddleware())
 			r.Use(auth.CSRFMiddleware())
 
 			r.Get("/auth/me", s.handleMe())

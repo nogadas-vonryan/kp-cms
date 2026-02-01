@@ -4,9 +4,12 @@ import (
 	"flag"
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
+	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"log"
+	"os"
+	"path/filepath"
 
 	"net/http"
 )
@@ -18,6 +21,7 @@ func main() {
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
+	dbPath := flag.String("db", "./data/auth.db", "Path to the auth database")
 	flag.Parse()
 
 	if *pass == "" {
@@ -34,12 +38,23 @@ func main() {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}
 
+	if err := os.MkdirAll(filepath.Dir(*dbPath), 0700); err != nil {
+		log.Fatalf("Failed to create database directory: %v", err)
+	}
+
+	db, err := database.New(*dbPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer db.Close()
+
 	server, err := api.NewServer(
 		*host,
 		*port,
 		*user,
 		*pass,
 		document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository),
+		db,
 	)
 	if err != nil {
 		log.Fatalf("Failed to set up server: %v", err)

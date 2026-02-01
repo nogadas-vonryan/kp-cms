@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"kpcms/server/core/auth"
+	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 )
@@ -24,7 +25,16 @@ func setupTestServer(t *testing.T) (*Server, string) {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo, repo, nil, nil))
+	memName := strings.ReplaceAll(t.Name(), "/", "_")
+	db, err := database.New(fmt.Sprintf("file:%s?mode=memory&cache=shared", memName))
+	if err != nil {
+		t.Fatalf("failed to create database: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password", document.NewDocumentService(repo, repo, nil, nil), db)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -146,8 +156,11 @@ func TestHandleDownloadFile_WithSpecialCharacters(t *testing.T) {
 
 // addAdminSessionCookie attaches a valid admin session cookie to the request so it passes auth middleware
 func addAdminSessionCookie(t *testing.T, server *Server, req *http.Request) {
-	session := server.sessionManager.Create(auth.Identity{ID: "test", Role: auth.RoleAdmin})
-	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: session.Token})
+	token, err := server.db.CreateSession(context.Background(), auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: token})
 }
 
 // Ensure the HTTP route and middleware path correctly serve filenames with brackets/spaces
@@ -169,8 +182,11 @@ func TestHandleDownloadFile_WithBracketsAndSpaces_HTTP(t *testing.T) {
 	}
 
 	// Create an admin session and attach cookie to bypass auth middleware
-	session := server.sessionManager.Create(auth.Identity{ID: "test", Role: auth.RoleAdmin})
-	cookieHeader := fmt.Sprintf("%s=%s", auth.SessionCookieName, session.Token)
+	token, err := server.db.CreateSession(context.Background(), auth.Identity{ID: "admin", Role: auth.RoleAdmin}, server.sessionTTL)
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+	cookieHeader := fmt.Sprintf("%s=%s", auth.SessionCookieName, token)
 
 	// Use the exact URL shape reported by the user (spaces encoded, brackets unencoded)
 	encodedPath := "/api/documents/" + createdDoc.UUID + "/files/One%20Day%20in%20the%20Life%20of%20a%20Rice%20Farmer%20[s_kLkOOV3CE].webm"
