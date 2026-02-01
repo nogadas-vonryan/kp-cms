@@ -260,7 +260,7 @@ function prepareRestore(fileName: string) {
 const canRestore = computed(() => {
   if (!fileToRestore.value || restoring.value) return false;
   if (restoreMode.value === 'overwrite') {
-    return confirmationInput.value.toLowerCase() === OVERWRITE_PHRASE;
+    return confirmationInput.value.toLowerCase() === OVERWRITE_PHRASE.toLowerCase();
   }
   return true;
 });
