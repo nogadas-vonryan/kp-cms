@@ -33,46 +33,6 @@
         <form class="flex flex-col gap-3" @submit.prevent="startServers">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Frontend Host</label>
-              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
-                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-                </svg>
-                <input v-model="frontendHost" type="text" placeholder="0.0.0.0" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
-              </div>
-            </div>
-            <div>
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Frontend Port</label>
-              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
-                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-                </svg>
-                <input v-model="frontendPort" type="text" placeholder="8081" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
-              </div>
-            </div>
-            <div class="sm:col-span-2">
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backend Host</label>
-              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
-                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4 6.5h16v11H4z" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M9 15.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-                </svg>
-                <input v-model="backendHost" type="text" placeholder="0.0.0.0" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
-              </div>
-            </div>
-            <div>
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backend Port</label>
-              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
-                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-                </svg>
-                <input v-model="backendPort" type="text" placeholder="8080" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
-              </div>
-            </div>
-            <div>
               <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Admin User</label>
               <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
                 <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -82,50 +42,85 @@
                 <input v-model="user" type="text" placeholder="admin" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
             </div>
-            <div class="sm:col-span-2">
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
-                Admin Password
-              </label>
+
+            <div>
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Admin Password</label>
               <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
                 <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="5" y="10" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.4" />
                   <path d="M9 10V8a3 3 0 1 1 6 0v2" stroke="currentColor" stroke-width="1.4" />
                 </svg>
-                <input v-model="pass" type="password" placeholder="Leave empty to use saved or auto-generate" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
+                <input v-model="pass" type="password" placeholder="Leave empty to use saved" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
               </div>
-              <span v-if="savedPassword && !pass" class="ml-2 text-[10px] font-normal text-green-600">(using saved password)</span>
-              <p class="mt-1 text-[9px] text-slate-500">Leave empty to use saved password, or will auto-generate if none saved.</p>
             </div>
-            <div class="col-span-2">
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Data Path</label>
-              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
-                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4.5 7.5h6l1.5 2h7.5v8a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.4" />
+
+            <div class="col-span-2 -mt-1">
+              <span v-if="savedPassword && !pass" class="text-[10px] font-medium text-green-600 block">
+                (using saved password)
+              </span>
+              <p class="text-[9px] text-slate-500">
+                Leave empty to use saved password, or will auto-generate if none saved.
+              </p>
+            </div>
+
+            <details class="col-span-2 mt-2 group border-t border-slate-100 pt-3">
+              <summary class="flex cursor-pointer list-none items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="h-3 w-3 transform transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                <input v-model="dataPath" type="text" placeholder="Current folder" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
-                <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectFolder">Browse</button>
+                Advanced Connectivity & Paths
+              </summary>
+              
+              <div class="grid grid-cols-2 gap-3 mt-4 animate-in fade-in slide-in-from-top-1">
+                <div>
+                  <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Frontend Host</label>
+                  <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                    <input v-model="frontendHost" type="text" placeholder="0.0.0.0" class="w-full border-none bg-transparent text-sm text-slate-900 outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Frontend Port</label>
+                  <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                    <input v-model="frontendPort" type="text" placeholder="8081" class="w-full border-none bg-transparent text-sm text-slate-900 outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backend Host</label>
+                  <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                    <input v-model="backendHost" type="text" placeholder="0.0.0.0" class="w-full border-none bg-transparent text-sm text-slate-900 outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backend Port</label>
+                  <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                    <input v-model="backendPort" type="text" placeholder="8080" class="w-full border-none bg-transparent text-sm text-slate-900 outline-none" />
+                  </div>
+                </div>
+                <div class="col-span-2">
+                  <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Data Path</label>
+                  <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                    <input v-model="dataPath" type="text" placeholder="Current folder" class="w-full border-none bg-transparent text-sm text-slate-900 outline-none" />
+                    <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectFolder">Browse</button>
+                  </div>
+                </div>
+                <div class="col-span-2">
+                  <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backup Data Folder</label>
+                  <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
+                    <input v-model="backupPath" type="text" placeholder="Optional backup folder" class="w-full border-none bg-transparent text-sm text-slate-900 outline-none" />
+                    <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectBackupFolder">Browse</button>
+                  </div>
+                </div>
+                <div class="col-span-2 pt-2">
+                  <label class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+                    <input v-model="useRemoteBackend" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                    <span>Use remote backend (only start frontend proxy)</span>
+                  </label>
+                </div>
               </div>
-            </div>
-            <div class="col-span-2">
-              <label class="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Backup Data Folder</label>
-              <div class="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-blue-500 focus-within:bg-white">
-                <svg class="absolute left-3 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 6.5h18v11H3z" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M8 10.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-                </svg>
-                <input v-model="backupPath" type="text" placeholder="Optional backup folder" class="w-full border-none bg-transparent pl-6 text-sm text-slate-900 outline-none" />
-                <button type="button" class="ml-2 shrink-0 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="selectBackupFolder">Browse</button>
-              </div>
-            </div>
-            <div class="col-span-2">
-              <label class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-700">
-                <input v-model="useRemoteBackend" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
-                <span>Use remote backend (only start frontend proxy)</span>
-              </label>
-            </div>
+            </details>
           </div>
 
-          <div class="flex flex-wrap justify-end gap-2">
+          <div class="flex flex-wrap justify-end gap-2 mt-4">
             <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="stopServers">Stop All</button>
             <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100" @click="openFrontendInBrowser">Open Frontend</button>
             <button type="submit" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Start Servers</button>
@@ -189,7 +184,7 @@ const backendHost = ref('0.0.0.0')
 const backendPort = ref('8080')
 const user = ref('admin')
 const pass = ref('')
-const savedPassword = ref('') // Stored separately for security
+const savedPassword = ref('')
 const dataPath = ref('')
 const backupPath = ref('')
 const useRemoteBackend = ref(false)
@@ -201,7 +196,7 @@ const modalMessage = ref('')
 const networkInfoRef = ref(null)
 const NETWORK_IP_STORAGE_KEY = 'archivist.networkIP'
 
-// Watch for network info appearing and scroll to it
+// Watch for network info and scroll
 watch([networkIP, () => props.frontendStatus], ([ip, status], [prevIp, prevStatus]) => {
   if (ip && status === 'running') {
     nextTick(() => {
@@ -210,84 +205,48 @@ watch([networkIP, () => props.frontendStatus], ([ip, status], [prevIp, prevStatu
       }
     })
   } else if (prevIp && (!ip || status !== 'running')) {
-    // Network message disappeared, scroll back to top
     nextTick(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     })
   }
 })
 
-// Computed property to select the effective password (entered or saved)
 const getPasswordToUse = () => pass.value || savedPassword.value
 
-// Load saved configuration on mount
 onMounted(async () => {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
     if (appNs && typeof appNs.LoadSavedConfig === 'function') {
       const config = await appNs.LoadSavedConfig()
       if (config) {
-        // Load all configuration values
         if (config.frontendHost) frontendHost.value = config.frontendHost
         if (config.frontendPort) frontendPort.value = config.frontendPort.toString()
         if (config.backendHost) backendHost.value = config.backendHost
         if (config.backendPort) backendPort.value = config.backendPort.toString()
         if (config.username) user.value = config.username
-        // Store password separately without displaying it for security
-        if (config.password) {
-          savedPassword.value = config.password
-          // Don't populate the password field - keep it empty for security
-        }
+        if (config.password) savedPassword.value = config.password
         if (config.dataPath) dataPath.value = config.dataPath
-        // Load backup path if present in saved config
         if (config.backupPath) backupPath.value = config.backupPath
       }
     }
     
-    // If dataPath is still empty, populate with executable directory + '/data'
     if (!dataPath.value && appNs && typeof appNs.GetExecutableDir === 'function') {
       const execDir = await appNs.GetExecutableDir()
-      if (execDir) {
-        dataPath.value = execDir + '/data'
-      }
+      if (execDir) dataPath.value = execDir + '/data'
     }
 
-    try {
-      const cachedIP = window?.localStorage?.getItem(NETWORK_IP_STORAGE_KEY)
-      if (cachedIP && !networkIP.value) {
-        networkIP.value = cachedIP
-      }
-    } catch (err) {
-      console.error('Failed to restore cached network IP:', err)
-    }
+    const cachedIP = window?.localStorage?.getItem(NETWORK_IP_STORAGE_KEY)
+    if (cachedIP) networkIP.value = cachedIP
+
   } catch (err) {
     console.error('Failed to load configuration:', err)
-    // Try to at least get the executable directory
-    try {
-      const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-      if (appNs && typeof appNs.GetExecutableDir === 'function') {
-        const execDir = await appNs.GetExecutableDir()
-        if (execDir) {
-          dataPath.value = execDir + '/data'
-        }
-      }
-    } catch (err2) {
-      console.error('Failed to get executable directory:', err2)
-    }
   }
 })
 
-  watch(networkIP, (ip) => {
-    try {
-      if (ip) {
-        window?.localStorage?.setItem(NETWORK_IP_STORAGE_KEY, ip)
-      } else {
-        window?.localStorage?.removeItem(NETWORK_IP_STORAGE_KEY)
-      }
-    } catch (err) {
-      console.error('Failed to persist network IP:', err)
-    }
-  })
+watch(networkIP, (ip) => {
+  if (ip) window?.localStorage?.setItem(NETWORK_IP_STORAGE_KEY, ip)
+  else window?.localStorage?.removeItem(NETWORK_IP_STORAGE_KEY)
+})
 
 function showMessage(title, message) {
   modalTitle.value = title
@@ -303,21 +262,16 @@ async function handleSave() {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
     if (!appNs) {
-      showMessage('Error', 'Wails API not available in this environment')
+      showMessage('Error', 'Wails API not available')
       return
     }
 
-    // Warn if removing password
     if (pass.value === '' && savedPassword.value !== '') {
-      if (!confirm('Remove password? Auto-generated one will be used on next backend start.')) {
-        return
-      }
+      if (!confirm('Remove password? Auto-generated one will be used on next start.')) return
     }
 
     if (typeof appNs.SaveConfiguration === 'function') {
-      // Use the entered password if provided, otherwise keep the saved one
       const passwordToSave = getPasswordToUse()
-      
       await appNs.SaveConfiguration(
         frontendHost.value,
         parseInt(frontendPort.value) || 8081,
@@ -329,20 +283,14 @@ async function handleSave() {
         backupPath.value || ''
       )
       
-      // Update saved password if a new one was entered
       if (pass.value) {
         savedPassword.value = pass.value
-        pass.value = '' // Clear the input field after saving for security
+        pass.value = ''
       }
-      
       showMessage('Success', 'Configuration saved successfully.')
-    } else {
-      showMessage('Error', 'SaveConfiguration function not available')
     }
   } catch (err) {
-    console.error('Failed to save configuration:', err)
-    const errorMsg = extractErrorMessage(err)
-    showMessage('Error', 'Failed to save configuration: ' + errorMsg)
+    showMessage('Error', 'Failed to save configuration: ' + extractErrorMessage(err))
   }
 }
 
@@ -353,114 +301,58 @@ function viewLogs() {
 async function handleReset() {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    
-    // Try to reload saved config
     if (appNs && typeof appNs.LoadSavedConfig === 'function') {
-      try {
-        const config = await appNs.LoadSavedConfig()
-        if (config) {
-          frontendHost.value = config.frontendHost || '0.0.0.0'
-          frontendPort.value = (config.frontendPort || 8081).toString()
-          backendHost.value = config.backendHost || '0.0.0.0'
-          backendPort.value = (config.backendPort || 8080).toString()
-          user.value = config.username || 'admin'
-          savedPassword.value = config.password || ''
-          pass.value = '' // Clear the visible password field for security
-          dataPath.value = config.dataPath || ''
-          backupPath.value = config.backupPath || ''
-          useRemoteBackend.value = false
-          networkIP.value = ''
-          emit('update-frontend-status', 'stopped')
-          emit('update-backend-status', 'stopped')
-          showMessage('Reset', 'Configuration reset to saved values.')
-          return
-        }
-      } catch (err) {
-        console.error('Failed to load saved config:', err)
+      const config = await appNs.LoadSavedConfig()
+      if (config) {
+        frontendHost.value = config.frontendHost || '0.0.0.0'
+        frontendPort.value = (config.frontendPort || 8081).toString()
+        backendHost.value = config.backendHost || '0.0.0.0'
+        backendPort.value = (config.backendPort || 8080).toString()
+        user.value = config.username || 'admin'
+        savedPassword.value = config.password || ''
+        pass.value = ''
+        dataPath.value = config.dataPath || ''
+        backupPath.value = config.backupPath || ''
+        useRemoteBackend.value = false
+        networkIP.value = ''
+        emit('update-frontend-status', 'stopped')
+        emit('update-backend-status', 'stopped')
+        showMessage('Reset', 'Configuration reset to saved values.')
+        return
       }
     }
-    
-    // Fallback to defaults if loading saved config fails
-    frontendHost.value = '0.0.0.0'
-    frontendPort.value = '8081'
-    backendHost.value = '0.0.0.0'
-    backendPort.value = '8080'
-    user.value = 'admin'
-    pass.value = ''
-    savedPassword.value = ''
-    dataPath.value = ''
-    backupPath.value = ''
-    useRemoteBackend.value = false
-    networkIP.value = ''
-    emit('update-frontend-status', 'stopped')
-    emit('update-backend-status', 'stopped')
-    showMessage('Reset', 'Configuration reset to defaults.')
   } catch (err) {
-    console.error('Reset failed:', err)
     showMessage('Error', 'Failed to reset configuration')
   }
 }
 
 async function selectFolder() {
-  try {
-    // Try canonical Wails bridge paths with safe existence checks
-    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.SelectFolder === 'function') {
-      const selection = await appNs.SelectFolder()
-      if (selection) dataPath.value = selection
-      return
-    }
-    showMessage('Not Available', 'Folder picker not available in this environment')
-  } catch (err) {
-    console.error(err)
-    showMessage('Error', 'Failed to select folder')
+  const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+  if (appNs && typeof appNs.SelectFolder === 'function') {
+    const selection = await appNs.SelectFolder()
+    if (selection) dataPath.value = selection
   }
 }
 
 async function selectBackupFolder() {
-  try {
-    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (appNs && typeof appNs.SelectFolder === 'function') {
-      const selection = await appNs.SelectFolder()
-      if (selection) backupPath.value = selection
-      return
-    }
-    showMessage('Not Available', 'Folder picker not available in this environment')
-  } catch (err) {
-    console.error(err)
-    showMessage('Error', 'Failed to select backup folder')
+  const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+  if (appNs && typeof appNs.SelectFolder === 'function') {
+    const selection = await appNs.SelectFolder()
+    if (selection) backupPath.value = selection
   }
 }
 
 async function startServers() {
   const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-  if (!appNs) {
-    showMessage('Error', 'Wails API not available in this environment')
-    return
-  }
-
-  // If dataPath is empty, populate it with executable directory + '/data'
-  if (!dataPath.value && typeof appNs.GetExecutableDir === 'function') {
-    try {
-      const execDir = await appNs.GetExecutableDir()
-      if (execDir) {
-        dataPath.value = execDir + '/data'
-      }
-    } catch (err) {
-      console.error('Failed to get executable directory:', err)
-    }
-  }
+  if (!appNs) return
 
   let frontendStarted = false
   let backendStarted = false
   let errors = []
   let generatedPassword = null
   const remoteOnly = useRemoteBackend.value
-  
-  // Use the helper function for password selection
   const passwordToUse = getPasswordToUse()
 
-  // Start backend server first
   if (remoteOnly) {
     backendStarted = true
     emit('update-backend-status', 'remote')
@@ -474,151 +366,71 @@ async function startServers() {
         dataPath.value,
         backupPath.value
       )
-      // If we get here without exception, it succeeded
       backendStarted = true
       emit('update-backend-status', 'running')
-      
-      // Handle auto-generated password
       if (result && result.generated) {
         generatedPassword = result.password
         savedPassword.value = result.password
-        pass.value = '' // Clear the input field since we now have saved password
+        pass.value = ''
       }
     } catch (err) {
-      console.error('Backend start error:', err)
-      const errorMsg = extractErrorMessage(err, 'Backend')
-      errors.push(errorMsg)
+      errors.push(extractErrorMessage(err, 'Backend'))
       emit('update-backend-status', 'error')
     }
   }
 
-  // Start frontend server with backend configuration
   if (typeof appNs.StartWebServer === 'function') {
     try {
-      const result = await appNs.StartWebServer(
+      await appNs.StartWebServer(
         frontendHost.value,
         parseInt(frontendPort.value) || 8081,
         backendHost.value,
         parseInt(backendPort.value) || 8080
       )
-      // If we get here without exception, it succeeded
       frontendStarted = true
       emit('update-frontend-status', 'running')
     } catch (err) {
-      console.error('Frontend start error:', err)
-      const errorMsg = extractErrorMessage(err, 'Frontend')
-      errors.push(errorMsg)
+      errors.push(extractErrorMessage(err, 'Frontend'))
       emit('update-frontend-status', 'error')
     }
   }
 
-  // Get network info if frontend host is 0.0.0.0
   if (frontendStarted && frontendHost.value === '0.0.0.0' && typeof appNs.GetNetworkInfo === 'function') {
-    try {
-      const info = await appNs.GetNetworkInfo()
-      if (info && info.localIP) {
-        networkIP.value = info.localIP
-      }
-    } catch (err) {
-      console.error('Failed to get network info:', err)
-    }
+    const info = await appNs.GetNetworkInfo()
+    if (info?.localIP) networkIP.value = info.localIP
   }
 
-  // Show appropriate message
   if (frontendStarted && backendStarted) {
-    const backendLabel = remoteOnly ? 'Remote Backend' : 'Backend'
-    let successMsg = `Frontend started successfully.\n${backendLabel}: http://${backendHost.value}:${backendPort.value}`
-    
-    // Add note about auto-generated password
-    if (generatedPassword) {
-      successMsg += `\n\nAuto-generated admin password: ${generatedPassword}\nPassword has been saved to configuration.`
-    }
-    
-    showMessage('Success', successMsg)
-  } else if (frontendStarted || backendStarted) {
-    const started = []
-    if (frontendStarted) started.push(`Frontend: http://${frontendHost.value}:${frontendPort.value}`)
-    if (backendStarted) started.push(`${remoteOnly ? 'Remote Backend proxy' : 'Backend'}: http://${backendHost.value}:${backendPort.value}`)
-    const errorText = errors.length ? `\n\nErrors:\n${errors.join('\n')}` : ''
-    showMessage('Partial Success', `Partially started:\n${started.join('\n')}${errorText}`)
-  } else if (errors.length > 0) {
-    showMessage('Error', 'Failed to start servers:\n' + errors.join('\n'))
+    let msg = `Frontend started.\nBackend: http://${backendHost.value}:${backendPort.value}`
+    if (generatedPassword) msg += `\n\nGenerated password: ${generatedPassword}`
+    showMessage('Success', msg)
+  } else if (errors.length) {
+    showMessage('Error', errors.join('\n'))
   }
 }
 
 function openFrontendInBrowser() {
-  let host = frontendHost.value || 'localhost'
-  // Convert 0.0.0.0 to 127.0.0.1 for browser compatibility (especially on Windows)
-  if (host === '0.0.0.0') {
-    host = '127.0.0.1'
-  }
-  const port = parseInt(frontendPort.value, 10) || 8081
-  const url = `http://${host}${port ? `:${port}` : ''}`
-
-  try {
-    if (typeof BrowserOpenURL === 'function') {
-      BrowserOpenURL(url)
-    } else if (window?.open) {
-      window.open(url, '_blank', 'noopener,noreferrer')
-    } else {
-      showMessage('Not Available', 'BrowserOpenURL not available in this environment')
-    }
-  } catch (err) {
-    console.error(err)
-    showMessage('Error', 'Failed to open browser: ' + err.message)
-  }
+  let host = frontendHost.value === '0.0.0.0' ? '127.0.0.1' : frontendHost.value
+  const url = `http://${host}:${frontendPort.value || 8081}`
+  if (typeof BrowserOpenURL === 'function') BrowserOpenURL(url)
+  else window.open(url, '_blank')
 }
 
 async function stopServers() {
-  try {
-    const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
-    if (!appNs) {
-      showMessage('Error', 'Wails API not available in this environment')
-      return
-    }
-
-    let errors = []
-    const remoteOnly = useRemoteBackend.value
-
-    // Stop frontend server
-    if (typeof appNs.StopWebServer === 'function') {
-      try {
-        await appNs.StopWebServer()
-        emit('update-frontend-status', 'stopped')
-      } catch (err) {
-        const errorMsg = extractErrorMessage(err, 'Frontend')
-        errors.push(errorMsg)
-        emit('update-frontend-status', 'error')
-      }
-    }
-
-    // Stop backend server
-    if (!remoteOnly && typeof appNs.StopBackendServer === 'function') {
-      try {
-        await appNs.StopBackendServer()
-        emit('update-backend-status', 'stopped')
-      } catch (err) {
-        const errorMsg = extractErrorMessage(err, 'Backend')
-        errors.push(errorMsg)
-        emit('update-backend-status', 'error')
-      }
-    } else if (remoteOnly) {
-      emit('update-backend-status', 'stopped')
-    }
-
-    // Clear network IP
-    networkIP.value = ''
-
-    if (errors.length > 0) {
-      showMessage('Partial Success', 'Some servers failed to stop:\n' + errors.join('\n'))
-    } else {
-      showMessage('Success', 'All servers stopped successfully')
-    }
-  } catch (err) {
-    console.error(err)
-    const errorMsg = extractErrorMessage(err)
-    showMessage('Error', 'Failed to stop servers: ' + errorMsg)
+  const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+  if (!appNs) return
+  
+  if (typeof appNs.StopWebServer === 'function') {
+    await appNs.StopWebServer()
+    emit('update-frontend-status', 'stopped')
   }
+  if (!useRemoteBackend.value && typeof appNs.StopBackendServer === 'function') {
+    await appNs.StopBackendServer()
+    emit('update-backend-status', 'stopped')
+  } else if (useRemoteBackend.value) {
+    emit('update-backend-status', 'stopped')
+  }
+  networkIP.value = ''
 }
 
 function statusClass(status) {
@@ -631,68 +443,21 @@ function statusClass(status) {
 }
 
 function statusText(status) {
-  return {
-    running: 'Running',
-    stopped: 'Stopped',
-    remote: 'Remote',
-    error: 'Unavailable'
-  }[status] || 'Unknown'
+  return { running: 'Running', stopped: 'Stopped', remote: 'Remote', error: 'Error' }[status] || 'Unknown'
 }
 
 function dotClass(status) {
-  return {
-    running: 'bg-green-500',
-    stopped: 'bg-slate-300',
-    remote: 'bg-blue-500',
-    error: 'bg-amber-500'
-  }[status] || 'bg-slate-300'
+  return { running: 'bg-green-500', stopped: 'bg-slate-300', remote: 'bg-blue-500', error: 'bg-amber-500' }[status] || 'bg-slate-300'
 }
 
 function extractErrorMessage(error, context = '') {
-  // Handle null or undefined
-  if (error === null || error === undefined) {
-    return context ? `${context}: No error details available` : 'No error details available'
-  }
-
-  // Handle string errors
-  if (typeof error === 'string') {
-    return context ? `${context}: ${error}` : error
-  }
-
-  // Handle error objects with message property
-  if (error.message && typeof error.message === 'string' && error.message.trim()) {
-    const msg = error.message.trim()
-    // Add context-aware suggestions for common errors
-    let suggestion = ''
-    if (msg.toLowerCase().includes('address already in use') || msg.toLowerCase().includes('bind')) {
-      suggestion = ' (Port may already be in use - try a different port or stop other services)'
-    } else if (msg.toLowerCase().includes('permission denied') || msg.toLowerCase().includes('eacces')) {
-      suggestion = ' (Permission denied - try running with appropriate privileges)'
-    } else if (msg.toLowerCase().includes('connection refused') || msg.toLowerCase().includes('econnrefused')) {
-      suggestion = ' (Connection refused - backend may not be running or port is incorrect)'
-    } else if (msg.toLowerCase().includes('no such file') || msg.toLowerCase().includes('enoent')) {
-      suggestion = ' (File or directory not found - check data path)'
-    } else if (msg.toLowerCase().includes('timeout')) {
-      suggestion = ' (Operation timed out - server may be unresponsive)'
-    }
-    return context ? `${context}: ${msg}${suggestion}` : `${msg}${suggestion}`
-  }
-
-  // Handle error objects with toString method
-  if (typeof error.toString === 'function') {
-    const str = error.toString().trim()
-    if (str && str !== '[object Object]') {
-      return context ? `${context}: ${str}` : str
-    }
-  }
-
-  // Handle error objects with status or code properties
-  if (error.code || error.status) {
-    const code = error.code || error.status
-    return context ? `${context}: Error code ${code}` : `Error code ${code}`
-  }
-
-  // Fallback for any other object
-  return context ? `${context}: Unknown error occurred` : 'Unknown error occurred'
+  if (!error) return 'Unknown error'
+  const msg = error.message || (typeof error === 'string' ? error : 'Check logs for details')
+  return context ? `${context}: ${msg}` : msg
 }
 </script>
+
+<style scoped>
+summary::-webkit-details-marker { display: none; }
+.animate-in { animation-duration: 300ms; }
+</style>
