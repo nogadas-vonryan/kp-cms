@@ -1,50 +1,56 @@
 <template>
   <div class="space-y-4">
-    <!-- Breadcrumb -->
     <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 min-w-0">
       <router-link to="/inhabitants" class="hover:text-gray-900 truncate">Inhabitants</router-link>
       <span class="shrink-0">/</span>
       <span class="text-gray-900 font-medium wrap-break-word">{{ inhabitant ? getFullName(inhabitant) : 'Loading...' }}</span>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center min-h-96">
-      <div class="text-center space-y-2">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="text-sm text-gray-600">Loading inhabitant details...</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 wrap-break-word">
+          {{ inhabitant ? getFullName(inhabitant) : 'Inhabitant Details' }}
+        </h1>
+        <p v-if="inhabitant" class="text-xs sm:text-sm text-gray-600 mt-1">
+          ID: <span class="font-mono">{{ inhabitant.id }}</span>
+        </p>
+      </div>
+      <div v-if="isAdmin && inhabitant" class="flex gap-2 shrink-0 ml-auto">
+        <button
+          @click="openEditModal"
+          title="Edit"
+          class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded border border-gray-300 transition-colors"
+        >
+          <Edit3 :size="20" :stroke-width="1.4" />
+        </button>
+        
+        <button 
+          @click="showDeleteModal = true" 
+          title="Delete" 
+          class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded border border-red-300 transition-colors"
+        >
+          <Trash2 :size="20" :stroke-width="1.4" />
+        </button>
       </div>
     </div>
 
-    <!-- Error State -->
-    <UiSystemNotice v-if="error" type="error" label="Error" :modelValue="true">
-      <template #title>
-        <span class="px-2 text-sm text-gray-700 leading-relaxed">{{ error }}</span>
-      </template>
-    </UiSystemNotice>
+    <div v-if="loading" class="p-8 text-center text-gray-600">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+      Loading inhabitant details...
+    </div>
 
-    <!-- Content -->
+    <UiAlert v-if="error" type="error" class="mb-4">
+      {{ error }}
+    </UiAlert>
+
     <template v-if="!loading && inhabitant">
-      <!-- Profile Card -->
       <UiCard>
         <div class="space-y-4">
-          <div class="flex items-start justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Profile Information</h2>
-            <div v-if="isAdmin" class="flex gap-2">
-              <UiButton @click="openEditModal" variant="secondary" class="flex items-center gap-2">
-                <Edit3 :size="16" />
-                <span>Edit</span>
-              </UiButton>
-              <UiButton @click="showDeleteModal = true" class="flex items-center gap-2 bg-red-600 hover:bg-red-700">
-                <Trash2 :size="16" />
-                <span>Delete</span>
-              </UiButton>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <h2 class="text-lg font-semibold text-gray-900">Profile Information</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+            <div class="min-w-0">
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Full Name</label>
-              <p class="text-sm text-gray-900">{{ getFullName(inhabitant) || 'N/A' }}</p>
+              <p class="text-sm text-gray-900 font-medium wrap-break-word">{{ getFullName(inhabitant) || 'N/A' }}</p>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Birthday</label>
@@ -54,109 +60,106 @@
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Contact Number</label>
               <p class="text-sm text-gray-900">{{ formatField(inhabitant.contact_no) }}</p>
             </div>
-            <div>
+            <div class="sm:col-span-2">
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Address</label>
-              <p class="text-sm text-gray-900">{{ formatField(inhabitant.address) }}</p>
+              <p class="text-sm text-gray-900 wrap-break-word">{{ formatField(inhabitant.address) }}</p>
             </div>
           </div>
         </div>
       </UiCard>
 
-      <!-- Related Documents Section -->
-      <UiCard>
-        <div class="space-y-4">
-          <h2 class="text-lg font-semibold text-gray-900">Related Documents</h2>
+      <div class="space-y-3">
+        <h2 class="text-lg font-semibold text-gray-900 px-1">Related Documents</h2>
 
-          <!-- Documents Loading State -->
-          <div v-if="documentsLoading" class="flex justify-center items-center py-8">
-            <div class="text-center space-y-2">
-              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-              <p class="text-xs text-gray-600">Searching for related documents...</p>
-            </div>
-          </div>
+        <div v-if="documentsLoading" class="p-8 text-center text-gray-600 bg-white rounded-lg border border-gray-200">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          Searching for documents...
+        </div>
 
-          <!-- Documents Error State -->
-          <UiAlert v-else-if="documentsError" type="error">{{ documentsError }}</UiAlert>
+        <UiAlert v-else-if="documentsError" type="error">{{ documentsError }}</UiAlert>
 
-          <!-- Documents List -->
-          <div v-else-if="documents.length > 0" class="space-y-2">
-            <div 
-              v-for="doc in documents" 
-              :key="doc.uuid"
-              @click="navigateToDocument(doc.uuid)"
-              class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-all cursor-pointer"
-            >
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-medium text-gray-900 text-sm">{{ doc.title }}</h3>
-                  <p class="text-xs text-gray-600 mt-1">
-                    <span class="font-medium">Code:</span> {{ doc.code || 'N/A' }}
-                    <span class="mx-2">•</span>
-                    <span class="font-medium">Folder:</span> {{ doc.folder_name }}
-                  </p>
-                  <div v-if="doc.fields?.complainants || doc.fields?.respondents" class="text-xs text-gray-500 mt-2 space-y-1">
-                    <p v-if="doc.fields.complainants && doc.fields.complainants.length">
-                      <span class="font-medium">Complainants:</span> {{ doc.fields.complainants.join(', ') }}
-                    </p>
-                    <p v-if="doc.fields.respondents && doc.fields.respondents.length">
-                      <span class="font-medium">Respondents:</span> {{ doc.fields.respondents.join(', ') }}
-                    </p>
-                  </div>
+        <div v-else-if="documents.length > 0" class="grid gap-3">
+          <div 
+            v-for="doc in documents" 
+            :key="doc.uuid"
+            @click="navigateToDocument(doc.uuid)"
+            class="p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-all cursor-pointer group"
+          >
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-gray-900 text-sm group-hover:text-blue-700 transition-colors truncate">
+                  {{ doc.title }}
+                </h3>
+                <div class="flex flex-wrap items-center gap-y-1 text-xs text-gray-500 mt-1">
+                  <span class="font-mono bg-gray-100 px-1 rounded">{{ doc.code || 'N/A' }}</span>
+                  <span class="mx-2 text-gray-300">•</span>
+                  <span class="truncate">{{ doc.folder_name }}</span>
                 </div>
-                <ChevronRight :size="16" class="text-gray-400 shrink-0 mt-1" />
+                
+                <div v-if="doc.fields?.complainants || doc.fields?.respondents" class="text-[11px] text-gray-500 mt-2 space-y-0.5 border-t border-gray-50 pt-2">
+                  <p v-if="doc.fields.complainants?.length" class="truncate">
+                    <span class="font-medium">Complainants:</span> {{ doc.fields.complainants.join(', ') }}
+                  </p>
+                  <p v-if="doc.fields.respondents?.length" class="truncate">
+                    <span class="font-medium">Respondents:</span> {{ doc.fields.respondents.join(', ') }}
+                  </p>
+                </div>
               </div>
+              <ChevronRight :size="18" class="text-gray-400 shrink-0 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
-
-          <!-- Empty State -->
-          <div v-else class="text-center py-8 text-gray-600">
-            <p class="text-sm">No documents found for this inhabitant</p>
-          </div>
         </div>
-      </UiCard>
+
+        <div v-else class="text-center py-12 bg-white rounded-lg border border-dashed border-gray-300 text-gray-500">
+          <p class="text-sm font-medium">No documents found</p>
+          <p class="text-xs mt-1">This inhabitant is not linked to any document records.</p>
+        </div>
+      </div>
     </template>
 
-    <!-- Edit Modal -->
     <UiModal v-model:open="showEditModal" title="Edit Inhabitant">
       <form @submit.prevent="handleSubmit" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
-          <input v-model="form.first_name" required class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <UiInput v-model="form.first_name" required class="w-full" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
-          <input v-model="form.last_name" required class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <UiInput v-model="form.last_name" required class="w-full" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-          <input v-model="form.middle_name" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <UiInput v-model="form.middle_name" class="w-full" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Suffix</label>
-          <input v-model="form.suffix" placeholder="e.g. Jr., III" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <UiInput v-model="form.suffix" placeholder="e.g. Jr., III" class="w-full" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Birthday</label>
-          <input v-model="form.birthday" type="date" :min="minBirthday" :max="maxBirthday" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <UiInput v-model="form.birthday" type="date" :min="minBirthday" :max="maxBirthday" class="w-full" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Contact No.</label>
-          <input v-model="form.contact_no" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <UiInput v-model="form.contact_no" class="w-full" />
         </div>
-        <div class="col-span-2">
+        <div class="col-span-1 sm:col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-          <textarea v-model="form.address" rows="2" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
+          <textarea 
+            v-model="form.address" 
+            rows="3" 
+            class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
+          ></textarea>
         </div>
       </form>
 
       <template #footer>
-        <div class="flex w-full flex-col gap-2">
+        <div class="flex w-full flex-col gap-3">
           <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
           <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <UiButton @click="showEditModal = false">Cancel</UiButton>
-            <UiButton @click="handleSubmit" :disabled="submitting" variant="secondary" class="flex items-center gap-2">
-              <Check :size="16" />
-              <span>{{ submitting ? 'Saving...' : 'Save' }}</span>
+            <UiButton @click="showEditModal = false" variant="secondary" class="w-full sm:w-auto">Cancel</UiButton>
+            <UiButton @click="handleSubmit" :loading="submitting" class="w-full sm:w-auto">
+              Save Changes
             </UiButton>
           </div>
         </div>
@@ -169,38 +172,35 @@
       </p>
       
       <div class="space-y-4">
-        <div class="bg-red-50 p-4 rounded-lg border border-red-200 space-y-3">
-          <div class="space-y-2">
-            <p class="text-sm text-red-800 font-medium">This action is permanent.</p>
-            <p class="text-sm text-red-700 mt-1 mb-2">
-                To confirm, please type <span class="font-mono font-bold">"I want to delete it"</span> below:
-            </p>
-          </div>
-
+        <div class="bg-red-50 p-3 rounded border border-red-100">
+          <p class="text-sm text-red-800 font-medium">This action is permanent.</p>
+          <p class="text-sm text-red-700 mt-1 mb-2">
+              To confirm, please type <span class="font-mono font-bold">"{{ DELETE_PHRASE.toLowerCase() }}"</span> below:
+          </p>
           <UiInput 
             v-model="deleteConfirmationInput" 
             placeholder="Type the confirmation phrase"
-            class="bg-white"
             @keyup.enter="canDelete && !deleting && handleDelete()"
+            class="w-full"
           />
         </div>
 
-        <UiAlert v-if="deleteError" type="error" class="text-xs">
+        <UiAlert v-if="deleteError" type="error">
           {{ deleteError }}
         </UiAlert>
       </div>
 
       <template #footer>
         <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <UiButton :disabled="deleting" @click="showDeleteModal = false" variant="secondary">Cancel</UiButton>
+          <UiButton :disabled="deleting" @click="showDeleteModal = false" variant="secondary" class="w-full sm:w-auto">Cancel</UiButton>
           <UiButton 
             @click="handleDelete" 
-            :disabled="!canDelete || deleting" 
+            :loading="deleting" 
+            :disabled="!canDelete" 
             variant="danger"
-            class="flex items-center gap-2"
+            class="w-full sm:w-auto"
           >
-            <Trash2 :size="16" />
-            <span>{{ deleting ? 'Deleting...' : 'Confirm Delete' }}</span>
+            Delete Permanently
           </UiButton>
         </div>
       </template>
@@ -212,7 +212,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
-  Edit3, Trash2, Check, ChevronRight
+  Edit3, Trash2, ChevronRight
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
 import { InhabitantService, type Inhabitant } from '@/modules/inhabitants/services/inhabitantService';
@@ -222,7 +222,6 @@ import UiCard from '@/core/ui/components/UiCard.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiInput from '@/core/ui/components/UiInput.vue';
-import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 
 const route = useRoute();
@@ -270,13 +269,12 @@ const showDeleteModal = ref(false);
 const deleting = ref(false);
 const deleteError = ref('');
 const deleteConfirmationInput = ref('');
-const DELETE_PHRASE = 'I want to delete it';
+const DELETE_PHRASE = 'i want to delete it';
 
 const canDelete = computed(() => {
-  return deleteConfirmationInput.value.toLowerCase() === DELETE_PHRASE.toLowerCase();
+  return deleteConfirmationInput.value.toLowerCase() === DELETE_PHRASE;
 });
 
-// Reset confirmation input when modal closes
 watch(showDeleteModal, (isOpen) => {
   if (!isOpen) {
     deleteConfirmationInput.value = '';
@@ -301,8 +299,6 @@ async function loadInhabitantDetails() {
   try {
     const response = await InhabitantService.getById(id);
     inhabitant.value = response.data;
-    
-    // Load related documents
     await loadRelatedDocuments(id);
   } catch (err: any) {
     error.value = extractErrorMessage(err) || 'Failed to load inhabitant details';
@@ -336,28 +332,16 @@ function getFullName(inh: Inhabitant): string {
 }
 
 function formatField(value: string | undefined | null): string {
-  if (!value || value.trim() === '') {
-    return 'N/A';
-  }
+  if (!value || value.trim() === '') return 'N/A';
   return value;
 }
 
 function formatBirthday(birthday: string | undefined | null): string {
-  if (!birthday || birthday.trim() === '') {
-    return 'N/A';
-  }
-  
-  // Check for invalid dates like 0001-01-01, 0000-00-00, etc.
+  if (!birthday || birthday.trim() === '') return 'N/A';
   const invalidDates = ['0001-01-01', '0000-00-00', '1900-01-01'];
-  if (invalidDates.includes(birthday)) {
+  if (invalidDates.includes(birthday) || birthday.startsWith('0000') || birthday.startsWith('0001')) {
     return 'N/A';
   }
-  
-  // Check if date starts with 0000 or 0001
-  if (birthday.startsWith('0000') || birthday.startsWith('0001')) {
-    return 'N/A';
-  }
-  
   return birthday;
 }
 
@@ -374,35 +358,20 @@ function openEditModal() {
 }
 
 function validateBirthday(birthday: string): string | null {
-  if (!birthday || birthday.trim() === '') {
-    return null; // Empty is valid (optional field)
-  }
-
+  if (!birthday || birthday.trim() === '') return null;
   const birthdayDate = new Date(birthday);
   const minDate = new Date();
   minDate.setFullYear(minDate.getFullYear() - 130);
   const maxDate = new Date();
 
-  if (birthdayDate < minDate) {
-    return 'Date out of range';
-  }
-
-  if (birthdayDate > maxDate) {
-    return 'Birthday cannot be in the future';
-  }
-
-  // Check for invalid dates like 0001-01-01
-  if (birthday.startsWith('0000') || birthday.startsWith('0001')) {
-    return 'Please enter a valid birthday';
-  }
-
-  return null; // Valid
+  if (birthdayDate < minDate) return 'Date out of range';
+  if (birthdayDate > maxDate) return 'Birthday cannot be in the future';
+  if (birthday.startsWith('0000') || birthday.startsWith('0001')) return 'Please enter a valid birthday';
+  return null;
 }
 
 async function handleSubmit() {
   if (!inhabitant.value?.id) return;
-
-  // Validate birthday
   const birthdayError = validateBirthday(form.value.birthday);
   if (birthdayError) {
     formError.value = birthdayError;
@@ -415,8 +384,6 @@ async function handleSubmit() {
   try {
     await InhabitantService.update(inhabitant.value.id, form.value);
     showEditModal.value = false;
-    
-    // Reload details and documents (name might have changed)
     await loadInhabitantDetails();
   } catch (err: any) {
     formError.value = extractErrorMessage(err) || 'Failed to update inhabitant';
@@ -427,10 +394,8 @@ async function handleSubmit() {
 
 async function handleDelete() {
   if (!inhabitant.value || !canDelete.value) return;
-  
   deleting.value = true;
   deleteError.value = '';
-  
   try {
     await InhabitantService.delete(inhabitant.value.id!);
     showDeleteModal.value = false;
