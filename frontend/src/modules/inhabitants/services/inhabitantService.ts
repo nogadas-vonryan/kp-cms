@@ -15,6 +15,9 @@ export const InhabitantService = {
   getAll(offset = 0, limit = 100) {
     return api.get<Inhabitant[]>('/api/inhabitants', { params: { offset, limit } });
   },
+  search(query: string, limit = 20) {
+    return api.get<Inhabitant[]>('/api/inhabitants', { params: { q: query, limit } });
+  },
   getById(id: number) {
     return api.get<Inhabitant>(`/api/inhabitants/${id}`);
   },

@@ -240,21 +240,17 @@ const form = ref<Inhabitant>({
   address: ''
 });
 
-// Computed Search (Client-side search for current page, or could be integrated into API)
-const filteredInhabitants = computed(() => {
-  if (!searchQuery.value) return inhabitants.value;
-  const q = searchQuery.value.toLowerCase();
-  return inhabitants.value.filter(i => 
-    i.first_name.toLowerCase().includes(q) || 
-    i.last_name.toLowerCase().includes(q)
-  );
-});
+// Use inhabitants directly (server-side search is applied in loadInhabitants)
+const filteredInhabitants = computed(() => inhabitants.value);
 
 async function loadInhabitants() {
   loading.value = true;
   error.value = '';
   try {
-    const response = await InhabitantService.getAll(offset.value, limit.value);
+    // Use search endpoint if there's a query, otherwise use getAll
+    const response = searchQuery.value.trim()
+      ? await InhabitantService.search(searchQuery.value, limit.value)
+      : await InhabitantService.getAll(offset.value, limit.value);
     inhabitants.value = response.data;
   } catch (err: any) {
     error.value = extractErrorMessage(err) || 'Failed to load inhabitants';

@@ -50,7 +50,20 @@ func (s *Server) handleListInhabitants() http.HandlerFunc {
 			}
 		}
 
-		inhabitants, err := s.inhabitantService.List(r.Context(), limit, offset)
+		// Check if there's a search query
+		query := r.URL.Query().Get("q")
+
+		var inhabitants []inhabitant.Inhabitant
+		var err error
+
+		if query != "" {
+			// Use search functionality with tokenized matching
+			inhabitants, err = s.inhabitantService.FindPeopleByName(r.Context(), query, limit)
+		} else {
+			// Use regular list with pagination
+			inhabitants, err = s.inhabitantService.List(r.Context(), limit, offset)
+		}
+
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to list inhabitants")
 			return
