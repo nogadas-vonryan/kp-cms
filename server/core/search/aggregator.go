@@ -68,17 +68,23 @@ func (a *AggregatorService) ExecuteAdvancedSearch(ctx context.Context, query str
 		}, nil
 	}
 
-	// Step 3: Extract full names as join keys
-	fullNames := make([]string, 0, len(inhabitants))
+	// Step 3: Generate all search key variations and deduplicate
+	searchKeysMap := make(map[string]struct{})
 	for _, inh := range inhabitants {
-		fullName := buildFullName(inh)
-		if fullName != "" {
-			fullNames = append(fullNames, fullName)
+		keys := generateSearchKeys(inh)
+		for _, key := range keys {
+			searchKeysMap[key] = struct{}{}
 		}
 	}
 
+	// Convert deduplicated map to slice
+	searchKeys := make([]string, 0, len(searchKeysMap))
+	for key := range searchKeysMap {
+		searchKeys = append(searchKeys, key)
+	}
+
 	// Step 4: Search documents containing any of these names
-	documents, err := a.documentService.SearchByParticipants(ctx, fullNames)
+	documents, err := a.documentService.SearchByParticipants(ctx, searchKeys)
 	if err != nil {
 		return nil, fmt.Errorf("searching documents: %w", err)
 	}
@@ -109,4 +115,37 @@ func buildFullName(inh inhabitant.Inhabitant) string {
 	}
 
 	return strings.Join(parts, " ")
+}
+
+// generateSearchKeys creates multiple search key variations for an inhabitant.
+// This includes: Full Name (John Dabba Doe), Short Name (John Doe), and Formal (Doe, John).
+func generateSearchKeys(inh inhabitant.Inhabitant) []string {
+	keys := []string{}
+
+	// Format 1: Full Name (FirstName MiddleName LastName Suffix)
+	fullName := buildFullName(inh)
+	if fullName != "" {
+		keys = append(keys, fullName)
+	}
+
+	// Format 2: Short Name (FirstName LastName) - without middle name and suffix
+	if inh.FirstName != "" && inh.LastName != "" {
+		shortName := inh.FirstName + " " + inh.LastName
+		keys = append(keys, shortName)
+	}
+
+	// Format 3: Formal Name (LastName, FirstName)
+	if inh.LastName != "" && inh.FirstName != "" {
+		formalName := inh.LastName + ", " + inh.FirstName
+		keys = append(keys, formalName)
+	}
+
+	// Format 4: Formal with middle initial (LastName, FirstName M.)
+	if inh.LastName != "" && inh.FirstName != "" && inh.MiddleName != "" {
+		middleInitial := string([]rune(inh.MiddleName)[0]) + "."
+		formalWithMiddle := inh.LastName + ", " + inh.FirstName + " " + middleInitial
+		keys = append(keys, formalWithMiddle)
+	}
+
+	return keys
 }

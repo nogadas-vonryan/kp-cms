@@ -82,6 +82,121 @@ func setupSearchTestRepo(t *testing.T) (*Store, []string) {
 	return repo, uuids
 }
 
+func TestTokenizedMatch(t *testing.T) {
+	t.Run("exact substring match", func(t *testing.T) {
+		if !tokenizedMatch("John Doe", "John Doe") {
+			t.Error("exact match should return true")
+		}
+	})
+
+	t.Run("simple substring match", func(t *testing.T) {
+		if !tokenizedMatch("John Doe", "John") {
+			t.Error("simple substring match should return true")
+		}
+	})
+
+	t.Run("tokenized match with middle name", func(t *testing.T) {
+		// "John Doe" should match "John Dabba Doe"
+		if !tokenizedMatch("John Dabba Doe", "John Doe") {
+			t.Error("tokenized match should find John Doe in John Dabba Doe")
+		}
+	})
+
+	t.Run("search John Doe matches John Dabba Doe", func(t *testing.T) {
+		// Searching for "John Doe" should match a document with "John Dabba Doe"
+		if !tokenizedMatch("John Dabba Doe", "John Doe") {
+			t.Error("John Doe should match John Dabba Doe")
+		}
+	})
+
+	t.Run("search John Doe matches John D. Doe", func(t *testing.T) {
+		// Searching for "John Doe" should match a document with "John D. Doe"
+		if !tokenizedMatch("John D. Doe", "John Doe") {
+			t.Error("John Doe should match John D. Doe")
+		}
+	})
+
+	t.Run("reverse: search John Dabba Doe matches John Doe in document", func(t *testing.T) {
+		// If document contains "John Doe" and search is "John Dabba Doe", should it match?
+		// No, because "Dabba" is not in "John Doe"
+		if tokenizedMatch("John Doe", "John Dabba Doe") {
+			t.Error("John Dabba Doe should NOT match John Doe (missing Dabba token)")
+		}
+	})
+
+	t.Run("tokenized match with formal name", func(t *testing.T) {
+		// "John Doe" should match "Doe, John"
+		if !tokenizedMatch("Doe, John", "John Doe") {
+			t.Error("tokenized match should find John Doe in Doe, John")
+		}
+	})
+
+	t.Run("tokenized match is case insensitive", func(t *testing.T) {
+		if !tokenizedMatch("JOHN DOE", "john doe") {
+			t.Error("case insensitive match should return true")
+		}
+	})
+
+	t.Run("tokenized match handles extra whitespace", func(t *testing.T) {
+		if !tokenizedMatch("John   Doe", "John Doe") {
+			t.Error("should handle extra whitespace")
+		}
+	})
+
+	t.Run("tokenized match with comma-separated name", func(t *testing.T) {
+		if !tokenizedMatch("Doe, John Michael", "John Doe") {
+			t.Error("should match when tokens are separated by commas")
+		}
+	})
+
+	t.Run("tokenized match fails when token is missing", func(t *testing.T) {
+		if tokenizedMatch("John Smith", "John Doe") {
+			t.Error("should not match when Doe is not in John Smith")
+		}
+	})
+
+	t.Run("tokenized match with all tokens present in different order", func(t *testing.T) {
+		if !tokenizedMatch("Doe John", "John Doe") {
+			t.Error("should match regardless of order")
+		}
+	})
+
+	t.Run("empty search matches everything", func(t *testing.T) {
+		if !tokenizedMatch("John Doe", "") {
+			t.Error("empty search should match anything")
+		}
+	})
+
+	t.Run("handles commas and spaces in search term", func(t *testing.T) {
+		if !tokenizedMatch("John Dabba Doe", "Doe, John") {
+			t.Error("should handle comma-separated search terms")
+		}
+	})
+}
+
+func TestMatchesFieldValue_WithTokenizedMatching(t *testing.T) {
+	t.Run("matches array with tokenized search", func(t *testing.T) {
+		complainants := []any{"John Dabba Doe", "Jane Smith"}
+		if !matchesFieldValue(complainants, "John Doe") {
+			t.Error("should match John Doe in array containing John Dabba Doe")
+		}
+	})
+
+	t.Run("matches formal name in array", func(t *testing.T) {
+		respondents := []any{"Doe, John Michael"}
+		if !matchesFieldValue(respondents, "John Doe") {
+			t.Error("should match John Doe with formal name Doe, John Michael")
+		}
+	})
+
+	t.Run("does not match when tokens are missing", func(t *testing.T) {
+		complainants := []any{"Jane Smith", "Bob Johnson"}
+		if matchesFieldValue(complainants, "John Doe") {
+			t.Error("should not match when John or Doe is not present")
+		}
+	})
+}
+
 func TestSearch_ByUUID(t *testing.T) {
 	repo, uuids := setupSearchTestRepo(t)
 	ctx := context.Background()

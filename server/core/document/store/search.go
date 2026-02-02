@@ -113,13 +113,10 @@ func matchesFieldValue(actual, expected any) bool {
 		return true
 	}
 
-	// String contains (case-insensitive)
+	// String contains (case-insensitive) with tokenized matching
 	if actualStr, ok := actual.(string); ok {
 		if expectedStr, ok := expected.(string); ok {
-			return strings.Contains(
-				strings.ToLower(actualStr),
-				strings.ToLower(expectedStr),
-			)
+			return tokenizedMatch(actualStr, expectedStr)
 		}
 	}
 
@@ -142,6 +139,42 @@ func matchesFieldValue(actual, expected any) bool {
 	}
 
 	return false
+}
+
+// tokenizedMatch checks if all tokens (words) in the search term exist in the target string.
+// This allows "John Doe" to match "John Dabba Doe" or "Doe, John".
+func tokenizedMatch(actual, expected string) bool {
+	// Normalize strings: lowercase and trim
+	actualLower := strings.ToLower(strings.TrimSpace(actual))
+	expectedLower := strings.ToLower(strings.TrimSpace(expected))
+
+	// Simple substring check first (optimization for exact matches)
+	if strings.Contains(actualLower, expectedLower) {
+		return true
+	}
+
+	// Tokenize the search term by splitting on whitespace and commas
+	tokens := strings.FieldsFunc(expectedLower, func(r rune) bool {
+		return r == ' ' || r == ','
+	})
+
+	// Empty search matches everything
+	if len(tokens) == 0 {
+		return true
+	}
+
+	// Check if all tokens exist in the actual string
+	for _, token := range tokens {
+		token = strings.TrimSpace(token)
+		if token == "" {
+			continue
+		}
+		if !strings.Contains(actualLower, token) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func sortResults(docs []*document.Document, sortBy string, sortDesc bool) {

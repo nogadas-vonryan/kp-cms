@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 )
 
 type DocumentService struct {
@@ -163,43 +164,69 @@ func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) (
 // SearchByParticipants searches for documents where any of the provided names
 // appears in either the complainants or respondents fields.
 // This method is used by the search aggregator for cross-domain searches.
+// It uses parallel execution for improved performance.
 func (s *DocumentService) SearchByParticipants(ctx context.Context, names []string) ([]*Document, error) {
 	if len(names) == 0 {
 		return []*Document{}, nil
 	}
 
-	// Use a map to deduplicate results
-	uniqueDocs := make(map[string]*Document)
+	type searchResult struct {
+		docs []*Document
+		err  error
+	}
 
-	// Search for each name in both complainants and respondents fields
+	// Create buffered channel to collect results from all goroutines
+	resultsChan := make(chan searchResult, len(names)*2)
+
+	// Use WaitGroup to track completion of all search goroutines
+	var wg sync.WaitGroup
+
+	// Launch parallel searches for each name in both fields
 	for _, name := range names {
-		// Search in complainants
-		complainantsCriteria := SearchCriteria{
-			FieldFilters: map[string]any{
-				"complainants": name,
-			},
-			Limit: 1000, // High limit to get all matches
-		}
-		complainantsDocs, err := s.docs.Search(ctx, complainantsCriteria)
-		if err != nil {
-			return nil, fmt.Errorf("searching complainants: %w", err)
-		}
-		for _, doc := range complainantsDocs {
-			uniqueDocs[doc.UUID] = doc
-		}
+		name := name // capture loop variable
 
-		// Search in respondents
-		respondentsCriteria := SearchCriteria{
-			FieldFilters: map[string]any{
-				"respondents": name,
-			},
-			Limit: 1000,
+		// Search complainants in parallel
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			criteria := SearchCriteria{
+				FieldFilters: map[string]any{
+					"complainants": name,
+				},
+				Limit: 1000,
+			}
+			docs, err := s.docs.Search(ctx, criteria)
+			resultsChan <- searchResult{docs: docs, err: err}
+		}()
+
+		// Search respondents in parallel
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			criteria := SearchCriteria{
+				FieldFilters: map[string]any{
+					"respondents": name,
+				},
+				Limit: 1000,
+			}
+			docs, err := s.docs.Search(ctx, criteria)
+			resultsChan <- searchResult{docs: docs, err: err}
+		}()
+	}
+
+	// Close results channel when all goroutines complete
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+	}()
+
+	// Collect results and deduplicate using a map
+	uniqueDocs := make(map[string]*Document)
+	for result := range resultsChan {
+		if result.err != nil {
+			return nil, fmt.Errorf("parallel search failed: %w", result.err)
 		}
-		respondentsDocs, err := s.docs.Search(ctx, respondentsCriteria)
-		if err != nil {
-			return nil, fmt.Errorf("searching respondents: %w", err)
-		}
-		for _, doc := range respondentsDocs {
+		for _, doc := range result.docs {
 			uniqueDocs[doc.UUID] = doc
 		}
 	}

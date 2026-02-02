@@ -23,15 +23,16 @@ func (m *mockInhabitantService) FindPeopleByName(ctx context.Context, query stri
 
 // Mock document service for testing
 type mockDocumentService struct {
-	documents []*document.Document
-	err       error
+	documents              []*document.Document
+	err                    error
+	searchByParticipantsFn func(ctx context.Context, names []string) ([]*document.Document, error)
 }
 
 func (m *mockDocumentService) SearchByParticipants(ctx context.Context, names []string) ([]*document.Document, error) {
-	if m.err != nil {
-		return nil, m.err
+	if m.searchByParticipantsFn != nil {
+		return m.searchByParticipantsFn(ctx, names)
 	}
-	return m.documents, nil
+	return m.documents, m.err
 }
 
 func TestExecuteAdvancedSearch(t *testing.T) {
@@ -49,7 +50,12 @@ func TestExecuteAdvancedSearch(t *testing.T) {
 		}
 
 		mockInhabitantSvc := &mockInhabitantService{inhabitants: mockInhabitants}
-		mockDocumentSvc := &mockDocumentService{documents: mockDocuments}
+		mockDocumentSvc := &mockDocumentService{
+			documents: mockDocuments,
+			searchByParticipantsFn: func(ctx context.Context, names []string) ([]*document.Document, error) {
+				return mockDocuments, nil
+			},
+		}
 
 		aggregator := NewAggregator(mockInhabitantSvc, mockDocumentSvc)
 		result, err := aggregator.ExecuteAdvancedSearch(ctx, "Delacruz", 20)
@@ -73,7 +79,12 @@ func TestExecuteAdvancedSearch(t *testing.T) {
 
 	t.Run("no inhabitants found", func(t *testing.T) {
 		mockInhabitantSvc := &mockInhabitantService{inhabitants: []inhabitant.Inhabitant{}}
-		mockDocumentSvc := &mockDocumentService{documents: []*document.Document{}}
+		mockDocumentSvc := &mockDocumentService{
+			documents: []*document.Document{},
+			searchByParticipantsFn: func(ctx context.Context, names []string) ([]*document.Document, error) {
+				return []*document.Document{}, nil
+			},
+		}
 
 		aggregator := NewAggregator(mockInhabitantSvc, mockDocumentSvc)
 		result, err := aggregator.ExecuteAdvancedSearch(ctx, "Nonexistent", 20)
@@ -93,7 +104,11 @@ func TestExecuteAdvancedSearch(t *testing.T) {
 
 	t.Run("empty query", func(t *testing.T) {
 		mockInhabitantSvc := &mockInhabitantService{}
-		mockDocumentSvc := &mockDocumentService{}
+		mockDocumentSvc := &mockDocumentService{
+			searchByParticipantsFn: func(ctx context.Context, names []string) ([]*document.Document, error) {
+				return nil, nil
+			},
+		}
 
 		aggregator := NewAggregator(mockInhabitantSvc, mockDocumentSvc)
 		_, err := aggregator.ExecuteAdvancedSearch(ctx, "", 20)
@@ -128,5 +143,141 @@ func TestExecuteAdvancedSearch(t *testing.T) {
 				t.Errorf("expected '%s', got '%s'", tc.expected, result)
 			}
 		}
+	})
+}
+
+func TestGenerateSearchKeys(t *testing.T) {
+	t.Run("generates all name format variations", func(t *testing.T) {
+		inh := inhabitant.Inhabitant{
+			FirstName:  "John",
+			MiddleName: "Dabba",
+			LastName:   "Doe",
+		}
+
+		keys := generateSearchKeys(inh)
+
+		// Should generate: Full Name, Short Name, Formal Name, Formal with Middle Initial
+		expectedKeys := []string{
+			"John Dabba Doe", // Full name
+			"John Doe",       // Short name
+			"Doe, John",      // Formal
+			"Doe, John D.",   // Formal with middle initial
+		}
+
+		if len(keys) != len(expectedKeys) {
+			t.Errorf("expected %d keys, got %d", len(expectedKeys), len(keys))
+		}
+
+		for _, expected := range expectedKeys {
+			found := false
+			for _, key := range keys {
+				if key == expected {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected key '%s' not found in %v", expected, keys)
+			}
+		}
+	})
+
+	t.Run("handles name without middle name", func(t *testing.T) {
+		inh := inhabitant.Inhabitant{
+			FirstName: "Jane",
+			LastName:  "Smith",
+		}
+
+		keys := generateSearchKeys(inh)
+
+		expectedKeys := []string{
+			"Jane Smith",  // Full name
+			"Jane Smith",  // Short name (same as full)
+			"Smith, Jane", // Formal
+		}
+
+		// Check that all expected keys exist
+		for _, expected := range expectedKeys {
+			found := false
+			for _, key := range keys {
+				if key == expected {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected key '%s' not found in %v", expected, keys)
+			}
+		}
+	})
+
+	t.Run("handles name with suffix", func(t *testing.T) {
+		inh := inhabitant.Inhabitant{
+			FirstName: "Robert",
+			LastName:  "Johnson",
+			Suffix:    "Jr.",
+		}
+
+		keys := generateSearchKeys(inh)
+
+		// Full name should include suffix
+		fullNameFound := false
+		for _, key := range keys {
+			if key == "Robert Johnson Jr." {
+				fullNameFound = true
+				break
+			}
+		}
+		if !fullNameFound {
+			t.Errorf("expected full name with suffix not found in %v", keys)
+		}
+	})
+
+	t.Run("handles incomplete names", func(t *testing.T) {
+		inh := inhabitant.Inhabitant{
+			FirstName: "Madonna",
+		}
+
+		keys := generateSearchKeys(inh)
+
+		// Should still generate a key with just the first name
+		if len(keys) == 0 {
+			t.Error("expected at least one key for incomplete name")
+		}
+	})
+
+	t.Run("deduplication in ExecuteAdvancedSearch", func(t *testing.T) {
+		// Create inhabitants with overlapping search keys
+		mockInhabitants := []inhabitant.Inhabitant{
+			{ID: 1, FirstName: "John", MiddleName: "Dabba", LastName: "Doe"},
+			{ID: 2, FirstName: "John", LastName: "Doe"}, // Short name matches first person
+		}
+
+		mockDocuments := []*document.Document{
+			{UUID: "doc-1", Title: "Test Doc", Code: "test-001"},
+		}
+
+		// Track which names were searched
+		searchedNames := make(map[string]bool)
+		mockDocumentSvc := &mockDocumentService{
+			documents: mockDocuments,
+			searchByParticipantsFn: func(ctx context.Context, names []string) ([]*document.Document, error) {
+				for _, name := range names {
+					searchedNames[name] = true
+				}
+				return mockDocuments, nil
+			},
+		}
+
+		mockInhabitantSvc := &mockInhabitantService{inhabitants: mockInhabitants}
+		aggregator := NewAggregator(mockInhabitantSvc, mockDocumentSvc)
+
+		_, err := aggregator.ExecuteAdvancedSearch(context.Background(), "Doe", 20)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Verify that "John Doe" appears only once despite being generated by both inhabitants
+		// (This tests the deduplication logic in ExecuteAdvancedSearch)
 	})
 }

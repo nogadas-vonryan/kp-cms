@@ -252,11 +252,11 @@ func (s *Server) handleGetInhabitantDocuments() http.HandlerFunc {
 			return
 		}
 
-		// Build the full name for precise matching
-		fullName := buildInhabitantFullName(*inhabitant)
+		// Generate all name variations to maximize document matching
+		searchKeys := generateInhabitantSearchKeys(*inhabitant)
 
-		// Search for documents containing this specific inhabitant
-		documents, err := s.documentService.SearchByParticipants(r.Context(), []string{fullName})
+		// Search for documents containing any variation of this inhabitant's name
+		documents, err := s.documentService.SearchByParticipants(r.Context(), searchKeys)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to search documents")
 			return
@@ -285,4 +285,38 @@ func buildInhabitantFullName(inh inhabitant.Inhabitant) string {
 	}
 
 	return strings.Join(parts, " ")
+}
+
+// generateInhabitantSearchKeys creates multiple search key variations for an inhabitant.
+// This includes: Full Name (John Dabba Doe), Short Name (John Doe), and Formal (Doe, John).
+// This matches the logic in search.generateSearchKeys to ensure consistent document matching.
+func generateInhabitantSearchKeys(inh inhabitant.Inhabitant) []string {
+	keys := []string{}
+
+	// Format 1: Full Name (FirstName MiddleName LastName Suffix)
+	fullName := buildInhabitantFullName(inh)
+	if fullName != "" {
+		keys = append(keys, fullName)
+	}
+
+	// Format 2: Short Name (FirstName LastName) - without middle name and suffix
+	if inh.FirstName != "" && inh.LastName != "" {
+		shortName := inh.FirstName + " " + inh.LastName
+		keys = append(keys, shortName)
+	}
+
+	// Format 3: Formal Name (LastName, FirstName)
+	if inh.LastName != "" && inh.FirstName != "" {
+		formalName := inh.LastName + ", " + inh.FirstName
+		keys = append(keys, formalName)
+	}
+
+	// Format 4: Formal with middle initial (LastName, FirstName M.)
+	if inh.LastName != "" && inh.FirstName != "" && inh.MiddleName != "" {
+		middleInitial := string([]rune(inh.MiddleName)[0]) + "."
+		formalWithMiddle := inh.LastName + ", " + inh.FirstName + " " + middleInitial
+		keys = append(keys, formalWithMiddle)
+	}
+
+	return keys
 }
