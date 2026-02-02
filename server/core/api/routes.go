@@ -146,6 +146,7 @@ func (s *Server) routes() {
 				r.Get("/", s.handleListInhabitants())
 				r.Post("/", s.handleCreateInhabitant())
 				r.Get("/{id}", s.handleGetInhabitant())
+				r.Get("/{id}/documents", s.handleGetInhabitantDocuments())
 				r.Put("/{id}", s.handleUpdateInhabitant())
 				r.Delete("/{id}", s.handleDeleteInhabitant())
 			})

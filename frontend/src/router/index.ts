@@ -10,6 +10,7 @@ import ReportExportPage from '@/modules/reports/pages/ReportExportPage.vue';
 import ImportPage from '@/modules/import/pages/ImportPage.vue';
 import BackupPage from '@/modules/backup/pages/BackupPage.vue';
 import InhabitantPage from '@/modules/inhabitants/pages/InhabitantPage.vue';
+import InhabitantDetailedPage from '@/modules/inhabitants/pages/InhabitantDetailedPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -38,6 +39,12 @@ const routes: RouteRecordRaw[] = [
     path: '/inhabitants',
     name: 'inhabitants',
     component: InhabitantPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/inhabitants/:id',
+    name: 'inhabitant-detail',
+    component: InhabitantDetailedPage,
     meta: { requiresAuth: true },
   },
   {

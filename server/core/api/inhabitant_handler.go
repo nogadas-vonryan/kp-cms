@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"kpcms/server/core/inhabitant"
@@ -233,4 +234,55 @@ func (s *Server) handleDeleteInhabitant() http.HandlerFunc {
 
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+func (s *Server) handleGetInhabitantDocuments() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid inhabitant id")
+			return
+		}
+
+		// Fetch the inhabitant by ID
+		inhabitant, err := s.inhabitantService.Get(r.Context(), id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "inhabitant not found")
+			return
+		}
+
+		// Build the full name for precise matching
+		fullName := buildInhabitantFullName(*inhabitant)
+
+		// Search for documents containing this specific inhabitant
+		documents, err := s.documentService.SearchByParticipants(r.Context(), []string{fullName})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to search documents")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, documents)
+	}
+}
+
+// buildInhabitantFullName constructs a full name from an inhabitant's name parts
+// matching the format used in documents
+func buildInhabitantFullName(inh inhabitant.Inhabitant) string {
+	parts := []string{}
+
+	if inh.FirstName != "" {
+		parts = append(parts, inh.FirstName)
+	}
+	if inh.MiddleName != "" {
+		parts = append(parts, inh.MiddleName)
+	}
+	if inh.LastName != "" {
+		parts = append(parts, inh.LastName)
+	}
+	if inh.Suffix != "" {
+		parts = append(parts, inh.Suffix)
+	}
+
+	return strings.Join(parts, " ")
 }

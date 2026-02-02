@@ -18,6 +18,9 @@ export const InhabitantService = {
   getById(id: number) {
     return api.get<Inhabitant>(`/api/inhabitants/${id}`);
   },
+  getInhabitantDocuments(id: number) {
+    return api.get<any[]>(`/api/inhabitants/${id}/documents`);
+  },
   create(data: Inhabitant) {
     return api.post<Inhabitant>('/api/inhabitants', data);
   },

@@ -68,12 +68,12 @@
                 <p class="font-medium text-gray-900">
                   {{ inh.last_name }}, {{ inh.first_name }} {{ inh.suffix }}
                 </p>
-                <p class="text-xs text-gray-500">{{ inh.contact_no || 'No contact info' }}</p>
+                <p class="text-xs text-gray-500">{{ formatField(inh.contact_no) }}</p>
               </div>
               <ChevronRight :size="16" class="text-gray-400" />
             </div>
             <div class="text-xs text-gray-600 truncate">
-              <span class="text-gray-500">Address:</span> {{ inh.address }}
+              <span class="text-gray-500">Address:</span> {{ formatField(inh.address) }}
             </div>
           </div>
         </div>
@@ -86,31 +86,21 @@
                 <th class="px-4 py-3 font-semibold text-gray-900">Birthday</th>
                 <th class="px-4 py-3 font-semibold text-gray-900">Contact</th>
                 <th class="px-4 py-3 font-semibold text-gray-900">Address</th>
-                <th v-if="isAdmin" class="px-4 py-3 font-semibold text-gray-900 text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr 
                 v-for="inh in filteredInhabitants" 
                 :key="inh.id" 
-                class="hover:bg-gray-50 transition-colors"
+                class="hover:bg-gray-50 transition-colors cursor-pointer"
+                @click="viewDetails(inh)"
               >
                 <td class="px-4 py-3 font-medium text-gray-900">
                   {{ inh.last_name }}, {{ inh.first_name }} {{ inh.middle_name }} {{ inh.suffix }}
                 </td>
-                <td class="px-4 py-3 text-gray-600">{{ inh.birthday }}</td>
-                <td class="px-4 py-3 text-gray-600">{{ inh.contact_no }}</td>
-                <td class="px-4 py-3 text-gray-600 truncate max-w-xs">{{ inh.address }}</td>
-                <td v-if="isAdmin" class="px-4 py-3 text-right">
-                  <div class="flex justify-end gap-2">
-                    <button @click.stop="editInhabitant(inh)" class="p-1.5 hover:bg-blue-50 text-blue-600 rounded">
-                      <Edit3 :size="16" />
-                    </button>
-                    <button @click.stop="confirmDelete(inh)" class="p-1.5 hover:bg-red-50 text-red-600 rounded">
-                      <Trash2 :size="16" />
-                    </button>
-                  </div>
-                </td>
+                <td class="px-4 py-3 text-gray-600">{{ formatBirthday(inh.birthday) }}</td>
+                <td class="px-4 py-3 text-gray-600">{{ formatField(inh.contact_no) }}</td>
+                <td class="px-4 py-3 text-gray-600 truncate max-w-xs">{{ formatField(inh.address) }}</td>
               </tr>
             </tbody>
           </table>
@@ -138,7 +128,8 @@
       </div>
     </div>
 
-    <UiModal v-model:open="showModal" :title="isEditing ? 'Edit Inhabitant' : 'Add New Inhabitant'">
+    <!-- Create Inhabitant Modal -->
+    <UiModal v-model:open="showCreateModal" title="Add New Inhabitant">
       <form @submit.prevent="handleSubmit" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
@@ -158,7 +149,7 @@
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Birthday</label>
-          <input v-model="form.birthday" type="date" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
+          <input v-model="form.birthday" type="date" :min="minBirthday" :max="maxBirthday" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Contact No.</label>
@@ -174,7 +165,7 @@
         <div class="flex w-full flex-col gap-2">
           <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
           <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <UiButton @click="showModal = false">Cancel</UiButton>
+            <UiButton @click="showCreateModal = false">Cancel</UiButton>
             <UiButton @click="handleSubmit" :disabled="submitting" variant="secondary" class="flex items-center gap-2">
               <Check :size="16" />
               <span>{{ submitting ? 'Saving...' : 'Save' }}</span>
@@ -188,9 +179,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { 
-  Plus, Search, RotateCcw, ChevronLeft, ChevronRight, 
-  Trash2, Edit3, Check 
+  Plus, Search, RotateCcw, ChevronLeft, ChevronRight, Check
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
 import { InhabitantService, type Inhabitant } from '@/modules/inhabitants/services/inhabitantService';
@@ -201,8 +192,21 @@ import UiModal from '@/core/ui/components/UiModal.vue';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 
+const router = useRouter();
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
+
+// Birthday constraints
+const minBirthday = computed(() => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 120);
+  return date.toISOString().split('T')[0];
+});
+
+const maxBirthday = computed(() => {
+  const date = new Date();
+  return date.toISOString().split('T')[0];
+});
 
 // Layout Responsiveness
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -223,12 +227,9 @@ const offset = ref(0);
 const limit = ref(15);
 
 // Modal & Form State
-const showModal = ref(false);
-const isEditing = ref(false);
+const showCreateModal = ref(false);
 const submitting = ref(false);
 const formError = ref('');
-const currentInhabitantId = ref<number | null>(null);
-
 const form = ref<Inhabitant>({
   first_name: '',
   last_name: '',
@@ -238,6 +239,8 @@ const form = ref<Inhabitant>({
   contact_no: '',
   address: ''
 });
+
+// Computed Search (Client-side search for current page)
 
 // Computed Search (Client-side search for current page, or could be integrated into API)
 const filteredInhabitants = computed(() => {
@@ -273,49 +276,95 @@ function resetSearch() {
   loadInhabitants();
 }
 
-// Actions
 function openCreateModal() {
-  isEditing.value = false;
-  currentInhabitantId.value = null;
-  form.value = { first_name: '', last_name: '', middle_name: '', suffix: '', birthday: '', contact_no: '', address: '' };
+  form.value = {
+    first_name: '',
+    last_name: '',
+    middle_name: '',
+    suffix: '',
+    birthday: '',
+    contact_no: '',
+    address: ''
+  };
   formError.value = '';
-  showModal.value = true;
+  showCreateModal.value = true;
 }
 
-function editInhabitant(inh: Inhabitant) {
-  isEditing.value = true;
-  currentInhabitantId.value = inh.id!;
-  form.value = { ...inh };
-  formError.value = '';
-  showModal.value = true;
+function validateBirthday(birthday: string): string | null {
+  if (!birthday || birthday.trim() === '') {
+    return null; // Empty is valid (optional field)
+  }
+
+  const birthdayDate = new Date(birthday);
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 130);
+  const maxDate = new Date();
+
+  if (birthdayDate < minDate) {
+    return 'Date out of range';
+  }
+
+  if (birthdayDate > maxDate) {
+    return 'Birthday cannot be in the future';
+  }
+
+  // Check for invalid dates like 0001-01-01
+  if (birthday.startsWith('0000') || birthday.startsWith('0001')) {
+    return 'Please enter a valid birthday';
+  }
+
+  return null; // Valid
 }
 
 async function handleSubmit() {
+  // Validate birthday
+  const birthdayError = validateBirthday(form.value.birthday);
+  if (birthdayError) {
+    formError.value = birthdayError;
+    return;
+  }
+
   submitting.value = true;
   formError.value = '';
   try {
-    if (isEditing.value && currentInhabitantId.value) {
-      await InhabitantService.update(currentInhabitantId.value, form.value);
-    } else {
-      await InhabitantService.create(form.value);
-    }
-    showModal.value = false;
+    await InhabitantService.create(form.value);
+    showCreateModal.value = false;
     loadInhabitants();
   } catch (err: any) {
-    formError.value = extractErrorMessage(err) || 'Failed to save inhabitant';
+    formError.value = extractErrorMessage(err) || 'Failed to create inhabitant';
   } finally {
     submitting.value = false;
   }
 }
 
-async function confirmDelete(inh: Inhabitant) {
-  if (!confirm(`Are you sure you want to delete ${inh.first_name} ${inh.last_name}?`)) return;
-  try {
-    await InhabitantService.delete(inh.id!);
-    loadInhabitants();
-  } catch (err: any) {
-    alert(extractErrorMessage(err) || 'Failed to delete inhabitant');
+function formatField(value: string | undefined | null): string {
+  if (!value || value.trim() === '') {
+    return 'N/A';
   }
+  return value;
+}
+
+function formatBirthday(birthday: string | undefined | null): string {
+  if (!birthday || birthday.trim() === '') {
+    return 'N/A';
+  }
+  
+  // Check for invalid dates like 0001-01-01, 0000-00-00, etc.
+  const invalidDates = ['0001-01-01', '0000-00-00', '1900-01-01'];
+  if (invalidDates.includes(birthday)) {
+    return 'N/A';
+  }
+  
+  // Check if date starts with 0000 or 0001
+  if (birthday.startsWith('0000') || birthday.startsWith('0001')) {
+    return 'N/A';
+  }
+  
+  return birthday;
+}
+
+function viewDetails(inh: Inhabitant) {
+  router.push({ name: 'inhabitant-detail', params: { id: inh.id!.toString() } });
 }
 
 function nextPage() {
@@ -326,10 +375,6 @@ function nextPage() {
 function prevPage() {
   offset.value = Math.max(0, offset.value - limit.value);
   loadInhabitants();
-}
-
-function viewDetails(inh: Inhabitant) {
-  if (isAdmin.value) editInhabitant(inh);
 }
 </script>
 
