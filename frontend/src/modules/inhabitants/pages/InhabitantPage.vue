@@ -240,8 +240,6 @@ const form = ref<Inhabitant>({
   address: ''
 });
 
-// Computed Search (Client-side search for current page)
-
 // Computed Search (Client-side search for current page, or could be integrated into API)
 const filteredInhabitants = computed(() => {
   if (!searchQuery.value) return inhabitants.value;
