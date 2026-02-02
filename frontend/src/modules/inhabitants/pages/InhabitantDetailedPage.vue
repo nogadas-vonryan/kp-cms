@@ -336,13 +336,25 @@ function formatField(value: string | undefined | null): string {
   return value;
 }
 
+/**
+ * Checks if a date string is one of the common "Zero" or placeholder dates
+ * used by databases like MySQL or Go.
+ */
+function isInvalidDate(birthday: string | undefined | null): boolean {
+  if (!birthday || birthday.trim() === '') return true;
+  const invalidPatterns = ['0001-01-01', '0000-00-00', '1900-01-01'];
+  return (
+    invalidPatterns.includes(birthday) || 
+    birthday.startsWith('0000') || 
+    birthday.startsWith('0001')
+  );
+}
+
 function formatBirthday(birthday: string | undefined | null): string {
-  if (!birthday || birthday.trim() === '') return 'N/A';
-  const invalidDates = ['0001-01-01', '0000-00-00', '1900-01-01'];
-  if (invalidDates.includes(birthday) || birthday.startsWith('0000') || birthday.startsWith('0001')) {
+  if (isInvalidDate(birthday)) {
     return 'N/A';
   }
-  return birthday;
+  return birthday!;
 }
 
 function navigateToDocument(uuid: string) {
@@ -351,14 +363,23 @@ function navigateToDocument(uuid: string) {
 
 function openEditModal() {
   if (inhabitant.value) {
-    form.value = { ...inhabitant.value };
+    const birthday = inhabitant.value.birthday;
+    
+    form.value = { 
+      ...inhabitant.value,
+      // If the existing birthday is invalid/placeholder, 
+      // clear it so the date picker doesn't show 0001-01-01
+      birthday: isInvalidDate(birthday) ? '' : birthday
+    };
+    
     formError.value = '';
     showEditModal.value = true;
   }
 }
 
 function validateBirthday(birthday: string): string | null {
-  if (!birthday || birthday.trim() === '') return null;
+  if (!birthday || birthday.trim() === '' || isInvalidDate(birthday)) return null;
+  
   const birthdayDate = new Date(birthday);
   const minDate = new Date();
   minDate.setFullYear(minDate.getFullYear() - 130);
@@ -366,12 +387,12 @@ function validateBirthday(birthday: string): string | null {
 
   if (birthdayDate < minDate) return 'Date out of range';
   if (birthdayDate > maxDate) return 'Birthday cannot be in the future';
-  if (birthday.startsWith('0000') || birthday.startsWith('0001')) return 'Please enter a valid birthday';
   return null;
 }
 
 async function handleSubmit() {
   if (!inhabitant.value?.id) return;
+  
   const birthdayError = validateBirthday(form.value.birthday);
   if (birthdayError) {
     formError.value = birthdayError;
