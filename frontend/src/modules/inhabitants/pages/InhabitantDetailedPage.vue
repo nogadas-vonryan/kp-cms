@@ -34,7 +34,7 @@
                 <Edit3 :size="16" />
                 <span>Edit</span>
               </UiButton>
-              <UiButton @click="confirmDelete" class="flex items-center gap-2 bg-red-600 hover:bg-red-700">
+              <UiButton @click="showDeleteModal = true" class="flex items-center gap-2 bg-red-600 hover:bg-red-700">
                 <Trash2 :size="16" />
                 <span>Delete</span>
               </UiButton>
@@ -162,14 +162,57 @@
         </div>
       </template>
     </UiModal>
+
+    <UiModal v-model:open="showDeleteModal" title="Delete Inhabitant" :prevent-close="deleting">
+      <p class="text-gray-700 wrap-break-word mb-2">
+        Are you sure you want to delete "<strong>{{ inhabitant ? getFullName(inhabitant) : 'this inhabitant' }}</strong>"?
+      </p>
+      
+      <div class="space-y-4">
+        <div class="bg-red-50 p-4 rounded-lg border border-red-200 space-y-3">
+          <div class="space-y-2">
+            <p class="text-sm text-red-800 font-medium">This action is permanent.</p>
+            <p class="text-sm text-red-700 mt-1 mb-2">
+                To confirm, please type <span class="font-mono font-bold">"I want to delete it"</span> below:
+            </p>
+          </div>
+
+          <UiInput 
+            v-model="deleteConfirmationInput" 
+            placeholder="Type the confirmation phrase"
+            class="bg-white"
+            @keyup.enter="canDelete && !deleting && handleDelete()"
+          />
+        </div>
+
+        <UiAlert v-if="deleteError" type="error" class="text-xs">
+          {{ deleteError }}
+        </UiAlert>
+      </div>
+
+      <template #footer>
+        <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <UiButton :disabled="deleting" @click="showDeleteModal = false" variant="secondary">Cancel</UiButton>
+          <UiButton 
+            @click="handleDelete" 
+            :disabled="!canDelete || deleting" 
+            variant="danger"
+            class="flex items-center gap-2"
+          >
+            <Trash2 :size="16" />
+            <span>{{ deleting ? 'Deleting...' : 'Confirm Delete' }}</span>
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
-  Edit3, Trash2, Check, ChevronRight 
+  Edit3, Trash2, Check, ChevronRight
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
 import { InhabitantService, type Inhabitant } from '@/modules/inhabitants/services/inhabitantService';
@@ -178,6 +221,7 @@ import { extractErrorMessage } from '@/core/api';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
+import UiInput from '@/core/ui/components/UiInput.vue';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 
@@ -219,6 +263,25 @@ const form = ref<Inhabitant>({
   birthday: '',
   contact_no: '',
   address: ''
+});
+
+// Delete Modal State
+const showDeleteModal = ref(false);
+const deleting = ref(false);
+const deleteError = ref('');
+const deleteConfirmationInput = ref('');
+const DELETE_PHRASE = 'I want to delete it';
+
+const canDelete = computed(() => {
+  return deleteConfirmationInput.value.toLowerCase() === DELETE_PHRASE.toLowerCase();
+});
+
+// Reset confirmation input when modal closes
+watch(showDeleteModal, (isOpen) => {
+  if (!isOpen) {
+    deleteConfirmationInput.value = '';
+    deleteError.value = '';
+  }
 });
 
 onMounted(() => {
@@ -362,19 +425,20 @@ async function handleSubmit() {
   }
 }
 
-async function confirmDelete() {
-  if (!inhabitant.value) return;
+async function handleDelete() {
+  if (!inhabitant.value || !canDelete.value) return;
   
-  const fullName = getFullName(inhabitant.value);
-  if (!confirm(`Are you sure you want to delete ${fullName}? This action cannot be undone.`)) {
-    return;
-  }
+  deleting.value = true;
+  deleteError.value = '';
   
   try {
     await InhabitantService.delete(inhabitant.value.id!);
+    showDeleteModal.value = false;
     router.push({ name: 'inhabitants' });
   } catch (err: any) {
-    error.value = extractErrorMessage(err) || 'Failed to delete inhabitant';
+    deleteError.value = extractErrorMessage(err) || 'Failed to delete inhabitant';
+  } finally {
+    deleting.value = false;
   }
 }
 </script>
