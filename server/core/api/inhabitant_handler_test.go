@@ -93,7 +93,7 @@ func TestHandleCreateInhabitant_Success(t *testing.T) {
 		FirstName: "Jane",
 		LastName:  "Smith",
 		ContactNo: "555-5678",
-		Birthday:  "1990-01-15",
+		Birthdate: "1990-01-15",
 	}
 
 	body, _ := json.Marshal(reqBody)

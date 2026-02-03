@@ -13,24 +13,46 @@ import (
 )
 
 type createInhabitantRequest struct {
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-	Suffix     string `json:"suffix"`
-	Birthday   string `json:"birthday"` // ISO 8601 date format
-	ContactNo  string `json:"contact_no"`
-	Address    string `json:"address"`
+	FirstName                    string `json:"first_name"`
+	LastName                     string `json:"last_name"`
+	MiddleName                   string `json:"middle_name"`
+	Suffix                       string `json:"suffix"`
+	Birthdate                    string `json:"birthdate"` // ISO 8601 date format
+	BirthPlace                   string `json:"birth_place"`
+	InhabitantType               string `json:"inhabitant_type"`
+	Sex                          string `json:"sex"`
+	CivilStatus                  string `json:"civil_status"`
+	Citizenship                  string `json:"citizenship"`
+	Occupation                   string `json:"occupation"`
+	EmailAddress                 string `json:"email_address"`
+	HighestEducationalAttainment string `json:"highest_educational_attainment"`
+	MotherFirstName              string `json:"mother_first_name"`
+	MotherMiddleName             string `json:"mother_middle_name"`
+	MotherLastName               string `json:"mother_last_name"`
+	ContactNo                    string `json:"contact_no"`
+	Address                      string `json:"address"`
 }
 
 type inhabitantResponse struct {
-	ID         int64  `json:"id"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-	Suffix     string `json:"suffix"`
-	Birthday   string `json:"birthday"`
-	ContactNo  string `json:"contact_no"`
-	Address    string `json:"address"`
+	ID                           int64  `json:"id"`
+	FirstName                    string `json:"first_name"`
+	LastName                     string `json:"last_name"`
+	MiddleName                   string `json:"middle_name"`
+	Suffix                       string `json:"suffix"`
+	Birthdate                    string `json:"birthdate"`
+	BirthPlace                   string `json:"birth_place"`
+	InhabitantType               string `json:"inhabitant_type"`
+	Sex                          string `json:"sex"`
+	CivilStatus                  string `json:"civil_status"`
+	Citizenship                  string `json:"citizenship"`
+	Occupation                   string `json:"occupation"`
+	EmailAddress                 string `json:"email_address"`
+	HighestEducationalAttainment string `json:"highest_educational_attainment"`
+	MotherFirstName              string `json:"mother_first_name"`
+	MotherMiddleName             string `json:"mother_middle_name"`
+	MotherLastName               string `json:"mother_last_name"`
+	ContactNo                    string `json:"contact_no"`
+	Address                      string `json:"address"`
 }
 
 func (s *Server) handleListInhabitants() http.HandlerFunc {
@@ -72,14 +94,25 @@ func (s *Server) handleListInhabitants() http.HandlerFunc {
 		response := make([]inhabitantResponse, len(inhabitants))
 		for i, inh := range inhabitants {
 			response[i] = inhabitantResponse{
-				ID:         inh.ID,
-				FirstName:  inh.FirstName,
-				LastName:   inh.LastName,
-				MiddleName: inh.MiddleName,
-				Suffix:     inh.Suffix,
-				Birthday:   inh.Birthday.Format("2006-01-02"),
-				ContactNo:  inh.ContactNo,
-				Address:    inh.Address,
+				ID:                           inh.ID,
+				FirstName:                    inh.FirstName,
+				LastName:                     inh.LastName,
+				MiddleName:                   inh.MiddleName,
+				Suffix:                       inh.Suffix,
+				Birthdate:                    inh.Birthdate.Format("2006-01-02"),
+				BirthPlace:                   inh.BirthPlace,
+				InhabitantType:               inh.InhabitantType,
+				Sex:                          inh.Sex,
+				CivilStatus:                  inh.CivilStatus,
+				Citizenship:                  inh.Citizenship,
+				Occupation:                   inh.Occupation,
+				EmailAddress:                 inh.EmailAddress,
+				HighestEducationalAttainment: inh.HighestEducationalAttainment,
+				MotherFirstName:              inh.MotherFirstName,
+				MotherMiddleName:             inh.MotherMiddleName,
+				MotherLastName:               inh.MotherLastName,
+				ContactNo:                    inh.ContactNo,
+				Address:                      inh.Address,
 			}
 		}
 
@@ -108,7 +141,7 @@ func (s *Server) handleGetInhabitant() http.HandlerFunc {
 			LastName:   inhabitant.LastName,
 			MiddleName: inhabitant.MiddleName,
 			Suffix:     inhabitant.Suffix,
-			Birthday:   inhabitant.Birthday.Format("2006-01-02"),
+			Birthdate:  inhabitant.Birthdate.Format("2006-01-02"),
 			ContactNo:  inhabitant.ContactNo,
 			Address:    inhabitant.Address,
 		}
@@ -131,22 +164,33 @@ func (s *Server) handleCreateInhabitant() http.HandlerFunc {
 		}
 
 		inhabitant := &inhabitant.Inhabitant{
-			FirstName:  req.FirstName,
-			LastName:   req.LastName,
-			MiddleName: req.MiddleName,
-			Suffix:     req.Suffix,
-			ContactNo:  req.ContactNo,
-			Address:    req.Address,
+			FirstName:                    req.FirstName,
+			LastName:                     req.LastName,
+			MiddleName:                   req.MiddleName,
+			Suffix:                       req.Suffix,
+			BirthPlace:                   req.BirthPlace,
+			InhabitantType:               req.InhabitantType,
+			Sex:                          req.Sex,
+			CivilStatus:                  req.CivilStatus,
+			Citizenship:                  req.Citizenship,
+			Occupation:                   req.Occupation,
+			EmailAddress:                 req.EmailAddress,
+			HighestEducationalAttainment: req.HighestEducationalAttainment,
+			MotherFirstName:              req.MotherFirstName,
+			MotherMiddleName:             req.MotherMiddleName,
+			MotherLastName:               req.MotherLastName,
+			ContactNo:                    req.ContactNo,
+			Address:                      req.Address,
 		}
 
-		// Parse birthday if provided
-		if req.Birthday != "" {
-			parsedDate, err := time.Parse("2006-01-02", req.Birthday)
+		// Parse birthdate if provided
+		if req.Birthdate != "" {
+			parsedDate, err := time.Parse("2006-01-02", req.Birthdate)
 			if err != nil {
-				respondError(w, http.StatusBadRequest, "invalid birthday format (use YYYY-MM-DD)")
+				respondError(w, http.StatusBadRequest, "invalid birthdate format (use YYYY-MM-DD)")
 				return
 			}
-			inhabitant.Birthday = parsedDate
+			inhabitant.Birthdate = parsedDate
 		}
 
 		id, err := s.inhabitantService.Create(r.Context(), inhabitant)
@@ -157,14 +201,25 @@ func (s *Server) handleCreateInhabitant() http.HandlerFunc {
 
 		inhabitant.ID = id
 		response := inhabitantResponse{
-			ID:         inhabitant.ID,
-			FirstName:  inhabitant.FirstName,
-			LastName:   inhabitant.LastName,
-			MiddleName: inhabitant.MiddleName,
-			Suffix:     inhabitant.Suffix,
-			Birthday:   inhabitant.Birthday.Format("2006-01-02"),
-			ContactNo:  inhabitant.ContactNo,
-			Address:    inhabitant.Address,
+			ID:                           inhabitant.ID,
+			FirstName:                    inhabitant.FirstName,
+			LastName:                     inhabitant.LastName,
+			MiddleName:                   inhabitant.MiddleName,
+			Suffix:                       inhabitant.Suffix,
+			Birthdate:                    inhabitant.Birthdate.Format("2006-01-02"),
+			BirthPlace:                   inhabitant.BirthPlace,
+			InhabitantType:               inhabitant.InhabitantType,
+			Sex:                          inhabitant.Sex,
+			CivilStatus:                  inhabitant.CivilStatus,
+			Citizenship:                  inhabitant.Citizenship,
+			Occupation:                   inhabitant.Occupation,
+			EmailAddress:                 inhabitant.EmailAddress,
+			HighestEducationalAttainment: inhabitant.HighestEducationalAttainment,
+			MotherFirstName:              inhabitant.MotherFirstName,
+			MotherMiddleName:             inhabitant.MotherMiddleName,
+			MotherLastName:               inhabitant.MotherLastName,
+			ContactNo:                    inhabitant.ContactNo,
+			Address:                      inhabitant.Address,
 		}
 
 		respondJSON(w, http.StatusCreated, response)
@@ -192,23 +247,34 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 		}
 
 		inhabitant := &inhabitant.Inhabitant{
-			ID:         id,
-			FirstName:  req.FirstName,
-			LastName:   req.LastName,
-			MiddleName: req.MiddleName,
-			Suffix:     req.Suffix,
-			ContactNo:  req.ContactNo,
-			Address:    req.Address,
+			ID:                           id,
+			FirstName:                    req.FirstName,
+			LastName:                     req.LastName,
+			MiddleName:                   req.MiddleName,
+			Suffix:                       req.Suffix,
+			BirthPlace:                   req.BirthPlace,
+			InhabitantType:               req.InhabitantType,
+			Sex:                          req.Sex,
+			CivilStatus:                  req.CivilStatus,
+			Citizenship:                  req.Citizenship,
+			Occupation:                   req.Occupation,
+			EmailAddress:                 req.EmailAddress,
+			HighestEducationalAttainment: req.HighestEducationalAttainment,
+			MotherFirstName:              req.MotherFirstName,
+			MotherMiddleName:             req.MotherMiddleName,
+			MotherLastName:               req.MotherLastName,
+			ContactNo:                    req.ContactNo,
+			Address:                      req.Address,
 		}
 
-		// Parse birthday if provided
-		if req.Birthday != "" {
-			parsedDate, err := time.Parse("2006-01-02", req.Birthday)
+		// Parse birthdate if provided
+		if req.Birthdate != "" {
+			parsedDate, err := time.Parse("2006-01-02", req.Birthdate)
 			if err != nil {
-				respondError(w, http.StatusBadRequest, "invalid birthday format (use YYYY-MM-DD)")
+				respondError(w, http.StatusBadRequest, "invalid birthdate format (use YYYY-MM-DD)")
 				return
 			}
-			inhabitant.Birthday = parsedDate
+			inhabitant.Birthdate = parsedDate
 		}
 
 		if err := s.inhabitantService.Update(r.Context(), inhabitant); err != nil {
@@ -222,7 +288,7 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			LastName:   inhabitant.LastName,
 			MiddleName: inhabitant.MiddleName,
 			Suffix:     inhabitant.Suffix,
-			Birthday:   inhabitant.Birthday.Format("2006-01-02"),
+			Birthdate:  inhabitant.Birthdate.Format("2006-01-02"),
 			ContactNo:  inhabitant.ContactNo,
 			Address:    inhabitant.Address,
 		}

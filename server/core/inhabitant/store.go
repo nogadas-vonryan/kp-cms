@@ -16,7 +16,18 @@ func InitSchema(db *sql.DB) error {
 			last_name TEXT NOT NULL,
 			middle_name TEXT,
 			suffix TEXT,
-			birthday TEXT,
+			birthdate TEXT,
+			birth_place TEXT,
+			inhabitant_type TEXT,
+			sex TEXT,
+			civil_status TEXT,
+			citizenship TEXT,
+			occupation TEXT,
+			email_address TEXT,
+			highest_educational_attainment TEXT,
+			mother_first_name TEXT,
+			mother_middle_name TEXT,
+			mother_last_name TEXT,
 			contact_no TEXT,
 			address TEXT
 		);
@@ -38,10 +49,19 @@ func NewStore(db *sql.DB) *Store {
 // CreateInhabitant adds a new inhabitant to the database
 func (s *Store) CreateInhabitant(ctx context.Context, inhabitant *Inhabitant) (int64, error) {
 	result, err := s.db.ExecContext(ctx, `
-		INSERT INTO inhabitants (first_name, last_name, middle_name, suffix, birthday, contact_no, address)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO inhabitants (
+			first_name, last_name, middle_name, suffix, birthdate, birth_place,
+			inhabitant_type, sex, civil_status, citizenship, occupation,
+			email_address, highest_educational_attainment, mother_first_name,
+			mother_middle_name, mother_last_name, contact_no, address
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, inhabitant.FirstName, inhabitant.LastName, inhabitant.MiddleName, inhabitant.Suffix,
-		inhabitant.Birthday.Format(time.RFC3339), inhabitant.ContactNo, inhabitant.Address)
+		inhabitant.Birthdate.Format(time.RFC3339), inhabitant.BirthPlace, inhabitant.InhabitantType,
+		inhabitant.Sex, inhabitant.CivilStatus, inhabitant.Citizenship, inhabitant.Occupation,
+		inhabitant.EmailAddress, inhabitant.HighestEducationalAttainment,
+		inhabitant.MotherFirstName, inhabitant.MotherMiddleName, inhabitant.MotherLastName,
+		inhabitant.ContactNo, inhabitant.Address)
 	if err != nil {
 		return 0, err
 	}
@@ -56,13 +76,20 @@ func (s *Store) CreateInhabitant(ctx context.Context, inhabitant *Inhabitant) (i
 
 // GetInhabitant retrieves an inhabitant by ID
 func (s *Store) GetInhabitant(ctx context.Context, id int64) (*Inhabitant, error) {
-	var firstName, lastName, middleName, suffix, contactNo, address string
-	var birthdayStr string
+	var firstName, lastName, middleName, suffix, birthPlace, inhabitantType, sex string
+	var civilStatus, citizenship, occupation, emailAddress, highestEd string
+	var mFirstName, mMiddleName, mLastName, contactNo, address string
+	var birthdateStr string
 
 	err := s.db.QueryRowContext(ctx, `
-		SELECT first_name, last_name, middle_name, suffix, birthday, contact_no, address
+		SELECT first_name, last_name, middle_name, suffix, birthdate, birth_place,
+		       inhabitant_type, sex, civil_status, citizenship, occupation,
+		       email_address, highest_educational_attainment, mother_first_name,
+		       mother_middle_name, mother_last_name, contact_no, address
 		FROM inhabitants WHERE id = ?
-	`, id).Scan(&firstName, &lastName, &middleName, &suffix, &birthdayStr, &contactNo, &address)
+	`, id).Scan(&firstName, &lastName, &middleName, &suffix, &birthdateStr, &birthPlace,
+		&inhabitantType, &sex, &civilStatus, &citizenship, &occupation,
+		&emailAddress, &highestEd, &mFirstName, &mMiddleName, &mLastName, &contactNo, &address)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -72,19 +99,30 @@ func (s *Store) GetInhabitant(ctx context.Context, id int64) (*Inhabitant, error
 	}
 
 	inhabitant := &Inhabitant{
-		ID:         id,
-		FirstName:  firstName,
-		LastName:   lastName,
-		MiddleName: middleName,
-		Suffix:     suffix,
-		ContactNo:  contactNo,
-		Address:    address,
+		ID:                           id,
+		FirstName:                    firstName,
+		LastName:                     lastName,
+		MiddleName:                   middleName,
+		Suffix:                       suffix,
+		BirthPlace:                   birthPlace,
+		InhabitantType:               inhabitantType,
+		Sex:                          sex,
+		CivilStatus:                  civilStatus,
+		Citizenship:                  citizenship,
+		Occupation:                   occupation,
+		EmailAddress:                 emailAddress,
+		HighestEducationalAttainment: highestEd,
+		MotherFirstName:              mFirstName,
+		MotherMiddleName:             mMiddleName,
+		MotherLastName:               mLastName,
+		ContactNo:                    contactNo,
+		Address:                      address,
 	}
 
-	if birthdayStr != "" {
-		birthday, err := time.Parse(time.RFC3339, birthdayStr)
+	if birthdateStr != "" {
+		birthdate, err := time.Parse(time.RFC3339, birthdateStr)
 		if err == nil {
-			inhabitant.Birthday = birthday
+			inhabitant.Birthdate = birthdate
 		}
 	}
 
@@ -101,7 +139,10 @@ func (s *Store) ListInhabitants(ctx context.Context, limit int, offset int) ([]I
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, first_name, last_name, middle_name, suffix, birthday, contact_no, address
+		SELECT id, first_name, last_name, middle_name, suffix, birthdate, birth_place,
+		       inhabitant_type, sex, civil_status, citizenship, occupation,
+		       email_address, highest_educational_attainment, mother_first_name,
+		       mother_middle_name, mother_last_name, contact_no, address
 		FROM inhabitants
 		ORDER BY last_name ASC, first_name ASC
 		LIMIT ? OFFSET ?
@@ -114,27 +155,42 @@ func (s *Store) ListInhabitants(ctx context.Context, limit int, offset int) ([]I
 	var inhabitants []Inhabitant
 	for rows.Next() {
 		var id int64
-		var firstName, lastName, middleName, suffix, contactNo, address string
-		var birthdayStr string
+		var firstName, lastName, middleName, suffix, birthPlace, inhabitantType, sex string
+		var civilStatus, citizenship, occupation, emailAddress, highestEd string
+		var mFirstName, mMiddleName, mLastName, contactNo, address string
+		var birthdateStr string
 
-		if err := rows.Scan(&id, &firstName, &lastName, &middleName, &suffix, &birthdayStr, &contactNo, &address); err != nil {
+		if err := rows.Scan(&id, &firstName, &lastName, &middleName, &suffix, &birthdateStr, &birthPlace,
+			&inhabitantType, &sex, &civilStatus, &citizenship, &occupation,
+			&emailAddress, &highestEd, &mFirstName, &mMiddleName, &mLastName, &contactNo, &address); err != nil {
 			return nil, err
 		}
 
 		inhabitant := Inhabitant{
-			ID:         id,
-			FirstName:  firstName,
-			LastName:   lastName,
-			MiddleName: middleName,
-			Suffix:     suffix,
-			ContactNo:  contactNo,
-			Address:    address,
+			ID:                           id,
+			FirstName:                    firstName,
+			LastName:                     lastName,
+			MiddleName:                   middleName,
+			Suffix:                       suffix,
+			BirthPlace:                   birthPlace,
+			InhabitantType:               inhabitantType,
+			Sex:                          sex,
+			CivilStatus:                  civilStatus,
+			Citizenship:                  citizenship,
+			Occupation:                   occupation,
+			EmailAddress:                 emailAddress,
+			HighestEducationalAttainment: highestEd,
+			MotherFirstName:              mFirstName,
+			MotherMiddleName:             mMiddleName,
+			MotherLastName:               mLastName,
+			ContactNo:                    contactNo,
+			Address:                      address,
 		}
 
-		if birthdayStr != "" {
-			birthday, err := time.Parse(time.RFC3339, birthdayStr)
+		if birthdateStr != "" {
+			birthdate, err := time.Parse(time.RFC3339, birthdateStr)
 			if err == nil {
-				inhabitant.Birthday = birthday
+				inhabitant.Birthdate = birthdate
 			}
 		}
 
@@ -152,10 +208,18 @@ func (s *Store) ListInhabitants(ctx context.Context, limit int, offset int) ([]I
 func (s *Store) UpdateInhabitant(ctx context.Context, inhabitant *Inhabitant) error {
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE inhabitants
-		SET first_name = ?, last_name = ?, middle_name = ?, suffix = ?, birthday = ?, contact_no = ?, address = ?
+		SET first_name = ?, last_name = ?, middle_name = ?, suffix = ?, birthdate = ?,
+		    birth_place = ?, inhabitant_type = ?, sex = ?, civil_status = ?,
+		    citizenship = ?, occupation = ?, email_address = ?,
+		    highest_educational_attainment = ?, mother_first_name = ?,
+		    mother_middle_name = ?, mother_last_name = ?, contact_no = ?, address = ?
 		WHERE id = ?
 	`, inhabitant.FirstName, inhabitant.LastName, inhabitant.MiddleName, inhabitant.Suffix,
-		inhabitant.Birthday.Format(time.RFC3339), inhabitant.ContactNo, inhabitant.Address, inhabitant.ID)
+		inhabitant.Birthdate.Format(time.RFC3339), inhabitant.BirthPlace, inhabitant.InhabitantType,
+		inhabitant.Sex, inhabitant.CivilStatus, inhabitant.Citizenship, inhabitant.Occupation,
+		inhabitant.EmailAddress, inhabitant.HighestEducationalAttainment,
+		inhabitant.MotherFirstName, inhabitant.MotherMiddleName, inhabitant.MotherLastName,
+		inhabitant.ContactNo, inhabitant.Address, inhabitant.ID)
 
 	if err != nil {
 		return err
