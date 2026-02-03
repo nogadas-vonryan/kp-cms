@@ -60,6 +60,18 @@
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Contact Number</label>
               <p class="text-sm text-gray-900">{{ formatField(inhabitant.contact_no) }}</p>
             </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Civil Status</label>
+              <p class="text-sm text-gray-900">{{ formatStatus(inhabitant.civil_status) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Citizenship</label>
+              <p class="text-sm text-gray-900">{{ formatStatus(inhabitant.citizenship) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Inhabitant Type</label>
+              <p class="text-sm text-gray-900">{{ formatStatus(inhabitant.inhabitant_type) }}</p>
+            </div>
             <div class="sm:col-span-2">
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Address</label>
               <p class="text-sm text-gray-900 wrap-break-word">{{ formatField(inhabitant.address) }}</p>
@@ -143,6 +155,33 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Contact No.</label>
           <UiInput v-model="form.contact_no" class="w-full" />
         </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Civil Status</label>
+          <select v-model="form.civil_status" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Select Status</option>
+            <option v-for="opt in CIVIL_STATUS_OPTIONS" :key="opt" :value="opt">
+              {{ formatStatus(opt) }}
+            </option>
+          </select>
+        </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Citizenship</label>
+          <select v-model="form.citizenship" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Select Citizenship</option>
+            <option v-for="opt in CITIZENSHIP_OPTIONS" :key="opt" :value="opt">
+              {{ formatStatus(opt) }}
+            </option>
+          </select>
+        </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Inhabitant Type</label>
+          <select v-model="form.inhabitant_type" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Select Type</option>
+            <option v-for="opt in INHABITANT_TYPE_OPTIONS" :key="opt" :value="opt">
+              {{ formatStatus(opt) }}
+            </option>
+          </select>
+        </div>
         <div class="col-span-1 sm:col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
           <textarea 
@@ -215,7 +254,10 @@ import {
   Edit3, Trash2, ChevronRight
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
-import { InhabitantService, type Inhabitant } from '@/modules/inhabitants/services/inhabitantService';
+import { 
+  InhabitantService, type Inhabitant,
+  CIVIL_STATUS_OPTIONS, CITIZENSHIP_OPTIONS, INHABITANT_TYPE_OPTIONS
+} from '@/modules/inhabitants/services/inhabitantService';
 import type { Document } from '@/types';
 import { extractErrorMessage } from '@/core/api';
 import UiCard from '@/core/ui/components/UiCard.vue';
@@ -261,7 +303,10 @@ const form = ref<Inhabitant>({
   suffix: '',
   birthday: '',
   contact_no: '',
-  address: ''
+  address: '',
+  civil_status: '',
+  citizenship: '',
+  inhabitant_type: ''
 });
 
 // Delete Modal State
@@ -334,6 +379,15 @@ function getFullName(inh: Inhabitant): string {
 function formatField(value: string | undefined | null): string {
   if (!value || value.trim() === '') return 'N/A';
   return value;
+}
+
+function formatStatus(status: string | undefined | null): string {
+  if (!status) return 'N/A';
+  if (status === 'common_law_live_in') return 'Common Law/Live In';
+  return status
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 /**
