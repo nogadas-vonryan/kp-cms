@@ -6,12 +6,20 @@ export interface Inhabitant {
   last_name: string;
   middle_name: string;
   suffix: string;
-  birthday: string;
+  birthdate: string;
   contact_no: string;
   address: string;
   civil_status?: string;
   citizenship?: string;
   inhabitant_type?: string;
+  sex?: string;
+  birth_place?: string;
+  occupation?: string;
+  email_address?: string;
+  highest_educational_attainment?: string;
+  mother_first_name?: string;
+  mother_middle_name?: string;
+  mother_last_name?: string;
 }
 
 export const CIVIL_STATUS_OPTIONS = [

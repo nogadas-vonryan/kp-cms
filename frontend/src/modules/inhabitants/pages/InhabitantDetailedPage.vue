@@ -53,12 +53,16 @@
               <p class="text-sm text-gray-900 font-medium wrap-break-word">{{ getFullName(inhabitant) || 'N/A' }}</p>
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Birthday</label>
-              <p class="text-sm text-gray-900">{{ formatBirthday(inhabitant.birthday) }}</p>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Birthdate</label>
+              <p class="text-sm text-gray-900">{{ formatBirthdate(inhabitant.birthdate) }}</p>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Contact Number</label>
               <p class="text-sm text-gray-900">{{ formatField(inhabitant.contact_no) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Sex</label>
+              <p class="text-sm text-gray-900">{{ formatField(inhabitant.sex) }}</p>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Civil Status</label>
@@ -71,6 +75,26 @@
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Inhabitant Type</label>
               <p class="text-sm text-gray-900">{{ formatStatus(inhabitant.inhabitant_type) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Birth Place</label>
+              <p class="text-sm text-gray-900">{{ formatField(inhabitant.birth_place) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Occupation</label>
+              <p class="text-sm text-gray-900">{{ formatField(inhabitant.occupation) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Email Address</label>
+              <p class="text-sm text-gray-900 truncate">{{ formatField(inhabitant.email_address) }}</p>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Highest Educational Attainment</label>
+              <p class="text-sm text-gray-900">{{ formatField(inhabitant.highest_educational_attainment) }}</p>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Mother's Name</label>
+              <p class="text-sm text-gray-900">{{ getMotherFullName(inhabitant) || 'N/A' }}</p>
             </div>
             <div class="sm:col-span-2">
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Address</label>
@@ -148,8 +172,8 @@
           <UiInput v-model="form.suffix" placeholder="e.g. Jr., III" class="w-full" />
         </div>
         <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Birthday</label>
-          <UiInput v-model="form.birthday" type="date" :min="minBirthday" :max="maxBirthday" class="w-full" />
+          <label class="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
+          <UiInput v-model="form.birthdate" type="date" :min="minBirthdate" :max="maxBirthdate" class="w-full" />
         </div>
         <div class="col-span-1">
           <label class="block text-sm font-medium text-gray-700 mb-1">Contact No.</label>
@@ -181,6 +205,47 @@
               {{ formatStatus(opt) }}
             </option>
           </select>
+        </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Birth Place</label>
+          <UiInput v-model="form.birth_place" class="w-full" />
+        </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+          <select v-model="form.sex" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Select Sex</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
+          <UiInput v-model="form.occupation" class="w-full" />
+        </div>
+        <div class="col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <UiInput v-model="form.email_address" type="email" class="w-full" />
+        </div>
+        <div class="col-span-1 sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Highest Educational Attainment</label>
+          <UiInput v-model="form.highest_educational_attainment" class="w-full" />
+        </div>
+        <div class="col-span-1 sm:col-span-2 mt-2">
+          <h3 class="text-sm font-semibold text-gray-900 mb-2">Mother's Name</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
+              <UiInput v-model="form.mother_first_name" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Middle Name</label>
+              <UiInput v-model="form.mother_middle_name" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
+              <UiInput v-model="form.mother_last_name" class="w-full" />
+            </div>
+          </div>
         </div>
         <div class="col-span-1 sm:col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -272,14 +337,14 @@ const authStore = useAuthStore();
 
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 
-// Birthday constraints
-const minBirthday = computed(() => {
+// Birthdate constraints
+const minBirthdate = computed(() => {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 120);
   return date.toISOString().split('T')[0];
 });
 
-const maxBirthday = computed(() => {
+const maxBirthdate = computed(() => {
   const date = new Date();
   return date.toISOString().split('T')[0];
 });
@@ -301,12 +366,20 @@ const form = ref<Inhabitant>({
   last_name: '',
   middle_name: '',
   suffix: '',
-  birthday: '',
+  birthdate: '',
   contact_no: '',
   address: '',
   civil_status: '',
   citizenship: '',
-  inhabitant_type: ''
+  inhabitant_type: '',
+  sex: '',
+  birth_place: '',
+  occupation: '',
+  email_address: '',
+  highest_educational_attainment: '',
+  mother_first_name: '',
+  mother_middle_name: '',
+  mother_last_name: ''
 });
 
 // Delete Modal State
@@ -376,6 +449,15 @@ function getFullName(inh: Inhabitant): string {
   return parts.join(' ');
 }
 
+function getMotherFullName(inh: Inhabitant): string {
+  const parts = [
+    inh.mother_first_name,
+    inh.mother_middle_name,
+    inh.mother_last_name
+  ].filter(Boolean);
+  return parts.join(' ');
+}
+
 function formatField(value: string | undefined | null): string {
   if (!value || value.trim() === '') return 'N/A';
   return value;
@@ -394,21 +476,21 @@ function formatStatus(status: string | undefined | null): string {
  * Checks if a date string is one of the common "Zero" or placeholder dates
  * used by databases like MySQL or Go.
  */
-function isInvalidDate(birthday: string | undefined | null): boolean {
-  if (!birthday || birthday.trim() === '') return true;
+function isInvalidDate(birthdate: string | undefined | null): boolean {
+  if (!birthdate || birthdate.trim() === '') return true;
   const invalidPatterns = ['0001-01-01', '0000-00-00', '1900-01-01'];
   return (
-    invalidPatterns.includes(birthday) || 
-    birthday.startsWith('0000') || 
-    birthday.startsWith('0001')
+    invalidPatterns.includes(birthdate) || 
+    birthdate.startsWith('0000') || 
+    birthdate.startsWith('0001')
   );
 }
 
-function formatBirthday(birthday: string | undefined | null): string {
-  if (isInvalidDate(birthday)) {
+function formatBirthdate(birthdate: string | undefined | null): string {
+  if (isInvalidDate(birthdate)) {
     return 'N/A';
   }
-  return birthday!;
+  return birthdate!;
 }
 
 function navigateToDocument(uuid: string) {
@@ -417,13 +499,13 @@ function navigateToDocument(uuid: string) {
 
 function openEditModal() {
   if (inhabitant.value) {
-    const birthday = inhabitant.value.birthday;
+    const birthdate = inhabitant.value.birthdate;
     
     form.value = { 
       ...inhabitant.value,
-      // If the existing birthday is invalid/placeholder, 
+      // If the existing birthdate is invalid/placeholder, 
       // clear it so the date picker doesn't show 0001-01-01
-      birthday: isInvalidDate(birthday) ? '' : birthday
+      birthdate: isInvalidDate(birthdate) ? '' : birthdate
     };
     
     formError.value = '';
@@ -431,25 +513,40 @@ function openEditModal() {
   }
 }
 
-function validateBirthday(birthday: string): string | null {
-  if (!birthday || birthday.trim() === '' || isInvalidDate(birthday)) return null;
+function validateBirthdate(birthdate: string): string | null {
+  if (!birthdate || birthdate.trim() === '' || isInvalidDate(birthdate)) return null;
   
-  const birthdayDate = new Date(birthday);
+  const birthdateDate = new Date(birthdate);
   const minDate = new Date();
   minDate.setFullYear(minDate.getFullYear() - 130);
   const maxDate = new Date();
 
-  if (birthdayDate < minDate) return 'Date out of range';
-  if (birthdayDate > maxDate) return 'Birthday cannot be in the future';
+  if (birthdateDate < minDate) return 'Date out of range';
+  if (birthdateDate > maxDate) return 'Birthdate cannot be in the future';
+  return null;
+}
+
+function validateEmail(email: string | undefined | null): string | null {
+  if (!email || email.trim() === '') return null;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return 'Please enter a valid email address';
+  }
   return null;
 }
 
 async function handleSubmit() {
   if (!inhabitant.value?.id) return;
   
-  const birthdayError = validateBirthday(form.value.birthday);
-  if (birthdayError) {
-    formError.value = birthdayError;
+  const birthdateError = validateBirthdate(form.value.birthdate);
+  if (birthdateError) {
+    formError.value = birthdateError;
+    return;
+  }
+
+  const emailError = validateEmail(form.value.email_address);
+  if (emailError) {
+    formError.value = emailError;
     return;
   }
 

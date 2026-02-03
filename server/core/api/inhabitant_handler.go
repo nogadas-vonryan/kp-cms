@@ -136,14 +136,25 @@ func (s *Server) handleGetInhabitant() http.HandlerFunc {
 		}
 
 		response := inhabitantResponse{
-			ID:         inhabitant.ID,
-			FirstName:  inhabitant.FirstName,
-			LastName:   inhabitant.LastName,
-			MiddleName: inhabitant.MiddleName,
-			Suffix:     inhabitant.Suffix,
-			Birthdate:  inhabitant.Birthdate.Format("2006-01-02"),
-			ContactNo:  inhabitant.ContactNo,
-			Address:    inhabitant.Address,
+			ID:                           inhabitant.ID,
+			FirstName:                    inhabitant.FirstName,
+			LastName:                     inhabitant.LastName,
+			MiddleName:                   inhabitant.MiddleName,
+			Suffix:                       inhabitant.Suffix,
+			Birthdate:                    inhabitant.Birthdate.Format("2006-01-02"),
+			BirthPlace:                   inhabitant.BirthPlace,
+			InhabitantType:               inhabitant.InhabitantType,
+			Sex:                          inhabitant.Sex,
+			CivilStatus:                  inhabitant.CivilStatus,
+			Citizenship:                  inhabitant.Citizenship,
+			Occupation:                   inhabitant.Occupation,
+			EmailAddress:                 inhabitant.EmailAddress,
+			HighestEducationalAttainment: inhabitant.HighestEducationalAttainment,
+			MotherFirstName:              inhabitant.MotherFirstName,
+			MotherMiddleName:             inhabitant.MotherMiddleName,
+			MotherLastName:               inhabitant.MotherLastName,
+			ContactNo:                    inhabitant.ContactNo,
+			Address:                      inhabitant.Address,
 		}
 
 		respondJSON(w, http.StatusOK, response)
