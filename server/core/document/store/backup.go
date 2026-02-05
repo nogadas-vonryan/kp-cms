@@ -57,7 +57,7 @@ func (r *Store) ListBackups(ctx context.Context) ([]document.BackupFile, error) 
 
 func (r *Store) CreateBackup(ctx context.Context, onProgress func(float64)) (string, error) {
 	r.mu.RLock()
-	sourceDir := r.basePath
+	sourceDir := r.GetBackupSource() // Use backupSource for full data backup
 	backupDir := r.backupPath
 	r.mu.RUnlock()
 

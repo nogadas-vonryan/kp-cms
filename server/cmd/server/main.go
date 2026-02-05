@@ -34,10 +34,13 @@ func main() {
 	}
 
 	namingStrategy := document.NewNamingStrategyPrefixDDDYY("case")
-	documentRepository, err := store.New(*dataPath, *backupPath, namingStrategy)
+	casesPath := filepath.Join(*dataPath, "cases")
+	documentRepository, err := store.New(casesPath, *backupPath, namingStrategy)
 	if err != nil {
 		log.Fatalf("Failed to create document repository: %v", err)
 	}
+	// Set backup source to parent data path for full data backup (all entity types)
+	documentRepository.SetBackupSource(*dataPath)
 
 	// Initialize app database
 	appDBPath := filepath.Join(*dataPath, "app.db")

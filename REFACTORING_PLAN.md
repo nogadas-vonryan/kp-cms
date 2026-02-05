@@ -39,14 +39,14 @@ Transform the storage architecture into a unified folder-based database engine w
 
 ---
 
-## Phase 0: Folder Restructuring (Prep)
+## ✅ Phase 0: Folder Restructuring (COMPLETED)
 
 **Goal:** Migrate existing flat `/data/case-XXX-YY` folders to grouped `/data/cases/case-XXX-YY` structure.
 
 ### Tasks
 
-1. **Create Migration Script**
-   - Script location: `server/cmd/scripts/restructure_folders.go`
+1. **✅ Create Migration Script** 
+   - Script location: `server/cmd/scripts/restructure/main.go`
    - Move all existing `/data/case-XXX-YY/` folders into `/data/cases/`
    - Create empty `/data/inhabitants/` and `/data/custom/` directories
    - Validate no data loss after migration
@@ -434,11 +434,11 @@ Keep a backup of original `/data` folder before migration. Script includes `--dr
 
 ## Success Criteria
 
-### Phase 0
-- [ ] All existing case folders moved to `/data/cases/`
-- [ ] Document store works with new base path
-- [ ] Empty `/data/inhabitants/` and `/data/custom/` created
-- [ ] All existing tests pass
+### Phase 0 ✅
+- [x] All existing case folders moved to `/data/cases/`
+- [x] Document store works with new base path
+- [x] Empty `/data/inhabitants/` and `/data/custom/` created
+- [x] All existing tests pass
 
 ### Phase 1
 - [ ] Documents can reference inhabitants by ID via `participant_ids`

@@ -12,6 +12,7 @@ import (
 type Store struct {
 	basePath       string
 	backupPath     string
+	backupSource   string // Parent data path for full data backup (all entity types)
 	namingStrategy document.NamingStrategy
 
 	mu sync.RWMutex
@@ -52,4 +53,21 @@ func New(basePath string, backupPath string, namingStrategy document.NamingStrat
 	// Warning: Lock first (so multiple users can read/write at once without crashing)
 	_, err := repo.ReloadCache(context.Background())
 	return repo, err
+}
+
+// SetBackupSource sets the parent data path for full data backup operations
+func (r *Store) SetBackupSource(sourcePath string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.backupSource = sourcePath
+}
+
+// GetBackupSource returns the source path for backup operations
+func (r *Store) GetBackupSource() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.backupSource != "" {
+		return r.backupSource
+	}
+	return r.basePath
 }
