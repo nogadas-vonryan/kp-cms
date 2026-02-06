@@ -26,7 +26,7 @@ type InhabitantFromDB struct {
 	LastName                     string
 	MiddleName                   string
 	Suffix                       string
-	Birthdate                    time.Time
+	Birthdate                    string
 	BirthPlace                   string
 	InhabitantType               string
 	Sex                          string
@@ -114,6 +114,12 @@ func main() {
 
 		folderName := namingStrategy.GenerateDirName(code, "")
 
+		// Parse birthdate string to time.Time
+		var birthdate time.Time
+		if inh.Birthdate != "" {
+			birthdate, _ = time.Parse(time.RFC3339, inh.Birthdate)
+		}
+
 		// Create file-based inhabitant
 		fileInhabitant := &inhabitant.Inhabitant{
 			UUID:       generateUUID(),
@@ -128,7 +134,7 @@ func main() {
 			LastName:                     inh.LastName,
 			MiddleName:                   inh.MiddleName,
 			Suffix:                       inh.Suffix,
-			Birthdate:                    inh.Birthdate,
+			Birthdate:                    birthdate,
 			BirthPlace:                   inh.BirthPlace,
 			InhabitantType:               inh.InhabitantType,
 			Sex:                          inh.Sex,

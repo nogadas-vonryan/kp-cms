@@ -22,6 +22,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	inhabitantstore "kpcms/server/core/inhabitant/store"
 	"kpcms/server/core/search"
 
 	"github.com/wailsapp/wails/v2"
@@ -325,13 +326,18 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		return nil, fmt.Errorf("failed to initialize database: %v", err)
 	}
 
-	// Create repositories
-	authRepo := auth.NewSQLRepository(db.AuthDB)
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
-
 	// Create services
+	authRepo := auth.NewSQLRepository(db.AuthDB)
 	authService := auth.NewService(authRepo)
-	inhabitantService := inhabitant.NewService(inhabitantRepo)
+
+	// Initialize file-based inhabitant storage
+	inhabPath := filepath.Join(dataPath, "inhabitants")
+	inhabNamingStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
+	inhabitantFileStore, err := inhabitantstore.New(inhabPath, inhabNamingStrategy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create inhabitant file store: %v", err)
+	}
+	inhabitantService := inhabitant.NewService(inhabitantFileStore)
 
 	// Create search aggregator service
 	searchService := search.NewAggregator(inhabitantService, document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository))

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"kpcms/server/core/inhabitant"
@@ -139,13 +138,11 @@ func (s *Server) handleGetInhabitant() http.HandlerFunc {
 			return
 		}
 
-		// Try ID (SQLite-based)
-		if id, parseErr := strconv.ParseInt(idOrUUID, 10, 64); parseErr == nil {
-			inh, err = s.inhabitantService.GetByID(r.Context(), id)
-			if err == nil && inh != nil {
-				s.respondInhabitantJSON(w, http.StatusOK, inh)
-				return
-			}
+		// Try by code as fallback
+		inh, err = s.inhabitantService.GetByCode(r.Context(), idOrUUID)
+		if err == nil && inh != nil {
+			s.respondInhabitantJSON(w, http.StatusOK, inh)
+			return
 		}
 
 		respondError(w, http.StatusNotFound, "inhabitant not found")
@@ -284,47 +281,17 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			Address:                      req.Address,
 		}
 
-		// Try UUID first (file-based store)
 		updated, err := s.inhabitantService.Update(r.Context(), idOrUUID, inh)
-		if err == nil && updated != nil {
-			s.respondInhabitantJSON(w, http.StatusOK, updated)
-			return
-		}
-
-		// Check if error indicates wrong method (store not initialized)
-		if err != nil && strings.Contains(err.Error(), "UpdateByID") {
-			// Try ID (SQLite-based)
-			if id, parseErr := strconv.ParseInt(idOrUUID, 10, 64); parseErr == nil {
-				err = s.inhabitantService.UpdateByID(r.Context(), id, inh)
-				if err == nil {
-					// Fetch the updated inhabitant
-					updated, _ := s.inhabitantService.GetByID(r.Context(), id)
-					if updated != nil {
-						s.respondInhabitantJSON(w, http.StatusOK, updated)
-						return
-					}
-				}
-				// Check if it was a not found error
-				if err != nil {
-					respondError(w, http.StatusNotFound, "inhabitant not found")
-					return
-				}
-			}
-		}
-
-		// Check if it was a not found error from file store
-		if err != nil && strings.Contains(err.Error(), "not found") {
-			respondError(w, http.StatusNotFound, "inhabitant not found")
-			return
-		}
-
-		// Handle other errors
 		if err != nil {
+			if err.Error() == "file does not exist" {
+				respondError(w, http.StatusNotFound, "inhabitant not found")
+				return
+			}
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		respondError(w, http.StatusInternalServerError, "failed to update inhabitant")
+		s.respondInhabitantJSON(w, http.StatusOK, updated)
 	}
 }
 
@@ -332,35 +299,17 @@ func (s *Server) handleDeleteInhabitant() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idOrUUID := chi.URLParam(r, "id")
 
-		// Check if it looks like a UUID (contains dashes)
-		isUUID := strings.Contains(idOrUUID, "-")
-
-		if isUUID {
-			// Try UUID first (file-based store)
-			err := s.inhabitantService.Delete(r.Context(), idOrUUID)
-			if err == nil {
-				w.WriteHeader(http.StatusNoContent)
+		err := s.inhabitantService.Delete(r.Context(), idOrUUID)
+		if err != nil {
+			if err.Error() == "file does not exist" {
+				respondError(w, http.StatusNotFound, "inhabitant not found")
 				return
 			}
-			// UUID not found in file store - return 404
-			respondError(w, http.StatusNotFound, "inhabitant not found")
+			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// Try ID (SQLite-based)
-		if id, parseErr := strconv.ParseInt(idOrUUID, 10, 64); parseErr == nil {
-			err := s.inhabitantService.DeleteByID(r.Context(), id)
-			if err == nil {
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-			// ID not found
-			respondError(w, http.StatusNotFound, "inhabitant not found")
-			return
-		}
-
-		// Invalid ID format
-		respondError(w, http.StatusBadRequest, "invalid inhabitant ID")
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

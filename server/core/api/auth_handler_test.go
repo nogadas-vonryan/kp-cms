@@ -13,6 +13,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	inhabitantstore "kpcms/server/core/inhabitant/store"
 	"kpcms/server/core/search"
 )
 
@@ -20,22 +21,30 @@ func setupTestServerWithDB(t *testing.T) (*Server, *database.Database) {
 	tempDir := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := store.New(tempDir, "", strategy)
+	docRepo, err := store.New(tempDir, "", strategy)
 	if err != nil {
-		t.Fatalf("failed to create repo: %v", err)
+		t.Fatalf("failed to create doc repo: %v", err)
 	}
 
-	db, err := database.New("file:auth_api_test?mode=memory&cache=shared", "file:auth_api_test_auth?mode=memory&cache=shared")
+	// Create file-based inhabitant store
+	inhabPath := t.TempDir()
+	inhabStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
+	inhabStore, err := inhabitantstore.New(inhabPath, inhabStrategy)
+	if err != nil {
+		t.Fatalf("failed to create inhabitant store: %v", err)
+	}
+
+	authDBPath := t.TempDir() + "/auth.db"
+	db, err := database.New(t.TempDir()+"/app.db", authDBPath)
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
 
-	// Create repositories and services
+	// Create services
 	authRepo := auth.NewSQLRepository(db.AuthDB)
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
 	authService := auth.NewService(authRepo)
-	inhabitantService := inhabitant.NewService(inhabitantRepo)
-	documentService := document.NewDocumentService(repo, repo, nil, nil)
+	inhabitantService := inhabitant.NewService(inhabStore)
+	documentService := document.NewDocumentService(docRepo, docRepo, nil, nil)
 	searchService := search.NewAggregator(inhabitantService, documentService)
 
 	server, err := NewServer("0.0.0.0", "8080", "admin", "password",

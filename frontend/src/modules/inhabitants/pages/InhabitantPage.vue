@@ -59,7 +59,7 @@
         <div v-if="filteredInhabitants.length > 0 && isMobileView" class="divide-y divide-gray-200 border-t border-gray-200">
           <div 
             v-for="inh in filteredInhabitants" 
-            :key="inh.id"
+            :key="inh.uuid"
             class="p-4 hover:bg-gray-50 transition-colors cursor-pointer space-y-2"
             @click="viewDetails(inh)"
           >
@@ -91,7 +91,7 @@
             <tbody class="divide-y divide-gray-200">
               <tr 
                 v-for="inh in filteredInhabitants" 
-                :key="inh.id" 
+                :key="inh.uuid" 
                 class="hover:bg-gray-50 transition-colors cursor-pointer"
                 @click="viewDetails(inh)"
               >
@@ -475,7 +475,7 @@ function formatBirthdate(birthdate: string | undefined | null): string {
 }
 
 function viewDetails(inh: Inhabitant) {
-  router.push({ name: 'inhabitant-detail', params: { id: inh.id!.toString() } });
+  router.push({ name: 'inhabitant-detail', params: { id: inh.uuid!.toString() } });
 }
 
 function nextPage() {

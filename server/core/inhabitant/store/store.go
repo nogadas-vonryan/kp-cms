@@ -242,7 +242,7 @@ func (s *InhabitantFileStore) writeToFile(inh *inhabitant.Inhabitant) error {
 		return err
 	}
 
-	filePath := filepath.Join(folderPath, "inhabitant.json")
+	filePath := filepath.Join(folderPath, "meta.json")
 	return os.WriteFile(filePath, data, 0644)
 }
 
@@ -266,7 +266,7 @@ func (s *InhabitantFileStore) ReloadCache(ctx context.Context) error {
 			continue
 		}
 
-		inhabitantPath := filepath.Join(s.basePath, entry.Name(), "inhabitant.json")
+		inhabitantPath := filepath.Join(s.basePath, entry.Name(), "meta.json")
 		data, err := os.ReadFile(inhabitantPath)
 		if err != nil {
 			continue // Skip files that can't be read

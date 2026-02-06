@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"kpcms/server/core/inhabitant"
-
 	_ "modernc.org/sqlite"
 )
 
@@ -124,7 +122,9 @@ func initAppSchema(db *sql.DB) error {
 		return fmt.Errorf("enable foreign keys: %w", err)
 	}
 
-	return inhabitant.InitSchema(db)
+	// App database no longer uses SQLite for inhabitants (migrated to file-based storage)
+	// No additional schema needed for app.db
+	return nil
 }
 
 // initAuthSchema initializes the auth database schema.

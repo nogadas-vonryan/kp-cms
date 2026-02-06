@@ -12,7 +12,7 @@
           {{ inhabitant ? getFullName(inhabitant) : 'Inhabitant Details' }}
         </h1>
         <p v-if="inhabitant" class="text-xs sm:text-sm text-gray-600 mt-1">
-          ID: <span class="font-mono">{{ inhabitant.id }}</span>
+          ID: <span class="font-mono">{{ inhabitant.uuid }}</span>
         </p>
       </div>
       <div v-if="isAdmin && inhabitant" class="flex gap-2 shrink-0 ml-auto">
@@ -405,8 +405,8 @@ onMounted(() => {
 });
 
 async function loadInhabitantDetails() {
-  const id = parseInt(route.params.id as string);
-  if (isNaN(id)) {
+  const id = route.params.id as string;
+  if (!id) {
     error.value = 'Invalid inhabitant ID';
     return;
   }
@@ -425,7 +425,7 @@ async function loadInhabitantDetails() {
   }
 }
 
-async function loadRelatedDocuments(id: number) {
+async function loadRelatedDocuments(id: string) {
   documentsLoading.value = true;
   documentsError.value = '';
   
@@ -536,7 +536,7 @@ function validateEmail(email: string | undefined | null): string | null {
 }
 
 async function handleSubmit() {
-  if (!inhabitant.value?.id) return;
+  if (!inhabitant.value?.uuid) return;
   
   const birthdateError = validateBirthdate(form.value.birthdate);
   if (birthdateError) {
@@ -554,7 +554,7 @@ async function handleSubmit() {
   formError.value = '';
   
   try {
-    await InhabitantService.update(inhabitant.value.id, form.value);
+    await InhabitantService.update(inhabitant.value.uuid!, form.value);
     showEditModal.value = false;
     await loadInhabitantDetails();
   } catch (err: any) {
@@ -569,7 +569,7 @@ async function handleDelete() {
   deleting.value = true;
   deleteError.value = '';
   try {
-    await InhabitantService.delete(inhabitant.value.id!);
+    await InhabitantService.delete(inhabitant.value.uuid!);
     showDeleteModal.value = false;
     router.push({ name: 'inhabitants' });
   } catch (err: any) {

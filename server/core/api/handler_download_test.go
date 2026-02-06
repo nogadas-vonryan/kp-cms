@@ -16,6 +16,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	inhabitantstore "kpcms/server/core/inhabitant/store"
 	"kpcms/server/core/search"
 )
 
@@ -23,13 +24,21 @@ func setupTestServer(t *testing.T) (*Server, string, *auth.Service) {
 	tempDir := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
-	repo, err := store.New(tempDir, "", strategy)
+	docRepo, err := store.New(tempDir, "", strategy)
 	if err != nil {
 		t.Fatalf("failed to create repo: %v", err)
 	}
 
-	memName := strings.ReplaceAll(t.Name(), "/", "_")
-	db, err := database.New(fmt.Sprintf("file:%s?mode=memory&cache=shared", memName), "")
+	// Create file-based inhabitant store
+	inhabPath := t.TempDir()
+	inhabStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
+	inhabStore, err := inhabitantstore.New(inhabPath, inhabStrategy)
+	if err != nil {
+		t.Fatalf("failed to create inhabitant store: %v", err)
+	}
+
+	authDBPath := t.TempDir() + "/auth.db"
+	db, err := database.New(t.TempDir()+"/app.db", authDBPath)
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
@@ -38,10 +47,9 @@ func setupTestServer(t *testing.T) (*Server, string, *auth.Service) {
 	})
 
 	authRepo := auth.NewSQLRepository(db.AuthDB)
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
 	authService := auth.NewService(authRepo)
-	inhabitantService := inhabitant.NewService(inhabitantRepo)
-	documentService := document.NewDocumentService(repo, repo, nil, nil)
+	inhabitantService := inhabitant.NewService(inhabStore)
+	documentService := document.NewDocumentService(docRepo, docRepo, nil, nil)
 	searchService := search.NewAggregator(inhabitantService, documentService)
 
 	server, err := NewServer("0.0.0.0", "8080", "admin", "password", documentService, authService, inhabitantService, searchService)

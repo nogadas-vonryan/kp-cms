@@ -24,7 +24,6 @@ func main() {
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
-	fileInhabitants := flag.Bool("file-inhabitants", false, "Use file-based inhabitant storage instead of SQLite")
 	flag.Parse()
 
 	if *pass == "" {
@@ -65,21 +64,15 @@ func main() {
 	authRepo := auth.NewSQLRepository(db.AuthDB)
 	authService := auth.NewService(authRepo)
 
-	var inhabitantService *inhabitant.Service
-	if *fileInhabitants {
-		log.Printf("Using file-based inhabitant storage")
-		inhabPath := filepath.Join(*dataPath, "inhabitants")
-		namingStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
-		inhabitantFileStore, err := inhabitantstore.New(inhabPath, namingStrategy)
-		if err != nil {
-			log.Fatalf("Failed to create inhabitant file store: %v", err)
-		}
-		inhabitantService = inhabitant.NewServiceWithStore(inhabitantFileStore)
-	} else {
-		log.Printf("Using SQLite-based inhabitant storage")
-		inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
-		inhabitantService = inhabitant.NewService(inhabitantRepo)
+	// Initialize file-based inhabitant storage
+	log.Printf("Using file-based inhabitant storage")
+	inhabPath := filepath.Join(*dataPath, "inhabitants")
+	inhabNamingStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
+	inhabitantFileStore, err := inhabitantstore.New(inhabPath, inhabNamingStrategy)
+	if err != nil {
+		log.Fatalf("Failed to create inhabitant file store: %v", err)
 	}
+	inhabitantService := inhabitant.NewService(inhabitantFileStore)
 
 	documentService := document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository)
 

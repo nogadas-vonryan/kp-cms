@@ -6,22 +6,66 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
+	"kpcms/server/core/auth"
+	"kpcms/server/core/database"
+	"kpcms/server/core/document"
+	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	inhabitantstore "kpcms/server/core/inhabitant/store"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func TestHandleListInhabitants_Success(t *testing.T) {
-	server, db := setupTestServerWithDB(t)
+func setupTestServerWithInhabitantStore(t *testing.T) (*Server, *inhabitantstore.InhabitantFileStore) {
+	tempDir := t.TempDir()
 
-	// Create some inhabitants
+	strategy := document.NewNamingStrategyCaseDDDD("case")
+	docRepo, err := store.New(tempDir, "", strategy)
+	if err != nil {
+		t.Fatalf("failed to create doc repo: %v", err)
+	}
+
+	// Create file-based inhabitant store
+	inhabPath := t.TempDir()
+	inhabStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
+	inhabStore, err := inhabitantstore.New(inhabPath, inhabStrategy)
+	if err != nil {
+		t.Fatalf("failed to create inhabitant store: %v", err)
+	}
+
+	// Create auth database
+	authDBPath := t.TempDir() + "/auth.db"
+	db, err := database.New(t.TempDir()+"/app.db", authDBPath)
+	if err != nil {
+		t.Fatalf("failed to create database: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	authRepo := auth.NewSQLRepository(db.AuthDB)
+	authService := auth.NewService(authRepo)
+	inhabitantService := inhabitant.NewService(inhabStore)
+	documentService := document.NewDocumentService(docRepo, docRepo, nil, nil)
+
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password",
+		documentService, authService, inhabitantService, nil)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	return server, inhabStore
+}
+
+func TestHandleListInhabitants_Success(t *testing.T) {
+	server, inhabStore := setupTestServerWithInhabitantStore(t)
+
+	// Create some inhabitants using file-based store
 	ctx := context.Background()
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
 	for i := 0; i < 3; i++ {
-		_, err := inhabitantRepo.Create(ctx, &inhabitant.Inhabitant{
+		_, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
 			FirstName: "User",
 			LastName:  "Name" + string(rune('0'+byte(i))),
 		})
@@ -50,11 +94,10 @@ func TestHandleListInhabitants_Success(t *testing.T) {
 }
 
 func TestHandleGetInhabitant_Success(t *testing.T) {
-	server, db := setupTestServerWithDB(t)
+	server, inhabStore := setupTestServerWithInhabitantStore(t)
 
 	ctx := context.Background()
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
-	id, err := inhabitantRepo.Create(ctx, &inhabitant.Inhabitant{
+	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
 		FirstName: "John",
 		LastName:  "Doe",
 		ContactNo: "555-1234",
@@ -67,7 +110,7 @@ func TestHandleGetInhabitant_Success(t *testing.T) {
 	router := chi.NewRouter()
 	router.Get("/inhabitants/{id}", server.handleGetInhabitant())
 
-	req := httptest.NewRequest("GET", "/inhabitants/"+strconv.FormatInt(id, 10), nil)
+	req := httptest.NewRequest("GET", "/inhabitants/"+created.UUID, nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -87,7 +130,7 @@ func TestHandleGetInhabitant_Success(t *testing.T) {
 }
 
 func TestHandleCreateInhabitant_Success(t *testing.T) {
-	server, _ := setupTestServerWithDB(t)
+	server, _ := setupTestServerWithInhabitantStore(t)
 
 	reqBody := createInhabitantRequest{
 		FirstName: "Jane",
@@ -118,7 +161,7 @@ func TestHandleCreateInhabitant_Success(t *testing.T) {
 }
 
 func TestHandleCreateInhabitant_MissingRequired(t *testing.T) {
-	server, _ := setupTestServerWithDB(t)
+	server, _ := setupTestServerWithInhabitantStore(t)
 
 	reqBody := createInhabitantRequest{
 		FirstName: "John",
@@ -138,11 +181,10 @@ func TestHandleCreateInhabitant_MissingRequired(t *testing.T) {
 }
 
 func TestHandleUpdateInhabitant_Success(t *testing.T) {
-	server, db := setupTestServerWithDB(t)
+	server, inhabStore := setupTestServerWithInhabitantStore(t)
 
 	ctx := context.Background()
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
-	id, err := inhabitantRepo.Create(ctx, &inhabitant.Inhabitant{
+	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
 		FirstName: "John",
 		LastName:  "Doe",
 		ContactNo: "555-1111",
@@ -163,7 +205,7 @@ func TestHandleUpdateInhabitant_Success(t *testing.T) {
 	router := chi.NewRouter()
 	router.Put("/inhabitants/{id}", server.handleUpdateInhabitant())
 
-	req := httptest.NewRequest("PUT", "/inhabitants/"+strconv.FormatInt(id, 10), bytes.NewReader(body))
+	req := httptest.NewRequest("PUT", "/inhabitants/"+created.UUID, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -174,18 +216,17 @@ func TestHandleUpdateInhabitant_Success(t *testing.T) {
 	}
 
 	// Verify the update
-	updated, _ := inhabitantRepo.Get(ctx, id)
+	updated, _ := inhabStore.GetByUUID(ctx, created.UUID)
 	if updated.FirstName != "Jonathan" {
 		t.Errorf("expected first name Jonathan, got %q", updated.FirstName)
 	}
 }
 
 func TestHandleDeleteInhabitant_Success(t *testing.T) {
-	server, db := setupTestServerWithDB(t)
+	server, inhabStore := setupTestServerWithInhabitantStore(t)
 
 	ctx := context.Background()
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
-	id, err := inhabitantRepo.Create(ctx, &inhabitant.Inhabitant{
+	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
 		FirstName: "Alice",
 		LastName:  "Adams",
 	})
@@ -197,7 +238,7 @@ func TestHandleDeleteInhabitant_Success(t *testing.T) {
 	router := chi.NewRouter()
 	router.Delete("/inhabitants/{id}", server.handleDeleteInhabitant())
 
-	req := httptest.NewRequest("DELETE", "/inhabitants/"+strconv.FormatInt(id, 10), nil)
+	req := httptest.NewRequest("DELETE", "/inhabitants/"+created.UUID, nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -207,20 +248,20 @@ func TestHandleDeleteInhabitant_Success(t *testing.T) {
 	}
 
 	// Verify the deletion
-	_, err = inhabitantRepo.Get(ctx, id)
+	_, err = inhabStore.GetByUUID(ctx, created.UUID)
 	if err == nil {
 		t.Errorf("expected error after deletion")
 	}
 }
 
 func TestHandleDeleteInhabitant_NotFound(t *testing.T) {
-	server, _ := setupTestServerWithDB(t)
+	server, _ := setupTestServerWithInhabitantStore(t)
 
 	// Use chi router to properly set URL params
 	router := chi.NewRouter()
 	router.Delete("/inhabitants/{id}", server.handleDeleteInhabitant())
 
-	req := httptest.NewRequest("DELETE", "/inhabitants/9999", nil)
+	req := httptest.NewRequest("DELETE", "/inhabitants/99999999-9999-9999-9999-999999999999", nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
