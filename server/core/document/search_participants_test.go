@@ -28,6 +28,15 @@ func (m *mockSearchStore) Search(ctx context.Context, criteria SearchCriteria) (
 	return []*Document{}, nil
 }
 
+func (m *mockSearchStore) GetDocumentsByInhabitantCode(ctx context.Context, inhabitantCode string) ([]*Document, error) {
+	m.mu.Lock()
+	m.callCount++
+	m.mu.Unlock()
+
+	// Return empty by default (ID-based lookup will return empty, triggering fallback)
+	return []*Document{}, nil
+}
+
 func TestSearchByParticipants(t *testing.T) {
 	ctx := context.Background()
 
@@ -76,9 +85,9 @@ func TestSearchByParticipants(t *testing.T) {
 			t.Errorf("expected 2 results, got %d", len(results))
 		}
 
-		// Verify both searches were called (2 per name: complainants + respondents)
-		if mockStore.callCount != 2 {
-			t.Errorf("expected 2 search calls, got %d", mockStore.callCount)
+		// Verify searches were called: 1 ID lookup + 2 name searches (complainants + respondents)
+		if mockStore.callCount != 3 {
+			t.Errorf("expected 3 calls (1 ID lookup + 2 searches), got %d", mockStore.callCount)
 		}
 	})
 
@@ -147,9 +156,9 @@ func TestSearchByParticipants(t *testing.T) {
 			t.Errorf("expected 4 results, got %d", len(results))
 		}
 
-		// Verify parallel execution: 2 names × 2 fields = 4 calls
-		if mockStore.callCount != 4 {
-			t.Errorf("expected 4 parallel search calls, got %d", mockStore.callCount)
+		// Verify parallel execution: 2 names × 2 ID lookups + 2 names × 2 fields = 6 calls
+		if mockStore.callCount != 6 {
+			t.Errorf("expected 6 calls (2 ID lookups + 4 searches), got %d", mockStore.callCount)
 		}
 	})
 
@@ -199,9 +208,9 @@ func TestSearchByParticipants(t *testing.T) {
 			t.Errorf("expected 1 deduplicated result, got %d", len(results))
 		}
 
-		// Verify all name variations were searched (4 names × 2 fields = 8 calls)
-		if mockStore.callCount != 8 {
-			t.Errorf("expected 8 search calls for name variations, got %d", mockStore.callCount)
+		// Verify all name variations were searched: 4 ID lookups + 4 names × 2 fields = 12 calls
+		if mockStore.callCount != 12 {
+			t.Errorf("expected 12 calls (4 ID lookups + 8 searches), got %d", mockStore.callCount)
 		}
 	})
 
@@ -326,9 +335,9 @@ func TestMiddleNameHandling(t *testing.T) {
 			t.Errorf("expected 1 deduplicated result, got %d", len(results))
 		}
 
-		// Verify all 4 name formats were searched (4 names × 2 fields = 8 searches)
-		if mockStore.callCount != 8 {
-			t.Errorf("expected 8 searches for all name variations, got %d", mockStore.callCount)
+		// Verify all 4 name formats were searched: 4 ID lookups + 4 names × 2 fields = 12 calls
+		if mockStore.callCount != 12 {
+			t.Errorf("expected 12 calls (4 ID lookups + 8 searches), got %d", mockStore.callCount)
 		}
 	})
 }

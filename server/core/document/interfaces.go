@@ -13,6 +13,7 @@ type DocumentStore interface {
 	Delete(ctx context.Context, uuid string) error
 	List(ctx context.Context, offset int, limit int, sortBy string, sortDesc bool) ([]*Document, error)
 	Search(ctx context.Context, criteria SearchCriteria) ([]*Document, error)
+	GetDocumentsByInhabitantCode(ctx context.Context, inhabitantCode string) ([]*Document, error)
 }
 
 type FileStore interface {

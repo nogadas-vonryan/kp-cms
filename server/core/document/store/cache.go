@@ -108,6 +108,8 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 	r.lastConflicts = issues
 	r.mu.Unlock()
 
+	r.rebuildInhabitantIndex()
+
 	return issues, nil
 }
 
@@ -230,6 +232,7 @@ func (r *Store) addToCache(doc *document.Document) {
 func (r *Store) clearCache() {
 	r.documents = make(map[string]*document.Document)
 	r.codeToUUID = make(map[string]string)
+	r.inhabitantToDocs = make(map[string][]string)
 }
 
 func (r *Store) getCodes() []string {

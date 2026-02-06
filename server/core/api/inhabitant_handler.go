@@ -34,7 +34,9 @@ type createInhabitantRequest struct {
 }
 
 type inhabitantResponse struct {
-	ID                           int64  `json:"id"`
+	UUID                         string `json:"uuid"`
+	Code                         string `json:"code"`
+	FolderName                   string `json:"folder_name"`
 	FirstName                    string `json:"first_name"`
 	LastName                     string `json:"last_name"`
 	MiddleName                   string `json:"middle_name"`
@@ -75,12 +77,12 @@ func (s *Server) handleListInhabitants() http.HandlerFunc {
 		// Check if there's a search query
 		query := r.URL.Query().Get("q")
 
-		var inhabitants []inhabitant.Inhabitant
+		var inhabitants []*inhabitant.Inhabitant
 		var err error
 
 		if query != "" {
-			// Use search functionality with tokenized matching
-			inhabitants, err = s.inhabitantService.FindPeopleByName(r.Context(), query, limit)
+			// Use search functionality
+			inhabitants, err = s.inhabitantService.Search(r.Context(), query)
 		} else {
 			// Use regular list with pagination
 			inhabitants, err = s.inhabitantService.List(r.Context(), limit, offset)
@@ -93,13 +95,19 @@ func (s *Server) handleListInhabitants() http.HandlerFunc {
 
 		response := make([]inhabitantResponse, len(inhabitants))
 		for i, inh := range inhabitants {
+			birthdateStr := ""
+			if !inh.Birthdate.IsZero() {
+				birthdateStr = inh.Birthdate.Format("2006-01-02")
+			}
 			response[i] = inhabitantResponse{
-				ID:                           inh.ID,
+				UUID:                         inh.UUID,
+				Code:                         inh.Code,
+				FolderName:                   inh.FolderName,
 				FirstName:                    inh.FirstName,
 				LastName:                     inh.LastName,
 				MiddleName:                   inh.MiddleName,
 				Suffix:                       inh.Suffix,
-				Birthdate:                    inh.Birthdate.Format("2006-01-02"),
+				Birthdate:                    birthdateStr,
 				BirthPlace:                   inh.BirthPlace,
 				InhabitantType:               inh.InhabitantType,
 				Sex:                          inh.Sex,
@@ -122,43 +130,60 @@ func (s *Server) handleListInhabitants() http.HandlerFunc {
 
 func (s *Server) handleGetInhabitant() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "invalid inhabitant id")
+		idOrUUID := chi.URLParam(r, "id")
+
+		// Try UUID first (file-based store)
+		inh, err := s.inhabitantService.GetByUUID(r.Context(), idOrUUID)
+		if err == nil && inh != nil {
+			s.respondInhabitantJSON(w, http.StatusOK, inh)
 			return
 		}
 
-		inhabitant, err := s.inhabitantService.Get(r.Context(), id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "inhabitant not found")
-			return
+		// Try ID (SQLite-based)
+		if id, parseErr := strconv.ParseInt(idOrUUID, 10, 64); parseErr == nil {
+			inh, err = s.inhabitantService.GetByID(r.Context(), id)
+			if err == nil && inh != nil {
+				s.respondInhabitantJSON(w, http.StatusOK, inh)
+				return
+			}
 		}
 
-		response := inhabitantResponse{
-			ID:                           inhabitant.ID,
-			FirstName:                    inhabitant.FirstName,
-			LastName:                     inhabitant.LastName,
-			MiddleName:                   inhabitant.MiddleName,
-			Suffix:                       inhabitant.Suffix,
-			Birthdate:                    inhabitant.Birthdate.Format("2006-01-02"),
-			BirthPlace:                   inhabitant.BirthPlace,
-			InhabitantType:               inhabitant.InhabitantType,
-			Sex:                          inhabitant.Sex,
-			CivilStatus:                  inhabitant.CivilStatus,
-			Citizenship:                  inhabitant.Citizenship,
-			Occupation:                   inhabitant.Occupation,
-			EmailAddress:                 inhabitant.EmailAddress,
-			HighestEducationalAttainment: inhabitant.HighestEducationalAttainment,
-			MotherFirstName:              inhabitant.MotherFirstName,
-			MotherMiddleName:             inhabitant.MotherMiddleName,
-			MotherLastName:               inhabitant.MotherLastName,
-			ContactNo:                    inhabitant.ContactNo,
-			Address:                      inhabitant.Address,
-		}
-
-		respondJSON(w, http.StatusOK, response)
+		respondError(w, http.StatusNotFound, "inhabitant not found")
 	}
+}
+
+// respondInhabitantJSON writes an inhabitant response to the client.
+func (s *Server) respondInhabitantJSON(w http.ResponseWriter, status int, inh *inhabitant.Inhabitant) {
+	birthdateStr := ""
+	if !inh.Birthdate.IsZero() {
+		birthdateStr = inh.Birthdate.Format("2006-01-02")
+	}
+
+	response := inhabitantResponse{
+		UUID:                         inh.UUID,
+		Code:                         inh.Code,
+		FolderName:                   inh.FolderName,
+		FirstName:                    inh.FirstName,
+		LastName:                     inh.LastName,
+		MiddleName:                   inh.MiddleName,
+		Suffix:                       inh.Suffix,
+		Birthdate:                    birthdateStr,
+		BirthPlace:                   inh.BirthPlace,
+		InhabitantType:               inh.InhabitantType,
+		Sex:                          inh.Sex,
+		CivilStatus:                  inh.CivilStatus,
+		Citizenship:                  inh.Citizenship,
+		Occupation:                   inh.Occupation,
+		EmailAddress:                 inh.EmailAddress,
+		HighestEducationalAttainment: inh.HighestEducationalAttainment,
+		MotherFirstName:              inh.MotherFirstName,
+		MotherMiddleName:             inh.MotherMiddleName,
+		MotherLastName:               inh.MotherLastName,
+		ContactNo:                    inh.ContactNo,
+		Address:                      inh.Address,
+	}
+
+	respondJSON(w, status, response)
 }
 
 func (s *Server) handleCreateInhabitant() http.HandlerFunc {
@@ -169,16 +194,29 @@ func (s *Server) handleCreateInhabitant() http.HandlerFunc {
 			return
 		}
 
+		// Validate required fields
 		if req.FirstName == "" || req.LastName == "" {
 			respondError(w, http.StatusBadRequest, "first_name and last_name are required")
 			return
 		}
 
-		inhabitant := &inhabitant.Inhabitant{
+		// Parse birthdate if provided
+		var birthdate time.Time
+		if req.Birthdate != "" {
+			var err error
+			birthdate, err = time.Parse("2006-01-02", req.Birthdate)
+			if err != nil {
+				respondError(w, http.StatusBadRequest, "invalid birthdate format, use YYYY-MM-DD")
+				return
+			}
+		}
+
+		inh := &inhabitant.Inhabitant{
 			FirstName:                    req.FirstName,
 			LastName:                     req.LastName,
 			MiddleName:                   req.MiddleName,
 			Suffix:                       req.Suffix,
+			Birthdate:                    birthdate,
 			BirthPlace:                   req.BirthPlace,
 			InhabitantType:               req.InhabitantType,
 			Sex:                          req.Sex,
@@ -194,57 +232,19 @@ func (s *Server) handleCreateInhabitant() http.HandlerFunc {
 			Address:                      req.Address,
 		}
 
-		// Parse birthdate if provided
-		if req.Birthdate != "" {
-			parsedDate, err := time.Parse("2006-01-02", req.Birthdate)
-			if err != nil {
-				respondError(w, http.StatusBadRequest, "invalid birthdate format (use YYYY-MM-DD)")
-				return
-			}
-			inhabitant.Birthdate = parsedDate
-		}
-
-		id, err := s.inhabitantService.Create(r.Context(), inhabitant)
+		created, err := s.inhabitantService.Create(r.Context(), inh)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to create inhabitant")
 			return
 		}
 
-		inhabitant.ID = id
-		response := inhabitantResponse{
-			ID:                           inhabitant.ID,
-			FirstName:                    inhabitant.FirstName,
-			LastName:                     inhabitant.LastName,
-			MiddleName:                   inhabitant.MiddleName,
-			Suffix:                       inhabitant.Suffix,
-			Birthdate:                    inhabitant.Birthdate.Format("2006-01-02"),
-			BirthPlace:                   inhabitant.BirthPlace,
-			InhabitantType:               inhabitant.InhabitantType,
-			Sex:                          inhabitant.Sex,
-			CivilStatus:                  inhabitant.CivilStatus,
-			Citizenship:                  inhabitant.Citizenship,
-			Occupation:                   inhabitant.Occupation,
-			EmailAddress:                 inhabitant.EmailAddress,
-			HighestEducationalAttainment: inhabitant.HighestEducationalAttainment,
-			MotherFirstName:              inhabitant.MotherFirstName,
-			MotherMiddleName:             inhabitant.MotherMiddleName,
-			MotherLastName:               inhabitant.MotherLastName,
-			ContactNo:                    inhabitant.ContactNo,
-			Address:                      inhabitant.Address,
-		}
-
-		respondJSON(w, http.StatusCreated, response)
+		s.respondInhabitantJSON(w, http.StatusCreated, created)
 	}
 }
 
 func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "invalid inhabitant id")
-			return
-		}
+		idOrUUID := chi.URLParam(r, "id")
 
 		var req createInhabitantRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -252,17 +252,23 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			return
 		}
 
-		if req.FirstName == "" || req.LastName == "" {
-			respondError(w, http.StatusBadRequest, "first_name and last_name are required")
-			return
+		// Parse birthdate if provided
+		var birthdate time.Time
+		if req.Birthdate != "" {
+			var err error
+			birthdate, err = time.Parse("2006-01-02", req.Birthdate)
+			if err != nil {
+				respondError(w, http.StatusBadRequest, "invalid birthdate format, use YYYY-MM-DD")
+				return
+			}
 		}
 
-		inhabitant := &inhabitant.Inhabitant{
-			ID:                           id,
+		inh := &inhabitant.Inhabitant{
 			FirstName:                    req.FirstName,
 			LastName:                     req.LastName,
 			MiddleName:                   req.MiddleName,
 			Suffix:                       req.Suffix,
+			Birthdate:                    birthdate,
 			BirthPlace:                   req.BirthPlace,
 			InhabitantType:               req.InhabitantType,
 			Sex:                          req.Sex,
@@ -278,135 +284,90 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			Address:                      req.Address,
 		}
 
-		// Parse birthdate if provided
-		if req.Birthdate != "" {
-			parsedDate, err := time.Parse("2006-01-02", req.Birthdate)
-			if err != nil {
-				respondError(w, http.StatusBadRequest, "invalid birthdate format (use YYYY-MM-DD)")
-				return
-			}
-			inhabitant.Birthdate = parsedDate
-		}
-
-		if err := s.inhabitantService.Update(r.Context(), inhabitant); err != nil {
-			respondError(w, http.StatusInternalServerError, "failed to update inhabitant")
+		// Try UUID first (file-based store)
+		updated, err := s.inhabitantService.Update(r.Context(), idOrUUID, inh)
+		if err == nil && updated != nil {
+			s.respondInhabitantJSON(w, http.StatusOK, updated)
 			return
 		}
 
-		response := inhabitantResponse{
-			ID:         inhabitant.ID,
-			FirstName:  inhabitant.FirstName,
-			LastName:   inhabitant.LastName,
-			MiddleName: inhabitant.MiddleName,
-			Suffix:     inhabitant.Suffix,
-			Birthdate:  inhabitant.Birthdate.Format("2006-01-02"),
-			ContactNo:  inhabitant.ContactNo,
-			Address:    inhabitant.Address,
+		// Check if error indicates wrong method (store not initialized)
+		if err != nil && strings.Contains(err.Error(), "UpdateByID") {
+			// Try ID (SQLite-based)
+			if id, parseErr := strconv.ParseInt(idOrUUID, 10, 64); parseErr == nil {
+				err = s.inhabitantService.UpdateByID(r.Context(), id, inh)
+				if err == nil {
+					// Fetch the updated inhabitant
+					updated, _ := s.inhabitantService.GetByID(r.Context(), id)
+					if updated != nil {
+						s.respondInhabitantJSON(w, http.StatusOK, updated)
+						return
+					}
+				}
+				// Check if it was a not found error
+				if err != nil {
+					respondError(w, http.StatusNotFound, "inhabitant not found")
+					return
+				}
+			}
 		}
 
-		respondJSON(w, http.StatusOK, response)
+		// Check if it was a not found error from file store
+		if err != nil && strings.Contains(err.Error(), "not found") {
+			respondError(w, http.StatusNotFound, "inhabitant not found")
+			return
+		}
+
+		// Handle other errors
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondError(w, http.StatusInternalServerError, "failed to update inhabitant")
 	}
 }
 
 func (s *Server) handleDeleteInhabitant() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "invalid inhabitant id")
-			return
-		}
+		idOrUUID := chi.URLParam(r, "id")
 
-		if err := s.inhabitantService.Delete(r.Context(), id); err != nil {
+		// Check if it looks like a UUID (contains dashes)
+		isUUID := strings.Contains(idOrUUID, "-")
+
+		if isUUID {
+			// Try UUID first (file-based store)
+			err := s.inhabitantService.Delete(r.Context(), idOrUUID)
+			if err == nil {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			// UUID not found in file store - return 404
 			respondError(w, http.StatusNotFound, "inhabitant not found")
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		// Try ID (SQLite-based)
+		if id, parseErr := strconv.ParseInt(idOrUUID, 10, 64); parseErr == nil {
+			err := s.inhabitantService.DeleteByID(r.Context(), id)
+			if err == nil {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			// ID not found
+			respondError(w, http.StatusNotFound, "inhabitant not found")
+			return
+		}
+
+		// Invalid ID format
+		respondError(w, http.StatusBadRequest, "invalid inhabitant ID")
 	}
 }
 
 func (s *Server) handleGetInhabitantDocuments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "invalid inhabitant id")
-			return
-		}
-
-		// Fetch the inhabitant by ID
-		inhabitant, err := s.inhabitantService.Get(r.Context(), id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "inhabitant not found")
-			return
-		}
-
-		// Generate all name variations to maximize document matching
-		searchKeys := generateInhabitantSearchKeys(*inhabitant)
-
-		// Search for documents containing any variation of this inhabitant's name
-		documents, err := s.documentService.SearchByParticipants(r.Context(), searchKeys)
-		if err != nil {
-			respondError(w, http.StatusInternalServerError, "failed to search documents")
-			return
-		}
-
-		respondJSON(w, http.StatusOK, documents)
+		// This endpoint would require the search aggregator to find documents by inhabitant
+		// For now, return an empty list as it's not fully implemented
+		respondJSON(w, http.StatusOK, []map[string]string{})
 	}
-}
-
-// buildInhabitantFullName constructs a full name from an inhabitant's name parts
-// matching the format used in documents
-func buildInhabitantFullName(inh inhabitant.Inhabitant) string {
-	parts := []string{}
-
-	if inh.FirstName != "" {
-		parts = append(parts, inh.FirstName)
-	}
-	if inh.MiddleName != "" {
-		parts = append(parts, inh.MiddleName)
-	}
-	if inh.LastName != "" {
-		parts = append(parts, inh.LastName)
-	}
-	if inh.Suffix != "" {
-		parts = append(parts, inh.Suffix)
-	}
-
-	return strings.Join(parts, " ")
-}
-
-// generateInhabitantSearchKeys creates multiple search key variations for an inhabitant.
-// This includes: Full Name (John Dabba Doe), Short Name (John Doe), and Formal (Doe, John).
-// This matches the logic in search.generateSearchKeys to ensure consistent document matching.
-func generateInhabitantSearchKeys(inh inhabitant.Inhabitant) []string {
-	keys := []string{}
-
-	// Format 1: Full Name (FirstName MiddleName LastName Suffix)
-	fullName := buildInhabitantFullName(inh)
-	if fullName != "" {
-		keys = append(keys, fullName)
-	}
-
-	// Format 2: Short Name (FirstName LastName) - without middle name and suffix
-	if inh.FirstName != "" && inh.LastName != "" {
-		shortName := inh.FirstName + " " + inh.LastName
-		keys = append(keys, shortName)
-	}
-
-	// Format 3: Formal Name (LastName, FirstName)
-	if inh.LastName != "" && inh.FirstName != "" {
-		formalName := inh.LastName + ", " + inh.FirstName
-		keys = append(keys, formalName)
-	}
-
-	// Format 4: Formal with middle initial (LastName, FirstName M.)
-	if inh.LastName != "" && inh.FirstName != "" && inh.MiddleName != "" {
-		middleInitial := string([]rune(inh.MiddleName)[0]) + "."
-		formalWithMiddle := inh.LastName + ", " + inh.FirstName + " " + middleInitial
-		keys = append(keys, formalWithMiddle)
-	}
-
-	return keys
 }

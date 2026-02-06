@@ -165,11 +165,37 @@ func (s *DocumentService) Search(ctx context.Context, criteria SearchCriteria) (
 // appears in either the complainants or respondents fields.
 // This method is used by the search aggregator for cross-domain searches.
 // It uses parallel execution for improved performance.
+// If participant_ids are available in documents, it first tries ID-based matching
+// and falls back to name-based search for legacy documents.
 func (s *DocumentService) SearchByParticipants(ctx context.Context, names []string) ([]*Document, error) {
 	if len(names) == 0 {
 		return []*Document{}, nil
 	}
 
+	// First, try ID-based search using the reverse index
+	// This is more efficient and accurate when participant_ids are set
+	idMatchedDocs := make(map[string]*Document)
+	for _, name := range names {
+		docs, err := s.docs.GetDocumentsByInhabitantCode(ctx, name)
+		if err != nil {
+			// Log but continue with fallback
+			continue
+		}
+		for _, doc := range docs {
+			idMatchedDocs[doc.UUID] = doc
+		}
+	}
+
+	// If we found documents via ID matching, return them
+	if len(idMatchedDocs) > 0 {
+		results := make([]*Document, 0, len(idMatchedDocs))
+		for _, doc := range idMatchedDocs {
+			results = append(results, doc)
+		}
+		return results, nil
+	}
+
+	// Fallback: name-based search for legacy documents without participant_ids
 	type searchResult struct {
 		docs []*Document
 		err  error
@@ -254,6 +280,11 @@ func (s *DocumentService) CreateBackup(ctx context.Context, onProgress func(floa
 
 func (s *DocumentService) RestoreFromLocalPath(ctx context.Context, fileName string, overwrite bool, onProgress func(float64)) error {
 	return s.backups.RestoreFromLocalPath(ctx, fileName, overwrite, onProgress)
+}
+
+// GetDocumentsByInhabitantCode returns all documents linked to a specific inhabitant code.
+func (s *DocumentService) GetDocumentsByInhabitantCode(ctx context.Context, inhabitantCode string) ([]*Document, error) {
+	return s.docs.GetDocumentsByInhabitantCode(ctx, inhabitantCode)
 }
 
 func validateDocumentTitle(title string) error {

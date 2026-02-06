@@ -93,14 +93,15 @@ func (r *Store) GetByUUID(ctx context.Context, uuidValue string) (*document.Docu
 	}
 
 	resp := &document.Document{
-		UUID:       doc.UUID,
-		Code:       doc.Code,
-		FolderName: doc.FolderName,
-		Title:      doc.Title,
-		Fields:     doc.Fields,
-		Files:      files,
-		CreatedAt:  doc.CreatedAt,
-		UpdatedAt:  doc.UpdatedAt,
+		UUID:           doc.UUID,
+		Code:           doc.Code,
+		FolderName:     doc.FolderName,
+		Title:          doc.Title,
+		Fields:         doc.Fields,
+		ParticipantIDs: doc.ParticipantIDs,
+		Files:          files,
+		CreatedAt:      doc.CreatedAt,
+		UpdatedAt:      doc.UpdatedAt,
 	}
 	return resp, nil
 }
@@ -129,14 +130,15 @@ func (r *Store) GetByCode(ctx context.Context, code string) (*document.Document,
 	}
 
 	resp := &document.Document{
-		UUID:       doc.UUID,
-		Code:       doc.Code,
-		FolderName: doc.FolderName,
-		Title:      doc.Title,
-		Fields:     doc.Fields,
-		Files:      files,
-		CreatedAt:  doc.CreatedAt,
-		UpdatedAt:  doc.UpdatedAt,
+		UUID:           doc.UUID,
+		Code:           doc.Code,
+		FolderName:     doc.FolderName,
+		Title:          doc.Title,
+		Fields:         doc.Fields,
+		ParticipantIDs: doc.ParticipantIDs,
+		Files:          files,
+		CreatedAt:      doc.CreatedAt,
+		UpdatedAt:      doc.UpdatedAt,
 	}
 	return resp, nil
 }
@@ -165,6 +167,10 @@ func (r *Store) Update(ctx context.Context, uuidValue string, doc *document.Docu
 	if updated.Fields == nil {
 		updated.Fields = map[string]any{}
 	}
+	// Preserve existing ParticipantIDs if not explicitly provided
+	if updated.ParticipantIDs == nil {
+		updated.ParticipantIDs = existing.ParticipantIDs
+	}
 
 	metaPath := filepath.Join(r.basePath, existing.FolderName, "meta.json")
 	if err := writeDocument(metaPath, &updated); err != nil {
@@ -174,6 +180,7 @@ func (r *Store) Update(ctx context.Context, uuidValue string, doc *document.Docu
 	r.mu.Lock()
 	r.addToCache(&updated)
 	r.rebuildSortedCodesLocked()
+	r.rebuildInhabitantIndex()
 	r.mu.Unlock()
 
 	return &updated, nil
@@ -198,6 +205,7 @@ func (r *Store) Delete(ctx context.Context, uuidValue string) error {
 	delete(r.documents, uuidValue)
 	delete(r.codeToUUID, doc.Code)
 	r.rebuildSortedCodesLocked()
+	r.rebuildInhabitantIndex()
 	r.mu.Unlock()
 
 	return nil
@@ -218,14 +226,15 @@ func (r *Store) List(ctx context.Context, offset int, limit int, sortBy string, 
 		}
 
 		return &document.Document{
-			UUID:       doc.UUID,
-			Code:       doc.Code,
-			FolderName: doc.FolderName,
-			Title:      doc.Title,
-			Fields:     doc.Fields,
-			Files:      files,
-			CreatedAt:  doc.CreatedAt,
-			UpdatedAt:  doc.UpdatedAt,
+			UUID:           doc.UUID,
+			Code:           doc.Code,
+			FolderName:     doc.FolderName,
+			Title:          doc.Title,
+			Fields:         doc.Fields,
+			ParticipantIDs: doc.ParticipantIDs,
+			Files:          files,
+			CreatedAt:      doc.CreatedAt,
+			UpdatedAt:      doc.UpdatedAt,
 		}, nil
 	}
 
@@ -294,4 +303,71 @@ func (r *Store) GetDocumentFolderPath(ctx context.Context, uuid string) (string,
 	}
 
 	return r.getDocumentPath(doc.FolderName), nil
+}
+
+// GetDocumentsByInhabitantCode returns all documents linked to a specific inhabitant code.
+// Uses the reverse index built from document.ParticipantIDs.
+func (r *Store) GetDocumentsByInhabitantCode(ctx context.Context, inhabitantCode string) ([]*document.Document, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+
+	if inhabitantCode == "" {
+		return []*document.Document{}, nil
+	}
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	docUUIDs, exists := r.inhabitantToDocs[inhabitantCode]
+	if !exists {
+		return []*document.Document{}, nil
+	}
+
+	result := make([]*document.Document, 0, len(docUUIDs))
+	for _, uuid := range docUUIDs {
+		doc, exists := r.documents[uuid]
+		if !exists {
+			continue
+		}
+
+		files, err := r.readFiles(doc.FolderName)
+		if err != nil {
+			continue
+		}
+
+		result = append(result, &document.Document{
+			UUID:           doc.UUID,
+			Code:           doc.Code,
+			FolderName:     doc.FolderName,
+			Title:          doc.Title,
+			Fields:         doc.Fields,
+			ParticipantIDs: doc.ParticipantIDs,
+			Files:          files,
+			CreatedAt:      doc.CreatedAt,
+			UpdatedAt:      doc.UpdatedAt,
+		})
+	}
+
+	return result, nil
+}
+
+// rebuildInhabitantIndex rebuilds the reverse index mapping inhabitant codes to document UUIDs.
+// Called during cache reload.
+func (r *Store) rebuildInhabitantIndex() {
+	r.inhabitantToDocs = make(map[string][]string)
+
+	for _, doc := range r.documents {
+		if doc.ParticipantIDs == nil {
+			continue
+		}
+
+		for _, code := range doc.ParticipantIDs.Complainants {
+			r.inhabitantToDocs[code] = append(r.inhabitantToDocs[code], doc.UUID)
+		}
+
+		for _, code := range doc.ParticipantIDs.Respondents {
+			r.inhabitantToDocs[code] = append(r.inhabitantToDocs[code], doc.UUID)
+		}
+	}
 }

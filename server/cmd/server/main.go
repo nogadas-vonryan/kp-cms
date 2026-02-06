@@ -8,6 +8,7 @@ import (
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	inhabitantstore "kpcms/server/core/inhabitant/store"
 	"kpcms/server/core/search"
 	"log"
 	"os"
@@ -23,6 +24,7 @@ func main() {
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
+	fileInhabitants := flag.Bool("file-inhabitants", false, "Use file-based inhabitant storage instead of SQLite")
 	flag.Parse()
 
 	if *pass == "" {
@@ -61,9 +63,24 @@ func main() {
 	defer db.Close()
 
 	authRepo := auth.NewSQLRepository(db.AuthDB)
-	inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
 	authService := auth.NewService(authRepo)
-	inhabitantService := inhabitant.NewService(inhabitantRepo)
+
+	var inhabitantService *inhabitant.Service
+	if *fileInhabitants {
+		log.Printf("Using file-based inhabitant storage")
+		inhabPath := filepath.Join(*dataPath, "inhabitants")
+		namingStrategy := document.NewNamingStrategyPrefixDDDYY("inhabitant")
+		inhabitantFileStore, err := inhabitantstore.New(inhabPath, namingStrategy)
+		if err != nil {
+			log.Fatalf("Failed to create inhabitant file store: %v", err)
+		}
+		inhabitantService = inhabitant.NewServiceWithStore(inhabitantFileStore)
+	} else {
+		log.Printf("Using SQLite-based inhabitant storage")
+		inhabitantRepo := inhabitant.NewSQLRepository(db.AppDB)
+		inhabitantService = inhabitant.NewService(inhabitantRepo)
+	}
+
 	documentService := document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository)
 
 	// Create the aggregator service for cross-domain searches

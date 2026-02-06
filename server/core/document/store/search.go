@@ -30,14 +30,15 @@ func (r *Store) Search(ctx context.Context, criteria document.SearchCriteria) ([
 		}
 
 		result := &document.Document{
-			UUID:       doc.UUID,
-			Code:       doc.Code,
-			FolderName: doc.FolderName,
-			Title:      doc.Title,
-			Fields:     doc.Fields,
-			Files:      files,
-			CreatedAt:  doc.CreatedAt,
-			UpdatedAt:  doc.UpdatedAt,
+			UUID:           doc.UUID,
+			Code:           doc.Code,
+			FolderName:     doc.FolderName,
+			Title:          doc.Title,
+			Fields:         doc.Fields,
+			ParticipantIDs: doc.ParticipantIDs,
+			Files:          files,
+			CreatedAt:      doc.CreatedAt,
+			UpdatedAt:      doc.UpdatedAt,
 		}
 		results = append(results, result)
 	}

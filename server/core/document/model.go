@@ -4,14 +4,23 @@ import "time"
 
 // This is saved on meta.json on each document's folder
 type Document struct {
-	UUID       string         `json:"uuid"`
-	Code       string         `json:"code"`
-	FolderName string         `json:"folder_name"`
-	Title      string         `json:"title"`
-	Fields     map[string]any `json:"fields"`
-	Files      []File         `json:"files"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	UUID           string            `json:"uuid"`
+	Code           string            `json:"code"`
+	FolderName     string            `json:"folder_name"`
+	Title          string            `json:"title"`
+	Fields         map[string]any    `json:"fields"`
+	ParticipantIDs *ParticipantLinks `json:"participant_ids,omitempty"`
+	Files          []File            `json:"files"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
+}
+
+// ParticipantLinks stores explicit IDs linking participants (inhabitants) to documents.
+// This is the primary mechanism for document-inhabitant relationships.
+// The format is "inhabitant-XXX-YY" where XXX is the code and YY is the year.
+type ParticipantLinks struct {
+	Complainants []string `json:"complainants,omitempty"`
+	Respondents  []string `json:"respondents,omitempty"`
 }
 
 type File struct {
