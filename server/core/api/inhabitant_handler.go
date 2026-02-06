@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"kpcms/server/core/document"
 	"kpcms/server/core/inhabitant"
 
 	"github.com/go-chi/chi/v5"
@@ -315,8 +316,49 @@ func (s *Server) handleDeleteInhabitant() http.HandlerFunc {
 
 func (s *Server) handleGetInhabitantDocuments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// This endpoint would require the search aggregator to find documents by inhabitant
-		// For now, return an empty list as it's not fully implemented
-		respondJSON(w, http.StatusOK, []map[string]string{})
+		idOrUUID := chi.URLParam(r, "id")
+
+		// Try to get inhabitant by UUID first
+		inh, err := s.inhabitantService.GetByUUID(r.Context(), idOrUUID)
+		if err != nil {
+			// Try by code as fallback
+			inh, err = s.inhabitantService.GetByCode(r.Context(), idOrUUID)
+			if err != nil {
+				respondError(w, http.StatusNotFound, "inhabitant not found")
+				return
+			}
+		}
+
+		// Build the inhabitant code for lookup
+		// The format is "inhabitant-XXX-YY" or just "XXX-YY"
+		inhabitantCode := inh.FolderName
+		if inhabitantCode == "" {
+			inhabitantCode = "inhabitant-" + inh.Code
+		}
+
+		// Get documents linked to this inhabitant
+		docs, err := s.documentService.GetDocumentsByInhabitantCode(r.Context(), inhabitantCode)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to get documents")
+			return
+		}
+
+		// Convert to response format
+		response := make([]document.Document, len(docs))
+		for i, doc := range docs {
+			response[i] = document.Document{
+				UUID:           doc.UUID,
+				Code:           doc.Code,
+				FolderName:     doc.FolderName,
+				Title:          doc.Title,
+				Fields:         doc.Fields,
+				ParticipantIDs: doc.ParticipantIDs,
+				Files:          doc.Files,
+				CreatedAt:      doc.CreatedAt,
+				UpdatedAt:      doc.UpdatedAt,
+			}
+		}
+
+		respondJSON(w, http.StatusOK, response)
 	}
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func setupTestServerWithInhabitantStore(t *testing.T) (*Server, *inhabitantstore.InhabitantFileStore) {
+func setupTestServerWithInhabitantStore(t *testing.T) (*Server, *inhabitantstore.InhabitantFileStore, *store.Store) {
 	tempDir := t.TempDir()
 
 	strategy := document.NewNamingStrategyCaseDDDD("case")
@@ -56,11 +56,11 @@ func setupTestServerWithInhabitantStore(t *testing.T) (*Server, *inhabitantstore
 		t.Fatalf("failed to create server: %v", err)
 	}
 
-	return server, inhabStore
+	return server, inhabStore, docRepo
 }
 
 func TestHandleListInhabitants_Success(t *testing.T) {
-	server, inhabStore := setupTestServerWithInhabitantStore(t)
+	server, inhabStore, _ := setupTestServerWithInhabitantStore(t)
 
 	// Create some inhabitants using file-based store
 	ctx := context.Background()
@@ -94,7 +94,7 @@ func TestHandleListInhabitants_Success(t *testing.T) {
 }
 
 func TestHandleGetInhabitant_Success(t *testing.T) {
-	server, inhabStore := setupTestServerWithInhabitantStore(t)
+	server, inhabStore, _ := setupTestServerWithInhabitantStore(t)
 
 	ctx := context.Background()
 	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
@@ -130,7 +130,7 @@ func TestHandleGetInhabitant_Success(t *testing.T) {
 }
 
 func TestHandleCreateInhabitant_Success(t *testing.T) {
-	server, _ := setupTestServerWithInhabitantStore(t)
+	server, _, _ := setupTestServerWithInhabitantStore(t)
 
 	reqBody := createInhabitantRequest{
 		FirstName: "Jane",
@@ -161,7 +161,7 @@ func TestHandleCreateInhabitant_Success(t *testing.T) {
 }
 
 func TestHandleCreateInhabitant_MissingRequired(t *testing.T) {
-	server, _ := setupTestServerWithInhabitantStore(t)
+	server, _, _ := setupTestServerWithInhabitantStore(t)
 
 	reqBody := createInhabitantRequest{
 		FirstName: "John",
@@ -181,7 +181,7 @@ func TestHandleCreateInhabitant_MissingRequired(t *testing.T) {
 }
 
 func TestHandleUpdateInhabitant_Success(t *testing.T) {
-	server, inhabStore := setupTestServerWithInhabitantStore(t)
+	server, inhabStore, _ := setupTestServerWithInhabitantStore(t)
 
 	ctx := context.Background()
 	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
@@ -223,7 +223,7 @@ func TestHandleUpdateInhabitant_Success(t *testing.T) {
 }
 
 func TestHandleDeleteInhabitant_Success(t *testing.T) {
-	server, inhabStore := setupTestServerWithInhabitantStore(t)
+	server, inhabStore, _ := setupTestServerWithInhabitantStore(t)
 
 	ctx := context.Background()
 	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
@@ -255,7 +255,7 @@ func TestHandleDeleteInhabitant_Success(t *testing.T) {
 }
 
 func TestHandleDeleteInhabitant_NotFound(t *testing.T) {
-	server, _ := setupTestServerWithInhabitantStore(t)
+	server, _, _ := setupTestServerWithInhabitantStore(t)
 
 	// Use chi router to properly set URL params
 	router := chi.NewRouter()
@@ -268,5 +268,218 @@ func TestHandleDeleteInhabitant_NotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status 404, got %d", w.Code)
+	}
+}
+
+// === Tests for handleGetInhabitantDocuments ===
+
+func TestHandleGetInhabitantDocuments_WithLinkedDocuments(t *testing.T) {
+	server, inhabStore, docRepo := setupTestServerWithInhabitantStore(t)
+
+	ctx := context.Background()
+
+	// Create an inhabitant
+	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
+		FirstName: "John",
+		LastName:  "Doe",
+	})
+	if err != nil {
+		t.Fatalf("failed to create inhabitant: %v", err)
+	}
+
+	// Create documents linked to this inhabitant
+	inhabitantCode := created.FolderName
+
+	doc1, err := docRepo.Create(ctx, &document.Document{
+		Title: "Case 001 - John as Complainant",
+		ParticipantIDs: &document.ParticipantLinks{
+			Complainants: []string{inhabitantCode},
+			Respondents:  []string{"inhabitant-other-26"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create document 1: %v", err)
+	}
+
+	doc2, err := docRepo.Create(ctx, &document.Document{
+		Title: "Case 002 - John as Respondent",
+		ParticipantIDs: &document.ParticipantLinks{
+			Complainants: []string{"inhabitant-other2-26"},
+			Respondents:  []string{inhabitantCode},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create document 2: %v", err)
+	}
+
+	// Reload cache to populate the index
+	_, err = docRepo.ReloadCache(ctx)
+	if err != nil {
+		t.Fatalf("failed to reload cache: %v", err)
+	}
+
+	// Use chi router to properly set URL params
+	router := chi.NewRouter()
+	router.Get("/inhabitants/{id}/documents", server.handleGetInhabitantDocuments())
+
+	req := httptest.NewRequest("GET", "/inhabitants/"+created.UUID+"/documents", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var docs []document.Document
+	if err := json.Unmarshal(w.Body.Bytes(), &docs); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if len(docs) != 2 {
+		t.Errorf("expected 2 documents, got %d", len(docs))
+	}
+
+	// Verify the documents contain the correct data
+	docUUIDs := make(map[string]bool)
+	for _, doc := range docs {
+		docUUIDs[doc.UUID] = true
+		if doc.Title == "" {
+			t.Error("document title should not be empty")
+		}
+	}
+
+	if !docUUIDs[doc1.UUID] {
+		t.Error("expected document 1 to be in response")
+	}
+	if !docUUIDs[doc2.UUID] {
+		t.Error("expected document 2 to be in response")
+	}
+}
+
+func TestHandleGetInhabitantDocuments_NotFound(t *testing.T) {
+	server, _, _ := setupTestServerWithInhabitantStore(t)
+
+	// Use chi router to properly set URL params
+	router := chi.NewRouter()
+	router.Get("/inhabitants/{id}/documents", server.handleGetInhabitantDocuments())
+
+	req := httptest.NewRequest("GET", "/inhabitants/99999999-9999-9999-9999-999999999999/documents", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestHandleGetInhabitantDocuments_NoLinks(t *testing.T) {
+	server, inhabStore, docRepo := setupTestServerWithInhabitantStore(t)
+
+	ctx := context.Background()
+
+	// Create an inhabitant
+	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
+		FirstName: "Jane",
+		LastName:  "Smith",
+	})
+	if err != nil {
+		t.Fatalf("failed to create inhabitant: %v", err)
+	}
+
+	// Create a document NOT linked to this inhabitant
+	_, err = docRepo.Create(ctx, &document.Document{
+		Title: "Case with different participants",
+		ParticipantIDs: &document.ParticipantLinks{
+			Complainants: []string{"inhabitant-other-26"},
+			Respondents:  []string{"inhabitant-another-26"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create document: %v", err)
+	}
+
+	// Reload cache to populate the index
+	_, err = docRepo.ReloadCache(ctx)
+	if err != nil {
+		t.Fatalf("failed to reload cache: %v", err)
+	}
+
+	// Use chi router to properly set URL params
+	router := chi.NewRouter()
+	router.Get("/inhabitants/{id}/documents", server.handleGetInhabitantDocuments())
+
+	req := httptest.NewRequest("GET", "/inhabitants/"+created.UUID+"/documents", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var docs []document.Document
+	if err := json.Unmarshal(w.Body.Bytes(), &docs); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if len(docs) != 0 {
+		t.Errorf("expected 0 documents (no links), got %d", len(docs))
+	}
+}
+
+func TestHandleGetInhabitantDocuments_ByCode(t *testing.T) {
+	server, inhabStore, docRepo := setupTestServerWithInhabitantStore(t)
+
+	ctx := context.Background()
+
+	// Create an inhabitant
+	created, err := inhabStore.Create(ctx, &inhabitant.Inhabitant{
+		FirstName: "Bob",
+		LastName:  "Johnson",
+	})
+	if err != nil {
+		t.Fatalf("failed to create inhabitant: %v", err)
+	}
+
+	// Create a document linked to this inhabitant
+	inhabitantCode := created.FolderName
+	_, err = docRepo.Create(ctx, &document.Document{
+		Title: "Case linked to Bob",
+		ParticipantIDs: &document.ParticipantLinks{
+			Complainants: []string{inhabitantCode},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create document: %v", err)
+	}
+
+	// Reload cache to populate the index
+	_, err = docRepo.ReloadCache(ctx)
+	if err != nil {
+		t.Fatalf("failed to reload cache: %v", err)
+	}
+
+	// Use chi router with code instead of UUID
+	router := chi.NewRouter()
+	router.Get("/inhabitants/{id}/documents", server.handleGetInhabitantDocuments())
+
+	req := httptest.NewRequest("GET", "/inhabitants/"+created.Code+"/documents", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var docs []document.Document
+	if err := json.Unmarshal(w.Body.Bytes(), &docs); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if len(docs) != 1 {
+		t.Errorf("expected 1 document, got %d", len(docs))
 	}
 }
