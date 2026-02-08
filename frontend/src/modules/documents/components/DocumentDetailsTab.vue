@@ -84,7 +84,7 @@
               <!-- Field Header -->
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900">{{ formatLabel(key) }}</span>
-                <div v-if="isEditing && key !== 'complainant_ids' && key !== 'respondent_ids'" class="flex gap-2">
+                <div v-if="isEditing && key !== 'complainant_ids' && key !== 'respondent_ids' && key !== 'complainants' && key !== 'respondents'" class="flex gap-2">
                   <button v-if="!Array.isArray(value)" @click="convertToArray(key)" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded">Make Array</button>
                   <button v-else @click="convertToText(key)" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded">Make Text</button>
                   <button @click="deleteFieldConfirm(key)" class="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded">Delete</button>
@@ -93,7 +93,16 @@
               
               <!-- Read-only View -->
               <div v-if="!isEditing">
-                 <div v-if="!Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap wrap-break-word">
+                 <!-- Special rendering for complainants/respondents with IDs -->
+                 <div v-if="key === 'complainants' || key === 'respondents'" class="space-y-1">
+                   <div v-for="(name, index) in (value as string[])" :key="index" class="flex items-center justify-between">
+                     <span class="text-sm text-gray-700">{{ name || '—' }}</span>
+                     <span v-if="getIdForName(key, index)" class="text-xs text-gray-400 font-mono">#{{ getIdForName(key, index) }}</span>
+                   </div>
+                   <div v-if="!value || (value as string[]).length === 0" class="text-sm text-gray-500 italic">None</div>
+                 </div>
+                 <!-- Generic rendering for other fields -->
+                 <div v-else-if="!Array.isArray(value)" class="text-sm text-gray-700 whitespace-pre-wrap wrap-break-word">
                     {{ getFieldDisplay(key, value) }}
                  </div>
                  <div v-else class="space-y-1">
@@ -103,8 +112,15 @@
 
               <!-- Editable View -->
               <div v-else>
-                 <!-- Special handling for inhabitant ID fields -->
-                 <div v-if="key === 'complainant_ids' || key === 'respondent_ids'" class="space-y-2">
+                 <!-- Special handling for complainants/respondents - use InhabitantPicker on the _ids field -->
+                 <div v-if="key === 'complainants' || key === 'respondents'" class="space-y-2">
+                   <InhabitantPicker 
+                     :model-value="getIdsForField(key)"
+                     @update:model-value="(v: number[]) => updateIdsForField(key, v)"
+                   />
+                 </div>
+                 <!-- Old special handling for inhabitant ID fields (should not appear anymore due to filtering) -->
+                 <div v-else-if="key === 'complainant_ids' || key === 'respondent_ids'" class="space-y-2">
                    <InhabitantPicker 
                      :model-value="(value as number[])"
                      @update:model-value="(v: number[]) => editForm.fields[key] = v"
@@ -245,6 +261,12 @@ const showDeleteArrayItemConfirm = ref(false);
 const arrayItemToDelete = ref<{ key: string; index: number } | null>(null);
 const newField = ref({ name: '', isArray: false, initialValue: '' });
 
+// Filter out _ids fields from iteration (they're rendered as part of complainants/respondents)
+const sortedFields = computed(() => {
+  const allFields = getSortedFields(editForm.value.fields);
+  return allFields.filter(([key]) => key !== 'complainant_ids' && key !== 'respondent_ids');
+});
+
 // Form State
 const editForm = ref({
   title: '',
@@ -284,8 +306,6 @@ watch(() => props.isEditing, (isEditing) => {
 watch(showDeleteFieldConfirm, (isOpen) => {
   if (!isOpen) deleteFieldConfirmInput.value = '';
 });
-
-const sortedFields = computed(() => getSortedFields(editForm.value.fields));
 
 const canAutoGenerateTitle = computed(() => {
   const complainants = props.document.fields.complainants;
@@ -333,6 +353,27 @@ function getFieldDisplay(key: string, value: any): string {
   if (found?.label) return found.label;
   const str = value?.toString ? value.toString() : '';
   return formatLabel(str) || '—';
+}
+
+// --- Complainants/Respondents Helper Functions ---
+
+// Get the ID for a specific name index in complainants/respondents
+function getIdForName(key: string, index: number): number | null {
+  const idsKey = key === 'complainants' ? 'complainant_ids' : 'respondent_ids';
+  const ids = editForm.value.fields[idsKey] as number[] | undefined;
+  return ids && ids[index] !== undefined ? ids[index] : null;
+}
+
+// Get the IDs array for a complainants/respondents field
+function getIdsForField(key: string): number[] {
+  const idsKey = key === 'complainants' ? 'complainant_ids' : 'respondent_ids';
+  return (editForm.value.fields[idsKey] as number[]) || [];
+}
+
+// Update the IDs array for a complainants/respondents field
+function updateIdsForField(key: string, ids: number[]) {
+  const idsKey = key === 'complainants' ? 'complainant_ids' : 'respondent_ids';
+  editForm.value.fields[idsKey] = ids;
 }
 
 // --- Field Manipulation Logic ---

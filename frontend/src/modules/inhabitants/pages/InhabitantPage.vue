@@ -154,18 +154,6 @@ const router = useRouter();
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 
-// Birthdate constraints
-const minBirthdate = computed(() => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 120);
-  return date.toISOString().split('T')[0];
-});
-
-const maxBirthdate = computed(() => {
-  const date = new Date();
-  return date.toISOString().split('T')[0];
-});
-
 // Layout Responsiveness
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
 const isMobileView = computed(() => windowWidth.value < 1024);
@@ -184,30 +172,8 @@ const searchQuery = ref('');
 const offset = ref(0);
 const limit = ref(15);
 
-// Modal & Form State
+// Modal State
 const showCreateModal = ref(false);
-const submitting = ref(false);
-const formError = ref('');
-const form = ref<Inhabitant>({
-  first_name: '',
-  last_name: '',
-  middle_name: '',
-  suffix: '',
-  birthdate: '',
-  contact_no: '',
-  address: '',
-  civil_status: '',
-  citizenship: '',
-  inhabitant_type: '',
-  sex: '',
-  birth_place: '',
-  occupation: '',
-  email_address: '',
-  highest_educational_attainment: '',
-  mother_first_name: '',
-  mother_middle_name: '',
-  mother_last_name: ''
-});
 
 // Use inhabitants directly (server-side search is applied in loadInhabitants)
 const filteredInhabitants = computed(() => inhabitants.value);
@@ -243,7 +209,7 @@ function openCreateModal() {
   showCreateModal.value = true;
 }
 
-function handleInhabitantCreated(inhabitant: Inhabitant) {
+function handleInhabitantCreated() {
   // Reload the list to show the new inhabitant
   loadInhabitants();
 }
@@ -253,15 +219,6 @@ function formatField(value: string | undefined | null): string {
     return 'N/A';
   }
   return value;
-}
-
-function formatStatus(status: string | undefined | null): string {
-  if (!status) return 'N/A';
-  if (status === 'common_law_live_in') return 'Common Law/Live In';
-  return status
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
 }
 
 function formatBirthdate(birthdate: string | undefined | null): string {

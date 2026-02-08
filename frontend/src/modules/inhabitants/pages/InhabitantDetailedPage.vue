@@ -241,18 +241,6 @@ const authStore = useAuthStore();
 
 const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 
-// Birthdate constraints
-const minBirthdate = computed(() => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 120);
-  return date.toISOString().split('T')[0];
-});
-
-const maxBirthdate = computed(() => {
-  const date = new Date();
-  return date.toISOString().split('T')[0];
-});
-
 // State
 const inhabitant = ref<Inhabitant | null>(null);
 const documents = ref<Document[]>([]);
