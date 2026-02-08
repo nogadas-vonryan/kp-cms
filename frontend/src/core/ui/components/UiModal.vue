@@ -3,7 +3,10 @@
     <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/20" @click="handleOverlayClick" />
       
-      <div class="relative border border-gray-300 rounded bg-white w-full max-w-lg flex flex-col max-h-[90vh]">
+      <div :class="[
+        'relative border border-gray-300 rounded bg-white w-full flex flex-col max-h-[90vh]',
+        modalSizeClass
+      ]">
         
         <div v-if="title" class="p-4 border-b border-gray-200 font-medium text-gray-900 flex justify-between items-center">
           <span>{{ title }}</span>
@@ -31,14 +34,26 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 const props = defineProps({
   open: { type: Boolean, default: false },
   title: { type: String, default: '' },
-  // New prop to handle the requirement
-  preventClose: { type: Boolean, default: false }
+  preventClose: { type: Boolean, default: false },
+  size: { type: String, default: 'md' } // sm, md, lg, xl
 })
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void; (e: 'close'): void }>()
+
+const modalSizeClass = computed(() => {
+  const sizes = {
+    sm: 'max-w-sm',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl'
+  };
+  return sizes[props.size as keyof typeof sizes] || sizes.md;
+});
 
 function handleOverlayClick() {
   if (!props.preventClose) {

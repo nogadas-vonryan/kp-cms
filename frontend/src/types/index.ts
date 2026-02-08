@@ -13,6 +13,8 @@ export type DocumentFields = {
   complaint?: string;
   complainants?: string[];
   respondents?: string[];
+  complainant_ids?: number[];
+  respondent_ids?: number[];
   [key: string]: any;
 };
 

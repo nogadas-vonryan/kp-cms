@@ -129,119 +129,10 @@
     </div>
 
     <!-- Create Inhabitant Modal -->
-    <UiModal v-model:open="showCreateModal" title="Add New Inhabitant">
-      <form @submit.prevent="handleSubmit" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
-          <input v-model="form.first_name" required class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
-          <input v-model="form.last_name" required class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-          <input v-model="form.middle_name" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Suffix</label>
-          <input v-model="form.suffix" placeholder="e.g. Jr., III" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
-          <input v-model="form.birthdate" type="date" :min="minBirthdate" :max="maxBirthdate" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contact No.</label>
-          <input v-model="form.contact_no" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Civil Status</label>
-          <select v-model="form.civil_status" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Select Status</option>
-            <option v-for="opt in CIVIL_STATUS_OPTIONS" :key="opt" :value="opt">
-              {{ formatStatus(opt) }}
-            </option>
-          </select>
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Citizenship</label>
-          <select v-model="form.citizenship" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Select Citizenship</option>
-            <option v-for="opt in CITIZENSHIP_OPTIONS" :key="opt" :value="opt">
-              {{ formatStatus(opt) }}
-            </option>
-          </select>
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Inhabitant Type</label>
-          <select v-model="form.inhabitant_type" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Select Type</option>
-            <option v-for="opt in INHABITANT_TYPE_OPTIONS" :key="opt" :value="opt">
-              {{ formatStatus(opt) }}
-            </option>
-          </select>
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Birth Place</label>
-          <input v-model="form.birth_place" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Sex</label>
-          <select v-model="form.sex" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Select Sex</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
-          <input v-model="form.occupation" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-          <input v-model="form.email_address" type="email" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1 sm:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Highest Educational Attainment</label>
-          <input v-model="form.highest_educational_attainment" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-        </div>
-        <div class="col-span-1 sm:col-span-2">
-          <h3 class="text-sm font-semibold text-gray-900 mb-2">Mother's Name</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
-              <input v-model="form.mother_first_name" class="w-full text-xs p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1">Middle Name</label>
-              <input v-model="form.mother_middle_name" class="w-full text-xs p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
-              <input v-model="form.mother_last_name" class="w-full text-xs p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none" />
-            </div>
-          </div>
-        </div>
-        <div class="col-span-1 sm:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-          <textarea v-model="form.address" rows="2" class="w-full text-sm p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
-        </div>
-      </form>
-
-      <template #footer>
-        <div class="flex w-full flex-col gap-2">
-          <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
-          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <UiButton @click="showCreateModal = false">Cancel</UiButton>
-            <UiButton @click="handleSubmit" :disabled="submitting" variant="secondary" class="flex items-center gap-2">
-              <Check :size="16" />
-              <span>{{ submitting ? 'Saving...' : 'Save' }}</span>
-            </UiButton>
-          </div>
-        </div>
-      </template>
-    </UiModal>
+    <InhabitantCreateModal
+      v-model:open="showCreateModal"
+      @created="handleInhabitantCreated"
+    />
   </div>
 </template>
 
@@ -249,19 +140,15 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
-  Plus, Search, RotateCcw, ChevronLeft, ChevronRight, Check
+  Plus, Search, RotateCcw, ChevronLeft, ChevronRight
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
-import { 
-  InhabitantService, type Inhabitant,
-  CIVIL_STATUS_OPTIONS, CITIZENSHIP_OPTIONS, INHABITANT_TYPE_OPTIONS
-} from '@/modules/inhabitants/services/inhabitantService';
+import { InhabitantService, type Inhabitant } from '@/modules/inhabitants/services/inhabitantService';
 import { extractErrorMessage } from '@/core/api';
 import UiCard from '@/core/ui/components/UiCard.vue';
-import UiAlert from '@/core/ui/components/UiAlert.vue';
-import UiModal from '@/core/ui/components/UiModal.vue';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
+import InhabitantCreateModal from '@/modules/inhabitants/components/InhabitantCreateModal.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -353,90 +240,12 @@ function resetSearch() {
 }
 
 function openCreateModal() {
-  form.value = {
-    first_name: '',
-    last_name: '',
-    middle_name: '',
-    suffix: '',
-    birthdate: '',
-    contact_no: '',
-    address: '',
-    civil_status: '',
-    citizenship: '',
-    inhabitant_type: '',
-    sex: '',
-    birth_place: '',
-    occupation: '',
-    email_address: '',
-    highest_educational_attainment: '',
-    mother_first_name: '',
-    mother_middle_name: '',
-    mother_last_name: ''
-  };
-  formError.value = '';
   showCreateModal.value = true;
 }
 
-function validateBirthdate(birthdate: string): string | null {
-  if (!birthdate || birthdate.trim() === '') {
-    return null; // Empty is valid (optional field)
-  }
-
-  const birthdateDate = new Date(birthdate);
-  const minDate = new Date();
-  minDate.setFullYear(minDate.getFullYear() - 130);
-  const maxDate = new Date();
-
-  if (birthdateDate < minDate) {
-    return 'Date out of range';
-  }
-
-  if (birthdateDate > maxDate) {
-    return 'Birthdate cannot be in the future';
-  }
-
-  // Check for invalid dates like 0001-01-01
-  if (birthdate.startsWith('0000') || birthdate.startsWith('0001')) {
-    return 'Please enter a valid birthdate';
-  }
-
-  return null; // Valid
-}
-
-function validateEmail(email: string | undefined | null): string | null {
-  if (!email || email.trim() === '') return null;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return 'Please enter a valid email address';
-  }
-  return null;
-}
-
-async function handleSubmit() {
-  // Validate birthdate
-  const birthdateError = validateBirthdate(form.value.birthdate);
-  if (birthdateError) {
-    formError.value = birthdateError;
-    return;
-  }
-
-  const emailError = validateEmail(form.value.email_address);
-  if (emailError) {
-    formError.value = emailError;
-    return;
-  }
-
-  submitting.value = true;
-  formError.value = '';
-  try {
-    await InhabitantService.create(form.value);
-    showCreateModal.value = false;
-    loadInhabitants();
-  } catch (err: any) {
-    formError.value = extractErrorMessage(err) || 'Failed to create inhabitant';
-  } finally {
-    submitting.value = false;
-  }
+function handleInhabitantCreated(inhabitant: Inhabitant) {
+  // Reload the list to show the new inhabitant
+  loadInhabitants();
 }
 
 function formatField(value: string | undefined | null): string {

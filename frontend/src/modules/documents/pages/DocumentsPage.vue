@@ -322,56 +322,18 @@
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900 text-sm">Complainants</span>
               </div>
-              <div class="space-y-2">
-                <div v-for="(_, index) in form.fields.complainants" :key="index" class="flex gap-2 items-start">
-                  <input v-model="form.fields.complainants![index]" class="flex-1 text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Name" />
-                  <button 
-                    type="button" 
-                    @click="form.fields.complainants?.splice(index, 1)"
-                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
-                    title="Remove"
-                  >
-                    <Trash2 :size="16" />
-                  </button>
-                </div>
-                <UiButton
-                  type="button"
-                  @click="form.fields.complainants?.push('')"
-                  block
-                  class="flex items-center justify-center gap-1 text-xs"
-                >
-                  <Plus :size="14" />
-                  <span>Add Complainant</span>
-                </UiButton>
-              </div>
+              <InhabitantPicker 
+                v-model="form.fields.complainant_ids!"
+              />
             </div>
 
             <div class="rounded p-3 border border-gray-200">
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900 text-sm">Respondents</span>
               </div>
-              <div class="space-y-2">
-                <div v-for="(_, index) in form.fields.respondents" :key="index" class="flex gap-2 items-start">
-                  <input v-model="form.fields.respondents![index]" class="flex-1 text-sm p-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Name" />
-                  <button 
-                    type="button" 
-                    @click="form.fields.respondents?.splice(index, 1)"
-                    class="p-2 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors shrink-0"
-                    title="Remove"
-                  >
-                    <Trash2 :size="16" />
-                  </button>
-                </div>
-                <UiButton
-                  type="button"
-                  @click="form.fields.respondents?.push('')"
-                  block
-                  class="flex items-center justify-center gap-1 text-xs"
-                >
-                  <Plus :size="14" />
-                  <span>Add Respondent</span>
-                </UiButton>
-              </div>
+              <InhabitantPicker 
+                v-model="form.fields.respondent_ids!"
+              />
             </div>
 
           </div>
@@ -400,7 +362,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, Search, RotateCcw, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Trash2, Check } from 'lucide-vue-next';
+import { Plus, Search, RotateCcw, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Check } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
 import { DocumentService } from '@/modules/documents/services/documentService';
 import { extractErrorMessage } from '@/core/api';
@@ -411,6 +373,7 @@ import UiModal from '@/core/ui/components/UiModal.vue';
 import UiSystemNotice from '@/core/ui/components/UiSystemNotice.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 import UiComboBox from '@/core/ui/components/UiComboBox.vue';
+import InhabitantPicker from '@/modules/documents/components/InhabitantPicker.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -523,8 +486,8 @@ const form = ref<CreateDocumentRequest>({
   fields: {
     nature: 'civil',
     status: 'filed', 
-    complainants: [],
-    respondents: [],
+    complainant_ids: [],
+    respondent_ids: [],
     complaint: '',
   }
 });
@@ -666,7 +629,7 @@ async function handleCreate() {
     });
     showCreateModal.value = false;
     form.value = { title: '', code: '', created_at: '', folder_name: '', fields: {
-      nature: 'civil', status: 'filed', complainants: [], respondents: [],
+      nature: 'civil', status: 'filed', complainant_ids: [], respondent_ids: [],
     } };
     // Redirect to the newly created document
     if (response.data?.uuid) {

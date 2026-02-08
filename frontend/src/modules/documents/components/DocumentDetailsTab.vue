@@ -84,7 +84,7 @@
               <!-- Field Header -->
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-gray-900">{{ formatLabel(key) }}</span>
-                <div v-if="isEditing" class="flex gap-2">
+                <div v-if="isEditing && key !== 'complainant_ids' && key !== 'respondent_ids'" class="flex gap-2">
                   <button v-if="!Array.isArray(value)" @click="convertToArray(key)" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded">Make Array</button>
                   <button v-else @click="convertToText(key)" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded">Make Text</button>
                   <button @click="deleteFieldConfirm(key)" class="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded">Delete</button>
@@ -103,7 +103,14 @@
 
               <!-- Editable View -->
               <div v-else>
-                 <div v-if="!Array.isArray(value)" class="space-y-2">
+                 <!-- Special handling for inhabitant ID fields -->
+                 <div v-if="key === 'complainant_ids' || key === 'respondent_ids'" class="space-y-2">
+                   <InhabitantPicker 
+                     :model-value="(value as number[])"
+                     @update:model-value="(v: number[]) => editForm.fields[key] = v"
+                   />
+                 </div>
+                 <div v-else-if="!Array.isArray(value)" class="space-y-2">
                     <UiSelect v-if="getFieldOptions(key)" :model-value="value" @update:model-value="(v: any) => editForm.fields[key] = v" :options="getFieldOptions(key)!" />
                     <UiTextarea v-else :model-value="value" @update:model-value="(v: any) => editForm.fields[key] = v" :rows="getTextareaRows(value, key)" />
                  </div>
@@ -210,6 +217,7 @@ import UiButton from '@/core/ui/components/UiButton.vue';
 import UiModal from '@/core/ui/components/UiModal.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 import UiSelect from '@/core/ui/components/UiSelect.vue';
+import InhabitantPicker from '@/modules/documents/components/InhabitantPicker.vue';
 
 const props = defineProps<{
   document: Document;
