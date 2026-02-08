@@ -195,6 +195,7 @@ func (r *Store) Delete(ctx context.Context, uuidValue string) error {
 	}
 
 	r.mu.Lock()
+	r.removeDocumentFromInhabitantIndex(doc)
 	delete(r.documents, uuidValue)
 	delete(r.codeToUUID, doc.Code)
 	r.rebuildSortedCodesLocked()

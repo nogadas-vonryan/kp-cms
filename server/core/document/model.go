@@ -58,3 +58,100 @@ type BackupFile struct {
 	Size      int64     `json:"size"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+// GetComplainantIDs extracts complainant IDs from the document fields.
+// Returns an empty slice if the field is missing or has wrong type.
+func (d *Document) GetComplainantIDs() []int64 {
+	if d.Fields == nil {
+		return []int64{}
+	}
+	raw, ok := d.Fields["complainant_ids"]
+	if !ok {
+		return []int64{}
+	}
+	return parseIDArray(raw)
+}
+
+// GetRespondentIDs extracts respondent IDs from the document fields.
+// Returns an empty slice if the field is missing or has wrong type.
+func (d *Document) GetRespondentIDs() []int64 {
+	if d.Fields == nil {
+		return []int64{}
+	}
+	raw, ok := d.Fields["respondent_ids"]
+	if !ok {
+		return []int64{}
+	}
+	return parseIDArray(raw)
+}
+
+// GetAllParticipantIDs returns all unique participant IDs (complainants + respondents).
+func (d *Document) GetAllParticipantIDs() []int64 {
+	complainants := d.GetComplainantIDs()
+	respondents := d.GetRespondentIDs()
+
+	seen := make(map[int64]bool)
+	result := make([]int64, 0, len(complainants)+len(respondents))
+
+	for _, id := range complainants {
+		if !seen[id] {
+			seen[id] = true
+			result = append(result, id)
+		}
+	}
+	for _, id := range respondents {
+		if !seen[id] {
+			seen[id] = true
+			result = append(result, id)
+		}
+	}
+
+	return result
+}
+
+// parseIDArray converts various numeric types to []int64.
+// Handles []any containing int, int64, float64, etc.
+func parseIDArray(raw any) []int64 {
+	switch v := raw.(type) {
+	case []int64:
+		return v
+	case []any:
+		result := make([]int64, 0, len(v))
+		for _, item := range v {
+			if id := toInt64(item); id != 0 {
+				result = append(result, id)
+			}
+		}
+		return result
+	case []int:
+		result := make([]int64, 0, len(v))
+		for _, id := range v {
+			result = append(result, int64(id))
+		}
+		return result
+	case []float64:
+		result := make([]int64, 0, len(v))
+		for _, id := range v {
+			result = append(result, int64(id))
+		}
+		return result
+	default:
+		return []int64{}
+	}
+}
+
+// toInt64 converts a numeric value to int64, returns 0 if conversion fails.
+func toInt64(v any) int64 {
+	switch val := v.(type) {
+	case int:
+		return int64(val)
+	case int64:
+		return val
+	case float64:
+		return int64(val)
+	case float32:
+		return int64(val)
+	default:
+		return 0
+	}
+}

@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"kpcms/server/core/document"
 	"kpcms/server/core/inhabitant"
@@ -17,6 +16,7 @@ type InhabitantSearcher interface {
 // DocumentSearcher defines the interface for searching documents.
 type DocumentSearcher interface {
 	SearchByParticipants(ctx context.Context, names []string) ([]*document.Document, error)
+	GetDocumentsByInhabitantID(ctx context.Context, inhabitantID int64) ([]*document.Document, error)
 }
 
 // AggregatorService orchestrates cross-domain searches between inhabitants and documents.
@@ -42,8 +42,8 @@ type SearchResult struct {
 }
 
 // ExecuteAdvancedSearch performs an application-level join between inhabitants and documents.
-// It searches for inhabitants by name, then finds all documents where those inhabitants
-// appear as complainants or respondents.
+// It searches for inhabitants by name, then finds all documents linked to those inhabitants
+// using their IDs for exact matching.
 func (a *AggregatorService) ExecuteAdvancedSearch(ctx context.Context, query string, maxPeople int) (*SearchResult, error) {
 	if query == "" {
 		return nil, fmt.Errorf("search query cannot be empty")
@@ -68,84 +68,31 @@ func (a *AggregatorService) ExecuteAdvancedSearch(ctx context.Context, query str
 		}, nil
 	}
 
-	// Step 3: Generate all search key variations and deduplicate
-	searchKeysMap := make(map[string]struct{})
+	// Step 3: Find documents linked to each inhabitant by ID
+	documentsMap := make(map[string]*document.Document) // UUID -> Document for deduplication
 	for _, inh := range inhabitants {
-		keys := generateSearchKeys(inh)
-		for _, key := range keys {
-			searchKeysMap[key] = struct{}{}
+		docs, err := a.documentService.GetDocumentsByInhabitantID(ctx, inh.ID)
+		if err != nil {
+			// Log but don't fail - continue with other inhabitants
+			continue
+		}
+
+		// Deduplicate documents by UUID
+		for _, doc := range docs {
+			documentsMap[doc.UUID] = doc
 		}
 	}
 
-	// Convert deduplicated map to slice
-	searchKeys := make([]string, 0, len(searchKeysMap))
-	for key := range searchKeysMap {
-		searchKeys = append(searchKeys, key)
+	// Convert map to slice
+	documents := make([]*document.Document, 0, len(documentsMap))
+	for _, doc := range documentsMap {
+		documents = append(documents, doc)
 	}
 
-	// Step 4: Search documents containing any of these names
-	documents, err := a.documentService.SearchByParticipants(ctx, searchKeys)
-	if err != nil {
-		return nil, fmt.Errorf("searching documents: %w", err)
-	}
-
-	// Step 5: Return combined results
+	// Step 4: Return combined results
 	return &SearchResult{
 		Query:       query,
 		Inhabitants: inhabitants,
 		Documents:   documents,
 	}, nil
-}
-
-// buildFullName constructs a full name from an inhabitant's name parts.
-func buildFullName(inh inhabitant.Inhabitant) string {
-	parts := []string{}
-
-	if inh.FirstName != "" {
-		parts = append(parts, inh.FirstName)
-	}
-	if inh.MiddleName != "" {
-		parts = append(parts, inh.MiddleName)
-	}
-	if inh.LastName != "" {
-		parts = append(parts, inh.LastName)
-	}
-	if inh.Suffix != "" {
-		parts = append(parts, inh.Suffix)
-	}
-
-	return strings.Join(parts, " ")
-}
-
-// generateSearchKeys creates multiple search key variations for an inhabitant.
-// This includes: Full Name (John Dabba Doe), Short Name (John Doe), and Formal (Doe, John).
-func generateSearchKeys(inh inhabitant.Inhabitant) []string {
-	keys := []string{}
-
-	// Format 1: Full Name (FirstName MiddleName LastName Suffix)
-	fullName := buildFullName(inh)
-	if fullName != "" {
-		keys = append(keys, fullName)
-	}
-
-	// Format 2: Short Name (FirstName LastName) - without middle name and suffix
-	if inh.FirstName != "" && inh.LastName != "" {
-		shortName := inh.FirstName + " " + inh.LastName
-		keys = append(keys, shortName)
-	}
-
-	// Format 3: Formal Name (LastName, FirstName)
-	if inh.LastName != "" && inh.FirstName != "" {
-		formalName := inh.LastName + ", " + inh.FirstName
-		keys = append(keys, formalName)
-	}
-
-	// Format 4: Formal with middle initial (LastName, FirstName M.)
-	if inh.LastName != "" && inh.FirstName != "" && inh.MiddleName != "" {
-		middleInitial := string([]rune(inh.MiddleName)[0]) + "."
-		formalWithMiddle := inh.LastName + ", " + inh.FirstName + " " + middleInitial
-		keys = append(keys, formalWithMiddle)
-	}
-
-	return keys
 }

@@ -240,6 +240,24 @@ func (s *DocumentService) SearchByParticipants(ctx context.Context, names []stri
 	return results, nil
 }
 
+// GetDocumentsByInhabitantID returns all documents linked to the given inhabitant ID.
+// This uses the reverse index for O(1) lookup instead of name-based matching.
+func (s *DocumentService) GetDocumentsByInhabitantID(ctx context.Context, inhabitantID int64) ([]*Document, error) {
+	if inhabitantID <= 0 {
+		return nil, errors.New("invalid inhabitant ID")
+	}
+
+	// Type-assert to get access to FindByInhabitantID
+	store, ok := s.docs.(interface {
+		FindByInhabitantID(ctx context.Context, id int64) ([]*Document, error)
+	})
+	if !ok {
+		return nil, errors.New("store does not support inhabitant ID lookup")
+	}
+
+	return store.FindByInhabitantID(ctx, inhabitantID)
+}
+
 func (s *DocumentService) GetBackupPath() string {
 	return s.backups.GetBackupPath()
 }

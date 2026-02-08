@@ -217,3 +217,45 @@ func paginate(docs []*document.Document, offset, limit int) []*document.Document
 	}
 	return docs[offset:end]
 }
+
+// FindByInhabitantID returns all documents linked to the given inhabitant ID.
+func (r *Store) FindByInhabitantID(ctx context.Context, inhabitantID int64) ([]*document.Document, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	uuids, exists := r.inhabitantToDocuments[inhabitantID]
+	if !exists || len(uuids) == 0 {
+		return []*document.Document{}, nil
+	}
+
+	results := make([]*document.Document, 0, len(uuids))
+	for _, uuid := range uuids {
+		doc, exists := r.documents[uuid]
+		if !exists {
+			continue
+		}
+
+		files, err := r.readFiles(doc.FolderName)
+		if err != nil {
+			continue
+		}
+
+		result := &document.Document{
+			UUID:       doc.UUID,
+			Code:       doc.Code,
+			FolderName: doc.FolderName,
+			Title:      doc.Title,
+			Fields:     doc.Fields,
+			Files:      files,
+			CreatedAt:  doc.CreatedAt,
+			UpdatedAt:  doc.UpdatedAt,
+		}
+		results = append(results, result)
+	}
+
+	return results, nil
+}

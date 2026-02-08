@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"kpcms/server/core/document"
+	"kpcms/server/core/inhabitant"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -66,6 +68,26 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 		createdAt, err := parseDate(req.CreatedAt)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, "invalid created_at date format")
+			return
+		}
+
+		// Validate inhabitant IDs
+		complainantIDs, respondentIDs, err := extractInhabitantIDs(req.Fields)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Validate all IDs exist
+		allIDs := append(complainantIDs, respondentIDs...)
+		if err := s.validateInhabitantIDs(r.Context(), allIDs); err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Denormalize names for display
+		if err := s.denormalizeInhabitantNames(r.Context(), req.Fields, complainantIDs, respondentIDs); err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to resolve inhabitant names")
 			return
 		}
 
@@ -183,6 +205,26 @@ func (s *Server) handleUpdateDocument() http.HandlerFunc {
 		createdAt, err := parseDate(req.CreatedAt)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, "invalid created_at date format")
+			return
+		}
+
+		// Validate inhabitant IDs
+		complainantIDs, respondentIDs, err := extractInhabitantIDs(req.Fields)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Validate all IDs exist
+		allIDs := append(complainantIDs, respondentIDs...)
+		if err := s.validateInhabitantIDs(r.Context(), allIDs); err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Denormalize names for display
+		if err := s.denormalizeInhabitantNames(r.Context(), req.Fields, complainantIDs, respondentIDs); err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to resolve inhabitant names")
 			return
 		}
 
@@ -816,4 +858,154 @@ func respondJSON(w http.ResponseWriter, status int, data any) {
 
 func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, ErrorResponse{Error: message})
+}
+
+// validateInhabitantIDs checks if all inhabitant IDs exist in the database.
+// Returns error if any ID is invalid or doesn't exist.
+func (s *Server) validateInhabitantIDs(ctx context.Context, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	for _, id := range ids {
+		if id <= 0 {
+			return fmt.Errorf("invalid inhabitant ID: %d", id)
+		}
+
+		_, err := s.inhabitantService.Get(ctx, id)
+		if err != nil {
+			return fmt.Errorf("inhabitant with ID %d not found", id)
+		}
+	}
+
+	return nil
+}
+
+// extractInhabitantIDs extracts inhabitant IDs from document fields
+func extractInhabitantIDs(fields map[string]any) (complainants []int64, respondents []int64, err error) {
+	if fields == nil {
+		return nil, nil, nil
+	}
+
+	// Extract complainant_ids
+	if raw, exists := fields["complainant_ids"]; exists {
+		complainants, err = parseIDArrayFromInterface(raw)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid complainant_ids format: %w", err)
+		}
+	}
+
+	// Extract respondent_ids
+	if raw, exists := fields["respondent_ids"]; exists {
+		respondents, err = parseIDArrayFromInterface(raw)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid respondent_ids format: %w", err)
+		}
+	}
+
+	return complainants, respondents, nil
+}
+
+// parseIDArrayFromInterface converts various numeric array types to []int64
+func parseIDArrayFromInterface(raw any) ([]int64, error) {
+	switch v := raw.(type) {
+	case []int64:
+		return v, nil
+	case []any:
+		result := make([]int64, 0, len(v))
+		for _, item := range v {
+			id, err := toInt64FromInterface(item)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, id)
+		}
+		return result, nil
+	case []int:
+		result := make([]int64, 0, len(v))
+		for _, id := range v {
+			result = append(result, int64(id))
+		}
+		return result, nil
+	case []float64:
+		result := make([]int64, 0, len(v))
+		for _, id := range v {
+			result = append(result, int64(id))
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("unsupported type: %T", raw)
+	}
+}
+
+// toInt64FromInterface converts a numeric value to int64
+func toInt64FromInterface(v any) (int64, error) {
+	switch val := v.(type) {
+	case int:
+		return int64(val), nil
+	case int64:
+		return val, nil
+	case float64:
+		return int64(val), nil
+	case float32:
+		return int64(val), nil
+	default:
+		return 0, fmt.Errorf("cannot convert %T to int64", v)
+	}
+}
+
+// denormalizeInhabitantNames resolves inhabitant IDs to names and stores them
+// in the complainants and respondents fields for fast display without lookups.
+func (s *Server) denormalizeInhabitantNames(ctx context.Context, fields map[string]any, complainantIDs, respondentIDs []int64) error {
+	if fields == nil {
+		return nil
+	}
+
+	// Resolve complainant names
+	if len(complainantIDs) > 0 {
+		complainantNames := make([]string, 0, len(complainantIDs))
+		for _, id := range complainantIDs {
+			inhabitant, err := s.inhabitantService.Get(ctx, id)
+			if err != nil {
+				return fmt.Errorf("failed to resolve complainant %d: %w", id, err)
+			}
+			complainantNames = append(complainantNames, buildFullName(inhabitant))
+		}
+		fields["complainants"] = complainantNames
+	}
+
+	// Resolve respondent names
+	if len(respondentIDs) > 0 {
+		respondentNames := make([]string, 0, len(respondentIDs))
+		for _, id := range respondentIDs {
+			inhabitant, err := s.inhabitantService.Get(ctx, id)
+			if err != nil {
+				return fmt.Errorf("failed to resolve respondent %d: %w", id, err)
+			}
+			respondentNames = append(respondentNames, buildFullName(inhabitant))
+		}
+		fields["respondents"] = respondentNames
+	}
+
+	return nil
+}
+
+// buildFullName constructs a full name from an inhabitant's name parts
+func buildFullName(inh *inhabitant.Inhabitant) string {
+	parts := []string{}
+
+	if inh.FirstName != "" {
+		parts = append(parts, inh.FirstName)
+	}
+	if inh.MiddleName != "" {
+		parts = append(parts, inh.MiddleName)
+	}
+	if inh.LastName != "" {
+		parts = append(parts, inh.LastName)
+	}
+	if inh.Suffix != "" {
+		parts = append(parts, inh.Suffix)
+	}
+
+	return strings.Join(parts, " ")
 }

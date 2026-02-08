@@ -74,3 +74,45 @@ func ctxErr(ctx context.Context) error {
 		return nil
 	}
 }
+
+// rebuildInhabitantIndexLocked rebuilds the inhabitant reverse index from all cached documents.
+// Caller must hold the write lock.
+func (s *Store) rebuildInhabitantIndexLocked() {
+	s.inhabitantToDocuments = make(map[int64][]string)
+
+	for uuid, doc := range s.documents {
+		participantIDs := doc.GetAllParticipantIDs()
+		for _, id := range participantIDs {
+			s.inhabitantToDocuments[id] = append(s.inhabitantToDocuments[id], uuid)
+		}
+	}
+}
+
+// addDocumentToInhabitantIndex adds a document to the inhabitant reverse index.
+// Caller must hold the write lock.
+func (s *Store) addDocumentToInhabitantIndex(doc *document.Document) {
+	participantIDs := doc.GetAllParticipantIDs()
+	for _, id := range participantIDs {
+		s.inhabitantToDocuments[id] = append(s.inhabitantToDocuments[id], doc.UUID)
+	}
+}
+
+// removeDocumentFromInhabitantIndex removes a document from the inhabitant reverse index.
+// Caller must hold the write lock.
+func (s *Store) removeDocumentFromInhabitantIndex(doc *document.Document) {
+	participantIDs := doc.GetAllParticipantIDs()
+	for _, id := range participantIDs {
+		uuids := s.inhabitantToDocuments[id]
+		filtered := make([]string, 0, len(uuids))
+		for _, uuid := range uuids {
+			if uuid != doc.UUID {
+				filtered = append(filtered, uuid)
+			}
+		}
+		if len(filtered) > 0 {
+			s.inhabitantToDocuments[id] = filtered
+		} else {
+			delete(s.inhabitantToDocuments, id)
+		}
+	}
+}

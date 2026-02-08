@@ -20,6 +20,9 @@ type Store struct {
 	codeToUUID   map[string]string
 	sortedByCode []string
 
+	// Reverse index: inhabitant ID → list of document UUIDs
+	inhabitantToDocuments map[int64][]string
+
 	lastConflicts []document.SyncIssue
 }
 
@@ -41,12 +44,13 @@ func New(basePath string, backupPath string, namingStrategy document.NamingStrat
 	}
 
 	repo := &Store{
-		basePath:       basePath,
-		backupPath:     backupPath,
-		namingStrategy: namingStrategy,
-		documents:      make(map[string]*document.Document),
-		codeToUUID:     make(map[string]string),
-		sortedByCode:   make([]string, 0),
+		basePath:              basePath,
+		backupPath:            backupPath,
+		namingStrategy:        namingStrategy,
+		documents:             make(map[string]*document.Document),
+		codeToUUID:            make(map[string]string),
+		sortedByCode:          make([]string, 0),
+		inhabitantToDocuments: make(map[int64][]string),
 	}
 
 	// Warning: Lock first (so multiple users can read/write at once without crashing)

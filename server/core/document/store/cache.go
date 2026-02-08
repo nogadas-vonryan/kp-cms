@@ -106,6 +106,7 @@ func (r *Store) ReloadCache(ctx context.Context) ([]document.SyncIssue, error) {
 	r.codeToUUID = tempCodeToUUID
 	r.sortedByCode = tempSortedCodes
 	r.lastConflicts = issues
+	r.rebuildInhabitantIndexLocked()
 	r.mu.Unlock()
 
 	return issues, nil
@@ -223,13 +224,20 @@ func (r *Store) GetConflicts(ctx context.Context) ([]document.SyncIssue, error) 
 }
 
 func (r *Store) addToCache(doc *document.Document) {
+	// Remove old index entries if document already exists
+	if existing, exists := r.documents[doc.UUID]; exists {
+		r.removeDocumentFromInhabitantIndex(existing)
+	}
+
 	r.documents[doc.UUID] = doc
 	r.codeToUUID[doc.Code] = doc.UUID
+	r.addDocumentToInhabitantIndex(doc)
 }
 
 func (r *Store) clearCache() {
 	r.documents = make(map[string]*document.Document)
 	r.codeToUUID = make(map[string]string)
+	r.inhabitantToDocuments = make(map[int64][]string)
 }
 
 func (r *Store) getCodes() []string {

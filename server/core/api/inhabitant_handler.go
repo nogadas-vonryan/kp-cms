@@ -2,9 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"kpcms/server/core/inhabitant"
@@ -317,6 +317,18 @@ func (s *Server) handleDeleteInhabitant() http.HandlerFunc {
 			return
 		}
 
+		// Check if inhabitant has linked documents (soft-block)
+		linkedDocs, err := s.documentService.GetDocumentsByInhabitantID(r.Context(), id)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to check linked documents")
+			return
+		}
+
+		if len(linkedDocs) > 0 {
+			respondError(w, http.StatusConflict, fmt.Sprintf("cannot delete inhabitant: linked to %d document(s)", len(linkedDocs)))
+			return
+		}
+
 		if err := s.inhabitantService.Delete(r.Context(), id); err != nil {
 			respondError(w, http.StatusNotFound, "inhabitant not found")
 			return
@@ -335,78 +347,13 @@ func (s *Server) handleGetInhabitantDocuments() http.HandlerFunc {
 			return
 		}
 
-		// Fetch the inhabitant by ID
-		inhabitant, err := s.inhabitantService.Get(r.Context(), id)
+		// Fetch documents directly by inhabitant ID using the reverse index
+		documents, err := s.documentService.GetDocumentsByInhabitantID(r.Context(), id)
 		if err != nil {
-			respondError(w, http.StatusNotFound, "inhabitant not found")
-			return
-		}
-
-		// Generate all name variations to maximize document matching
-		searchKeys := generateInhabitantSearchKeys(*inhabitant)
-
-		// Search for documents containing any variation of this inhabitant's name
-		documents, err := s.documentService.SearchByParticipants(r.Context(), searchKeys)
-		if err != nil {
-			respondError(w, http.StatusInternalServerError, "failed to search documents")
+			respondError(w, http.StatusInternalServerError, "failed to fetch documents")
 			return
 		}
 
 		respondJSON(w, http.StatusOK, documents)
 	}
-}
-
-// buildInhabitantFullName constructs a full name from an inhabitant's name parts
-// matching the format used in documents
-func buildInhabitantFullName(inh inhabitant.Inhabitant) string {
-	parts := []string{}
-
-	if inh.FirstName != "" {
-		parts = append(parts, inh.FirstName)
-	}
-	if inh.MiddleName != "" {
-		parts = append(parts, inh.MiddleName)
-	}
-	if inh.LastName != "" {
-		parts = append(parts, inh.LastName)
-	}
-	if inh.Suffix != "" {
-		parts = append(parts, inh.Suffix)
-	}
-
-	return strings.Join(parts, " ")
-}
-
-// generateInhabitantSearchKeys creates multiple search key variations for an inhabitant.
-// This includes: Full Name (John Dabba Doe), Short Name (John Doe), and Formal (Doe, John).
-// This matches the logic in search.generateSearchKeys to ensure consistent document matching.
-func generateInhabitantSearchKeys(inh inhabitant.Inhabitant) []string {
-	keys := []string{}
-
-	// Format 1: Full Name (FirstName MiddleName LastName Suffix)
-	fullName := buildInhabitantFullName(inh)
-	if fullName != "" {
-		keys = append(keys, fullName)
-	}
-
-	// Format 2: Short Name (FirstName LastName) - without middle name and suffix
-	if inh.FirstName != "" && inh.LastName != "" {
-		shortName := inh.FirstName + " " + inh.LastName
-		keys = append(keys, shortName)
-	}
-
-	// Format 3: Formal Name (LastName, FirstName)
-	if inh.LastName != "" && inh.FirstName != "" {
-		formalName := inh.LastName + ", " + inh.FirstName
-		keys = append(keys, formalName)
-	}
-
-	// Format 4: Formal with middle initial (LastName, FirstName M.)
-	if inh.LastName != "" && inh.FirstName != "" && inh.MiddleName != "" {
-		middleInitial := string([]rune(inh.MiddleName)[0]) + "."
-		formalWithMiddle := inh.LastName + ", " + inh.FirstName + " " + middleInitial
-		keys = append(keys, formalWithMiddle)
-	}
-
-	return keys
 }
