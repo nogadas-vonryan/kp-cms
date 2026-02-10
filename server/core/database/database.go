@@ -85,6 +85,42 @@ func (d *Database) Close() error {
 	return authErr
 }
 
+// ReopenAppDB closes the current AppDB connection and opens a new one to the same path.
+// This is useful after backup restore to ensure we're reading from the newly extracted database file.
+func (d *Database) ReopenAppDB(appPath string) error {
+	if d == nil {
+		return fmt.Errorf("database instance is nil")
+	}
+
+	// Close the existing connection
+	if d.AppDB != nil {
+		if err := d.AppDB.Close(); err != nil {
+			return fmt.Errorf("failed to close existing app database connection: %w", err)
+		}
+	}
+
+	// Open a new connection
+	appDB, err := sql.Open("sqlite", appPath)
+	if err != nil {
+		return fmt.Errorf("failed to reopen app sqlite: %w", err)
+	}
+
+	appDB.SetMaxOpenConns(1)
+
+	if err := appDB.Ping(); err != nil {
+		appDB.Close()
+		return fmt.Errorf("failed to ping reopened app sqlite: %w", err)
+	}
+
+	if err := initAppSchema(appDB); err != nil {
+		appDB.Close()
+		return fmt.Errorf("failed to initialize schema in reopened database: %w", err)
+	}
+
+	d.AppDB = appDB
+	return nil
+}
+
 // GetAuthDBPath returns the platform-specific path for the auth database
 // Windows: %APPDATA%/kpcms/auth.db
 // Linux/Mac: ~/.config/kpcms/auth.db

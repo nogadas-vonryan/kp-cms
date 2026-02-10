@@ -115,10 +115,15 @@ async function handleReload() {
   reloadMessage.value = '';
   
   try {
-    const response = await DocumentService.reload();
-    reloadSuccess.value = response.data?.status === 'success';
-    const respConflicts = Array.isArray(response.data?.conflicts) ? response.data.conflicts : [];
-    reloadMessage.value = `Reload ${response.data?.status}. ${respConflicts.length} conflicts found.`;
+    // Reload both documents and inhabitants
+    const [docResponse, inhabResponse] = await Promise.all([
+      DocumentService.reload(),
+      DocumentService.reloadInhabitants(),
+    ]);
+
+    reloadSuccess.value = docResponse.data?.status === 'success' && inhabResponse.data?.status === 'success';
+    const respConflicts = Array.isArray(docResponse.data?.conflicts) ? docResponse.data.conflicts : [];
+    reloadMessage.value = `Reload ${docResponse.data?.status}. ${respConflicts.length} conflicts found.`;
 
     // Refresh conflicts list
     if (respConflicts.length > 0) {

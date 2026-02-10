@@ -174,4 +174,12 @@ export const DocumentService = {
       error?: string;
     }>(`/api/jobs/${jobId}`); 
   },
+
+  /**
+   * Reloads inhabitants after backup restore.
+   * Ensures the inhabitant service is using the newly restored database.
+   * Matches: POST /api/inhabitants/reload
+   */
+  reloadInhabitants: () =>
+    api.post<{ status: string }>('/api/inhabitants/reload'),
 };

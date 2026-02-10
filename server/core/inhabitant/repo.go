@@ -1,6 +1,9 @@
 package inhabitant
 
-import "context"
+import (
+	"context"
+	"database/sql"
+)
 
 // Repository defines the interface for inhabitant data persistence operations.
 type Repository interface {
@@ -22,4 +25,7 @@ type Repository interface {
 	// FindByName searches for inhabitants by partial name match.
 	// It searches across first_name, last_name, and middle_name fields.
 	FindByName(ctx context.Context, query string, limit int) ([]Inhabitant, error)
+
+	// UpdateDB updates the database connection. This is useful after backup restore.
+	UpdateDB(db *sql.DB)
 }

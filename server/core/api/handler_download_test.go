@@ -44,7 +44,7 @@ func setupTestServer(t *testing.T) (*Server, string, *auth.Service) {
 	documentService := document.NewDocumentService(repo, repo, nil, nil)
 	searchService := search.NewAggregator(inhabitantService, documentService)
 
-	server, err := NewServer("0.0.0.0", "8080", "admin", "password", documentService, authService, inhabitantService, searchService)
+	server, err := NewServer("0.0.0.0", "8080", "admin", "password", documentService, authService, inhabitantService, searchService, db.AppDB, memName)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}

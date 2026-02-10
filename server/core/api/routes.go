@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -29,9 +30,11 @@ type Server struct {
 	sessionTTL        time.Duration
 	ctx               context.Context
 	cancel            context.CancelFunc
+	db                *sql.DB // AppDB reference for reconnection after restore
+	appDBPath         string  // Path to app.db for reopening connection
 }
 
-func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service, searchService *search.AggregatorService) (*Server, error) {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service, searchService *search.AggregatorService, db *sql.DB, appDBPath string) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	success := false
@@ -57,6 +60,8 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		sessionTTL:        24 * time.Hour,
 		ctx:               ctx,
 		cancel:            cancel,
+		db:                db,
+		appDBPath:         appDBPath,
 	}
 
 	s.routes()
@@ -67,6 +72,46 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 
 func (s *Server) Addr() string {
 	return fmt.Sprintf("%s:%s", s.Host, s.Port)
+}
+
+// ReopenDatabaseConnection closes and reopens the app database connection.
+// This should be called after backup restore to ensure we're reading from the newly extracted database.
+func (s *Server) ReopenDatabaseConnection() error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("server or database is nil")
+	}
+
+	slog.Info("Reopening database connection after backup restore", "path", s.appDBPath)
+
+	// Close existing connection
+	if err := s.db.Close(); err != nil {
+		slog.Error("Failed to close existing app database connection", "error", err)
+		return fmt.Errorf("failed to close existing connection: %w", err)
+	}
+
+	// Reopen the connection
+	newDB, err := sql.Open("sqlite", s.appDBPath)
+	if err != nil {
+		slog.Error("Failed to reopen app database", "error", err)
+		return fmt.Errorf("failed to reopen database: %w", err)
+	}
+
+	newDB.SetMaxOpenConns(1)
+
+	if err := newDB.Ping(); err != nil {
+		newDB.Close()
+		slog.Error("Failed to ping reopened database", "error", err)
+		return fmt.Errorf("failed to ping reopened database: %w", err)
+	}
+
+	// Update the server's reference
+	s.db = newDB
+
+	// Update the inhabitant service to use the new connection
+	s.inhabitantService.UpdateDB(newDB)
+
+	slog.Info("Successfully reopened database connection and updated inhabitant service")
+	return nil
 }
 
 func (s *Server) routes() {
@@ -149,6 +194,11 @@ func (s *Server) routes() {
 				r.Get("/{id}/documents", s.handleGetInhabitantDocuments())
 				r.Put("/{id}", s.handleUpdateInhabitant())
 				r.Delete("/{id}", s.handleDeleteInhabitant())
+
+				r.Group(func(admin chi.Router) {
+					admin.Use(auth.RequireRole(auth.RoleAdmin))
+					admin.Post("/reload", s.handleReloadInhabitants())
+				})
 			})
 
 			r.Route("/search", func(r chi.Router) {

@@ -17,6 +17,13 @@ func NewSQLRepository(db *sql.DB) *SQLRepository {
 	return &SQLRepository{db: db}
 }
 
+// UpdateDB updates the database connection. This is useful after backup restore.
+func (r *SQLRepository) UpdateDB(db *sql.DB) {
+	if r != nil && db != nil {
+		r.db = db
+	}
+}
+
 // Create adds a new inhabitant to the repository and returns its ID.
 func (r *SQLRepository) Create(ctx context.Context, inhabitant *Inhabitant) (int64, error) {
 	result, err := r.db.ExecContext(ctx, `
@@ -302,4 +309,11 @@ func (r *SQLRepository) FindByName(ctx context.Context, query string, limit int)
 	}
 
 	return inhabitants, nil
+}
+
+// Count returns the total number of inhabitants in the database.
+func (r *SQLRepository) Count(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM inhabitants").Scan(&count)
+	return count, err
 }

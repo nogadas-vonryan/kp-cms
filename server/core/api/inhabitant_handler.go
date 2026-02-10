@@ -423,3 +423,16 @@ func (s *Server) handleGetInhabitantDocuments() http.HandlerFunc {
 		respondJSON(w, http.StatusOK, documents)
 	}
 }
+func (s *Server) handleReloadInhabitants() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Validate the inhabitant service can query the database
+		if err := s.inhabitantService.Reload(r.Context()); err != nil {
+			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to reload inhabitants: %v", err))
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{
+			"status": "success",
+		})
+	}
+}

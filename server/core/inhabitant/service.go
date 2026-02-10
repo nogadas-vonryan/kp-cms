@@ -1,6 +1,9 @@
 package inhabitant
 
-import "context"
+import (
+	"context"
+	"database/sql"
+)
 
 // Service provides business logic for inhabitant operations.
 type Service struct {
@@ -41,4 +44,20 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 // This method is used by the search aggregator to find people for cross-domain searches.
 func (s *Service) FindPeopleByName(ctx context.Context, query string, limit int) ([]Inhabitant, error) {
 	return s.repo.FindByName(ctx, query, limit)
+}
+
+// UpdateDB updates the database connection used by the repository.
+// This is necessary after backup restore to reconnect to the newly extracted database.
+func (s *Service) UpdateDB(db *sql.DB) {
+	if s != nil && s.repo != nil {
+		s.repo.UpdateDB(db)
+	}
+}
+
+// Reload validates the database connection is working (e.g., after a restore operation).
+// Returns nil if the connection is healthy, error otherwise.
+func (s *Service) Reload(ctx context.Context) error {
+	// Test the connection with a simple query
+	_, err := s.repo.List(ctx, 1, 0)
+	return err
 }

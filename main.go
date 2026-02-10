@@ -346,6 +346,8 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		authService,
 		inhabitantService,
 		searchService,
+		db.AppDB,
+		appDBPath,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up server: %v", err)

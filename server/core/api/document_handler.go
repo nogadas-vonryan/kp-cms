@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -787,6 +788,11 @@ func (s *Server) handleRestoreBackup() http.HandlerFunc {
 			if err != nil {
 				update(-1.0, "failed", err.Error())
 			} else {
+				// Restore completed successfully - reopen database connection to read from newly extracted file
+				if dbErr := s.ReopenDatabaseConnection(); dbErr != nil {
+					// Log the error but don't fail the restore job - database reconnection will be tried again
+					slog.Error("Failed to reopen database connection after restore", "error", dbErr)
+				}
 				update(100.0, "completed", "")
 			}
 		}()

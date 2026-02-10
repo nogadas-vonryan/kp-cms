@@ -75,6 +75,8 @@ func main() {
 		authService,
 		inhabitantService,
 		searchService,
+		db.AppDB,
+		appDBPath,
 	)
 	if err != nil {
 		log.Fatalf("Failed to set up server: %v", err)

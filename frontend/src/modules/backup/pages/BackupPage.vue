@@ -361,9 +361,18 @@ function finalizeJob(type: 'backup' | 'restore', success: boolean, errMsg?: stri
   } else {
     restoring.value = false;
     if (success) {
-      setTimeout(() => {
+      setTimeout(async () => {
         showRestoreModal.value = false;
         fetchBackups();
+        
+        // Reload inhabitants after backup restore
+        try {
+          await DocumentService.reloadInhabitants();
+        } catch (err: any) {
+          console.warn('Failed to reload inhabitants after restore:', extractErrorMessage(err));
+          // Don't block restore completion on inhabitant reload failure
+        }
+        
         alert('System successfully restored.');
       }, 500);
     } else {
