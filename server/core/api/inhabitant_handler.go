@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"kpcms/server/core/document"
 	"kpcms/server/core/inhabitant"
 
 	"github.com/go-chi/chi/v5"
@@ -53,6 +55,18 @@ type inhabitantResponse struct {
 	MotherLastName               string `json:"mother_last_name"`
 	ContactNo                    string `json:"contact_no"`
 	Address                      string `json:"address"`
+}
+
+type documentRefreshError struct {
+	UUID  string `json:"uuid"`
+	Code  string `json:"code"`
+	Error string `json:"error"`
+}
+
+type updateInhabitantResponse struct {
+	inhabitantResponse
+	DocumentsUpdated int                    `json:"documents_updated"`
+	DocumentErrors   []documentRefreshError `json:"document_errors,omitempty"`
 }
 
 func (s *Server) handleListInhabitants() http.HandlerFunc {
@@ -293,19 +307,71 @@ func (s *Server) handleUpdateInhabitant() http.HandlerFunc {
 			return
 		}
 
-		response := inhabitantResponse{
-			ID:         inhabitant.ID,
-			FirstName:  inhabitant.FirstName,
-			LastName:   inhabitant.LastName,
-			MiddleName: inhabitant.MiddleName,
-			Suffix:     inhabitant.Suffix,
-			Birthdate:  inhabitant.Birthdate.Format("2006-01-02"),
-			ContactNo:  inhabitant.ContactNo,
-			Address:    inhabitant.Address,
+		updatedCount, refreshErrors := s.refreshInhabitantDocumentNames(r.Context(), inhabitant.ID)
+
+		response := updateInhabitantResponse{
+			inhabitantResponse: inhabitantResponse{
+				ID:         inhabitant.ID,
+				FirstName:  inhabitant.FirstName,
+				LastName:   inhabitant.LastName,
+				MiddleName: inhabitant.MiddleName,
+				Suffix:     inhabitant.Suffix,
+				Birthdate:  inhabitant.Birthdate.Format("2006-01-02"),
+				ContactNo:  inhabitant.ContactNo,
+				Address:    inhabitant.Address,
+			},
+			DocumentsUpdated: updatedCount,
+			DocumentErrors:   refreshErrors,
 		}
 
 		respondJSON(w, http.StatusOK, response)
 	}
+}
+
+func (s *Server) refreshInhabitantDocumentNames(ctx context.Context, inhabitantID int64) (int, []documentRefreshError) {
+	documents, err := s.documentService.GetDocumentsByInhabitantID(ctx, inhabitantID)
+	if err != nil {
+		return 0, []documentRefreshError{{
+			Error: fmt.Sprintf("failed to load linked documents: %v", err),
+		}}
+	}
+
+	updatedCount := 0
+	refreshErrors := make([]documentRefreshError, 0)
+
+	for _, doc := range documents {
+		complainantIDs := doc.GetComplainantIDs()
+		respondentIDs := doc.GetRespondentIDs()
+
+		if err := s.denormalizeInhabitantNames(ctx, doc.Fields, complainantIDs, respondentIDs); err != nil {
+			refreshErrors = append(refreshErrors, documentRefreshError{
+				UUID:  doc.UUID,
+				Code:  doc.Code,
+				Error: err.Error(),
+			})
+			continue
+		}
+
+		updatedDoc := document.Document{
+			Code:      doc.Code,
+			Title:     doc.Title,
+			Fields:    doc.Fields,
+			CreatedAt: doc.CreatedAt,
+		}
+
+		if _, err := s.documentService.Update(ctx, doc.UUID, updatedDoc); err != nil {
+			refreshErrors = append(refreshErrors, documentRefreshError{
+				UUID:  doc.UUID,
+				Code:  doc.Code,
+				Error: err.Error(),
+			})
+			continue
+		}
+
+		updatedCount++
+	}
+
+	return updatedCount, refreshErrors
 }
 
 func (s *Server) handleDeleteInhabitant() http.HandlerFunc {

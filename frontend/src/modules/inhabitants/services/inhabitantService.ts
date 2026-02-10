@@ -22,6 +22,17 @@ export interface Inhabitant {
   mother_last_name?: string;
 }
 
+export interface DocumentRefreshError {
+  uuid: string;
+  code: string;
+  error: string;
+}
+
+export interface UpdateInhabitantResponse extends Inhabitant {
+  documents_updated?: number;
+  document_errors?: DocumentRefreshError[];
+}
+
 export const CIVIL_STATUS_OPTIONS = [
   'single', 'married', 'widowed', 'divorced', 'separated', 'common_law_live_in', 'unknown', 'annulled'
 ] as const;
@@ -51,7 +62,7 @@ export const InhabitantService = {
     return api.post<Inhabitant>('/api/inhabitants', data);
   },
   update(id: number, data: Inhabitant) {
-    return api.put<Inhabitant>(`/api/inhabitants/${id}`, data);
+    return api.put<UpdateInhabitantResponse>(`/api/inhabitants/${id}`, data);
   },
   delete(id: number) {
     return api.delete(`/api/inhabitants/${id}`);

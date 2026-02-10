@@ -43,6 +43,14 @@
       {{ error }}
     </UiAlert>
 
+    <UiAlert v-if="updateMessage" type="success" class="mb-4">
+      {{ updateMessage }}
+    </UiAlert>
+
+    <UiAlert v-if="updateWarning" type="warning" class="mb-4">
+      {{ updateWarning }}
+    </UiAlert>
+
     <template v-if="!loading && inhabitant">
       <UiCard>
         <div class="space-y-4">
@@ -248,6 +256,8 @@ const loading = ref(false);
 const documentsLoading = ref(false);
 const error = ref('');
 const documentsError = ref('');
+const updateMessage = ref('');
+const updateWarning = ref('');
 
 // Edit Modal State
 const showEditModal = ref(false);
@@ -402,6 +412,8 @@ function openEditModal() {
     };
     
     formError.value = '';
+    updateMessage.value = '';
+    updateWarning.value = '';
     showEditModal.value = true;
   }
 }
@@ -411,10 +423,21 @@ async function handleFormSubmit() {
   
   submitting.value = true;
   formError.value = '';
+  updateMessage.value = '';
+  updateWarning.value = '';
   
   try {
     const formData = formRef.value.formData;
-    await InhabitantService.update(inhabitant.value.id, formData);
+    const response = await InhabitantService.update(inhabitant.value.id, formData);
+    const updatedDocs = response.data.documents_updated;
+    const refreshErrors = response.data.document_errors || [];
+    if (refreshErrors.length > 0) {
+      updateWarning.value = `Updated ${updatedDocs ?? 0} linked document(s), but ${refreshErrors.length} failed to refresh.`;
+    } else if (typeof updatedDocs === 'number') {
+      updateMessage.value = `Updated ${updatedDocs} linked document(s).`;
+    } else {
+      updateMessage.value = 'Inhabitant updated successfully.';
+    }
     showEditModal.value = false;
     await loadInhabitantDetails();
   } catch (err: any) {
