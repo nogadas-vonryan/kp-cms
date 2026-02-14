@@ -32,6 +32,7 @@ type Server struct {
 	cancel            context.CancelFunc
 	db                *sql.DB // AppDB reference for reconnection after restore
 	appDBPath         string  // Path to app.db for reopening connection
+	rateLimiter       *auth.RateLimiter
 }
 
 func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service, searchService *search.AggregatorService, db *sql.DB, appDBPath string) (*Server, error) {
@@ -62,6 +63,7 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		cancel:            cancel,
 		db:                db,
 		appDBPath:         appDBPath,
+		rateLimiter:       auth.NewRateLimiter(5, time.Minute),
 	}
 
 	s.routes()
@@ -132,8 +134,14 @@ func (s *Server) routes() {
 		// Public Routes
 		r.Get("/", s.handleVersion())
 		r.Get("/health", s.handleHealth())
-		r.Post("/auth/login", s.handleLogin())
-		r.Post("/auth/register", s.handleRegister())
+
+		// Rate-limited auth routes
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RateLimitMiddleware(s.rateLimiter))
+			r.Post("/auth/login", s.handleLogin())
+			r.Post("/auth/register", s.handleRegister())
+		})
+
 		r.Post("/auth/logout", s.handleLogout())
 
 		r.Group(func(r chi.Router) {

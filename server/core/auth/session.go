@@ -48,16 +48,16 @@ func (m *SessionManager) Create(identity Identity) Session {
 }
 
 func (m *SessionManager) Get(token string) (Identity, bool) {
-	m.mu.RLock()
-	session, ok := m.sessions[token]
-	m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
+	session, ok := m.sessions[token]
 	if !ok {
 		return Identity{}, false
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		m.Delete(token)
+		delete(m.sessions, token)
 		return Identity{}, false
 	}
 

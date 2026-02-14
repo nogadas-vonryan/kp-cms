@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
 )
 
@@ -50,7 +51,7 @@ func CSRFMiddleware() func(http.Handler) http.Handler {
 			}
 
 			header := r.Header.Get("X-CSRF-Token")
-			if header == "" || header != csrfCookie.Value {
+			if header == "" || subtle.ConstantTimeCompare([]byte(header), []byte(csrfCookie.Value)) != 1 {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
