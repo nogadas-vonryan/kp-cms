@@ -3,10 +3,12 @@ module kpcms
 go 1.23
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/go-chi/cors v1.2.2
 	github.com/google/uuid v1.6.0
 	github.com/hymkor/trash-go v0.3.0
+	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/wailsapp/wails/v2 v2.11.0
 	golang.org/x/crypto v0.33.0
 	modernc.org/sqlite v1.29.3
