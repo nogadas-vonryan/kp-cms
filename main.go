@@ -88,7 +88,7 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:         "KPCMS",
-		Width:         440,
+		Width:         460,
 		Height:        540,
 		DisableResize: true,
 		AssetServer: &assetserver.Options{

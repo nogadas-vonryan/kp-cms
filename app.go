@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/Masterminds/semver/v3"
+	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // StartBackendServerResult contains the backend server start result
@@ -65,7 +68,7 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) SelectFolder() (string, error) {
 	a.Log("Opening folder selection dialog...")
-	selection, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+	selection, err := wailsruntime.OpenDirectoryDialog(a.ctx, wailsruntime.OpenDialogOptions{
 		Title:            "Select Installation Folder",
 		DefaultDirectory: "",
 	})
@@ -253,4 +256,61 @@ func (a *App) SaveConfiguration(frontendHost string, frontendPort int, backendHo
 // GetConfigDirectory returns the config directory path for the current OS
 func (a *App) GetConfigDirectory() (string, error) {
 	return GetConfigDir()
+}
+
+// GetCurrentVersion returns the current application version
+func (a *App) GetCurrentVersion() string {
+	return currentVersion
+}
+
+// CheckForUpdates checks for and applies updates to the application
+func (a *App) CheckForUpdates() (string, error) {
+	latest, err := getLatestFromList()
+	if err != nil {
+		return fmt.Sprintf("Error checking for updates: %v", err), err
+	}
+
+	vCurrent, err := semver.NewVersion(currentVersion)
+	if err != nil {
+		return fmt.Sprintf("Error parsing local version: %v", err), err
+	}
+
+	vLatest, err := semver.NewVersion(latest.TagName)
+	if err != nil {
+		return fmt.Sprintf("Error parsing remote version (%s): %v", latest.TagName, err), err
+	}
+
+	if !vLatest.GreaterThan(vCurrent) {
+		return "No new updates found. You are up to date.", nil
+	}
+
+	status := "Stable"
+	if latest.Prerelease {
+		status = "Pre-release"
+	}
+
+	message := fmt.Sprintf("Found newer %s version: %s\n", status, vLatest.String())
+
+	downloadURL := ""
+	for _, asset := range latest.Assets {
+		if strings.Contains(strings.ToLower(asset.Name), strings.ToLower(runtime.GOOS)) {
+			if runtime.GOOS != "windows" && !strings.Contains(asset.Name, runtime.GOARCH) {
+				continue
+			}
+			downloadURL = asset.BrowserDownloadURL
+			break
+		}
+	}
+
+	if downloadURL == "" {
+		return "No compatible binary found for your operating system.", fmt.Errorf("no compatible binary found")
+	}
+
+	message += "Downloading and applying update...\n"
+	if err := runUpdate(downloadURL); err != nil {
+		return fmt.Sprintf("Update failed: %v", err), err
+	}
+
+	message += "Successfully updated! Please restart kpcms to apply changes."
+	return message, nil
 }

@@ -5,7 +5,7 @@
         <span class="h-2 w-2 rounded-full bg-green-500"></span>
         <h1 class="text-sm font-semibold tracking-tight">Katarungang Pambarangay</h1>
       </div>
-      <span class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-mono text-slate-600">v0.1</span>
+      <span class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-mono text-slate-600">v{{ appVersion }}</span>
     </header>
 
     <main class="flex-1 rounded-xl border border-slate-200 bg-white p-3 shadow-sm overflow-auto flex flex-col gap-3">
@@ -145,6 +145,7 @@
 
     <footer class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
       <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="viewLogs">View Logs</button>
+      <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="checkForUpdates">Update</button>
       <div class="ml-auto flex gap-2">
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="handleReset">Reset</button>
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="handleSave">Save Changes</button>
@@ -170,6 +171,7 @@
 <script setup>
 import { ref, defineProps, defineEmits, onMounted, watch, nextTick } from 'vue'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
+import { CheckForUpdates, GetCurrentVersion } from '../../wailsjs/go/main/App'
 
 const props = defineProps({
   frontendStatus: String,
@@ -195,6 +197,7 @@ const modalTitle = ref('')
 const modalMessage = ref('')
 const networkInfoRef = ref(null)
 const NETWORK_IP_STORAGE_KEY = 'archivist.networkIP'
+const appVersion = ref('...')
 
 // Watch for network info and scroll
 watch([networkIP, () => props.frontendStatus], ([ip, status], [prevIp, prevStatus]) => {
@@ -216,6 +219,13 @@ const getPasswordToUse = () => pass.value || savedPassword.value
 onMounted(async () => {
   try {
     const appNs = window && (window.go?.main?.App || window['go']?.['main']?.['App'])
+    
+    if (appNs && typeof appNs.GetCurrentVersion === 'function') {
+      appVersion.value = await appNs.GetCurrentVersion()
+    } else if (typeof GetCurrentVersion === 'function') {
+      appVersion.value = await GetCurrentVersion()
+    }
+
     if (appNs && typeof appNs.LoadSavedConfig === 'function') {
       const config = await appNs.LoadSavedConfig()
       if (config) {
@@ -229,7 +239,7 @@ onMounted(async () => {
         if (config.backupPath) backupPath.value = config.backupPath
       }
     }
-    
+
     if (!dataPath.value && appNs && typeof appNs.GetExecutableDir === 'function') {
       const execDir = await appNs.GetExecutableDir()
       if (execDir) dataPath.value = execDir + '/data'
@@ -454,6 +464,15 @@ function extractErrorMessage(error, context = '') {
   if (!error) return 'Unknown error'
   const msg = error.message || (typeof error === 'string' ? error : 'Check logs for details')
   return context ? `${context}: ${msg}` : msg
+}
+
+async function checkForUpdates() {
+  try {
+    const result = await CheckForUpdates();
+    showMessage('Update Check Result', result);
+  } catch (err) {
+    showMessage('Update Error', 'Failed to check for updates: ' + extractErrorMessage(err));
+  }
 }
 </script>
 
