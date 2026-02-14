@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { X as XIcon, Search as SearchIcon, Plus as PlusIcon } from 'lucide-vue-next';
 import { InhabitantService, type Inhabitant } from '@/modules/inhabitants/services/inhabitantService';
 import InhabitantCreateModal from '@/modules/inhabitants/components/InhabitantCreateModal.vue';
@@ -213,4 +213,10 @@ watch(() => props.modelValue, () => {
 if (typeof window !== 'undefined') {
   document.addEventListener('click', handleClickOutside);
 }
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    document.removeEventListener('click', handleClickOutside);
+  }
+});
 </script>

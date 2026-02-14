@@ -114,7 +114,7 @@
 
     <div v-if="inhabitants.length > 0 || offset > 0" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <span class="text-xs sm:text-sm text-gray-600">
-        Showing {{ offset + 1 }}-{{ Math.min(offset + limit, inhabitants.length) }}
+        Showing {{ offset + 1 }}-{{ offset + inhabitants.length }}
       </span>
       <div class="flex gap-2 w-full sm:w-auto">
         <UiButton @click="prevPage" :disabled="offset === 0" class="flex-1 sm:flex-none flex items-center justify-center gap-1">
@@ -137,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
   Plus, Search, RotateCcw, ChevronLeft, ChevronRight
@@ -158,10 +158,17 @@ const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
 const isMobileView = computed(() => windowWidth.value < 1024);
 
+function handleResize() {
+  windowWidth.value = window.innerWidth;
+}
+
 onMounted(() => {
-  const handleResize = () => { windowWidth.value = window.innerWidth; };
   window.addEventListener('resize', handleResize);
   loadInhabitants();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 });
 
 // State

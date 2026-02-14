@@ -246,7 +246,7 @@
     <!-- Pagination -->
     <div v-if="documents.length > 0 || offset > 0" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <span class="text-xs sm:text-sm text-gray-600">
-        Showing {{ offset + 1 }}-{{ Math.min(offset + limit, offset + documents.length) }}
+        Showing {{ offset + 1 }}-{{ offset + documents.length }}
       </span>
       <div class="flex gap-2 w-full sm:w-auto">
         <UiButton 
@@ -360,7 +360,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, Search, RotateCcw, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Check } from 'lucide-vue-next';
 import { useAuthStore } from '@/modules/auth/store';
@@ -382,12 +382,16 @@ const isAdmin = computed(() => authStore.role === 'RoleAdmin');
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
 const isMobileView = computed(() => windowWidth.value < 1024);
 
+function handleResize() {
+  windowWidth.value = window.innerWidth;
+}
+
 onMounted(() => {
-  const handleResize = () => {
-    windowWidth.value = window.innerWidth;
-  };
   window.addEventListener('resize', handleResize);
-  return () => window.removeEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 });
 
 const documents = ref<Document[]>([]);
@@ -454,8 +458,7 @@ const hasActiveFilters = computed(() => {
     filters.value.date_to !== '' ||
     filters.value.sort_by !== '' ||
     filters.value.field_key !== '' ||
-    filters.value.field_value !== '' ||
-    filters.value.sort_by !== ''
+    filters.value.field_value !== ''
   );
 });
 
@@ -628,9 +631,19 @@ async function handleCreate() {
       fields: form.value.fields
     });
     showCreateModal.value = false;
-    form.value = { title: '', code: '', created_at: '', folder_name: '', fields: {
-      nature: 'civil', status: 'filed', complainant_ids: [], respondent_ids: [],
-    } };
+    form.value = { 
+      title: '', 
+      code: '', 
+      created_at: '', 
+      folder_name: '', 
+      fields: {
+        nature: 'civil', 
+        status: 'filed', 
+        complainant_ids: [], 
+        respondent_ids: [],
+        complaint: '',
+      }
+    };
     // Redirect to the newly created document
     if (response.data?.uuid) {
       router.push(`/documents/${response.data.uuid}`);
