@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -63,6 +63,11 @@ func (s *Server) handleCreateDocument() http.HandlerFunc {
 		var req CreateDocumentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if !isValidDocumentCode(req.Code) {
+			respondError(w, http.StatusBadRequest, "invalid document code format")
 			return
 		}
 
@@ -200,6 +205,11 @@ func (s *Server) handleUpdateDocument() http.HandlerFunc {
 		var req UpdateDocumentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if !isValidDocumentCode(req.Code) {
+			respondError(w, http.StatusBadRequest, "invalid document code format")
 			return
 		}
 
@@ -788,10 +798,11 @@ func (s *Server) handleRestoreBackup() http.HandlerFunc {
 			if err != nil {
 				update(-1.0, "failed", err.Error())
 			} else {
-				// Restore completed successfully - reopen database connection to read from newly extracted file
+				// Restore completed - reopen database connection to read from newly extracted file
 				if dbErr := s.ReopenDatabaseConnection(); dbErr != nil {
-					// Log the error but don't fail the restore job - database reconnection will be tried again
-					slog.Error("Failed to reopen database connection after restore", "error", dbErr)
+					// Database reconnection failed - report as partial failure
+					update(50.0, "partial_failure", fmt.Sprintf("restore completed but database reconnection failed: %v", dbErr))
+					return
 				}
 				update(100.0, "completed", "")
 			}
@@ -864,6 +875,26 @@ func respondJSON(w http.ResponseWriter, status int, data any) {
 
 func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, ErrorResponse{Error: message})
+}
+
+var validCodePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^case_[0-9]+$`),            // case_1, case_0001, case_999999
+	regexp.MustCompile(`^case_[0-9]{4}_[0-9]+$`),   // case_2026_0001
+	regexp.MustCompile(`^[0-9]{3}-[0-9]{2}$`),      // 001-26
+	regexp.MustCompile(`^case-[0-9]{3}-[0-9]{2}$`), // case-001-26
+	regexp.MustCompile(`^case_[a-fA-F0-9]+$`),      // case_abcd, case_FFFF
+}
+
+func isValidDocumentCode(code string) bool {
+	if code == "" {
+		return false
+	}
+	for _, pattern := range validCodePatterns {
+		if pattern.MatchString(code) {
+			return true
+		}
+	}
+	return false
 }
 
 // validateInhabitantIDs checks if all inhabitant IDs exist in the database.
