@@ -3,7 +3,7 @@ import { RouterView, useRouter } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/store';
 import { AuthService } from '@/modules/auth/services/authService';
 import { computed, ref } from 'vue';
-import { Menu, X, FileText, BarChart3, Settings, LogOut, Upload, Save, Users, Calendar } from 'lucide-vue-next';
+import { Menu, X, FileText, BarChart3, Settings, LogOut, Upload, Save, Users, Calendar, Computer } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -125,8 +125,17 @@ function navigateTo(path: string) {
             class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200 group"
             :class="$route.path === '/admin' ? 'bg-amber-500 text-white shadow-md' : ''"
           >
-            <Settings :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <Computer :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
             <span class="text-sm font-medium">Admin</span>
+          </button>
+
+          <button
+            @click="navigateTo('/settings')"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200 group"
+            :class="$route.path === '/settings' ? 'bg-amber-500 text-white shadow-md' : ''"
+          >
+            <Settings :size="18" class="shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <span class="text-sm font-medium">Settings</span>
           </button>
         </div>
       </nav>
