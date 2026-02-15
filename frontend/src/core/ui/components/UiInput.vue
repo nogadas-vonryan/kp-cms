@@ -7,7 +7,7 @@
     :disabled="disabled"
     :required="required"
     :autocomplete="autocomplete"
-    class="block w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 min-h-[40px] focus:outline-none focus:ring focus:ring-blue-300"
+    class="block w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 min-h-10 focus:outline-none focus:ring focus:ring-blue-300"
     :value="modelValue"
     @input="onInput"
   />
