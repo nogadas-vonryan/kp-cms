@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"kpcms/server/core/auth"
+	"kpcms/server/core/calendar"
 	"kpcms/server/core/document"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/oauth"
 	"kpcms/server/core/search"
 
 	"github.com/go-chi/chi/v5"
@@ -27,6 +29,8 @@ type Server struct {
 	authService       *auth.Service
 	inhabitantService *inhabitant.Service
 	searchService     *search.AggregatorService
+	oauthService      *oauth.Service
+	calendarService   *calendar.Service
 	sessionTTL        time.Duration
 	ctx               context.Context
 	cancel            context.CancelFunc
@@ -35,7 +39,7 @@ type Server struct {
 	rateLimiter       *auth.RateLimiter
 }
 
-func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service, searchService *search.AggregatorService, db *sql.DB, appDBPath string) (*Server, error) {
+func NewServer(host, port, flagUser, flagPass string, documentService *document.DocumentService, authService *auth.Service, inhabitantService *inhabitant.Service, searchService *search.AggregatorService, oauthService *oauth.Service, calendarService *calendar.Service, db *sql.DB, appDBPath string) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	success := false
@@ -58,6 +62,8 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 		authService:       authService,
 		inhabitantService: inhabitantService,
 		searchService:     searchService,
+		oauthService:      oauthService,
+		calendarService:   calendarService,
 		sessionTTL:        24 * time.Hour,
 		ctx:               ctx,
 		cancel:            cancel,
@@ -67,6 +73,18 @@ func NewServer(host, port, flagUser, flagPass string, documentService *document.
 	}
 
 	s.routes()
+
+	// Register OAuth routes if OAuth service is available
+	if oauthService != nil {
+		oauthHandler := NewOAuthHandler(oauthService)
+		s.RegisterOAuthRoutes(oauthHandler)
+	}
+
+	// Register calendar routes if calendar service is available
+	if calendarService != nil {
+		calendarHandler := NewCalendarHandler(calendarService)
+		s.RegisterCalendarRoutes(calendarHandler)
+	}
 
 	success = true
 	return s, nil

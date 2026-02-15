@@ -18,10 +18,12 @@ import (
 
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
+	"kpcms/server/core/calendar"
 	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/oauth"
 	"kpcms/server/core/search"
 
 	"github.com/wailsapp/wails/v2"
@@ -336,6 +338,23 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 	// Create search aggregator service
 	searchService := search.NewAggregator(inhabitantService, document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository))
 
+	// Create OAuth service (optional - can be nil if credentials not configured)
+	oauthService, err := oauth.NewService(db.AuthDB, oauth.Config{
+		Google: oauth.GoogleConfig{
+			CallbackURL: "http://localhost:8080/oauth/callback",
+		},
+	})
+	if err != nil {
+		logMessage(fmt.Sprintf("Warning: OAuth service not initialized: %v", err))
+		logMessage("Calendar features will be disabled. To enable, follow CALENDAR_SETUP.md")
+	}
+
+	// Create calendar service using OAuth service
+	var calendarService *calendar.Service
+	if oauthService != nil {
+		calendarService = calendar.New(oauthService, "kpcms-calendar")
+	}
+
 	// Create API server
 	apiServer, err := api.NewServer(
 		host,
@@ -346,6 +365,8 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 		authService,
 		inhabitantService,
 		searchService,
+		oauthService,
+		calendarService,
 		db.AppDB,
 		appDBPath,
 	)

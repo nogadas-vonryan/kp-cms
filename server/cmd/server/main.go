@@ -4,10 +4,12 @@ import (
 	"flag"
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
+	"kpcms/server/core/calendar"
 	"kpcms/server/core/database"
 	"kpcms/server/core/document"
 	"kpcms/server/core/document/store"
 	"kpcms/server/core/inhabitant"
+	"kpcms/server/core/oauth"
 	"kpcms/server/core/search"
 	"log"
 	"os"
@@ -66,6 +68,23 @@ func main() {
 	// Create the aggregator service for cross-domain searches
 	searchService := search.NewAggregator(inhabitantService, documentService)
 
+	// Create OAuth service (optional)
+	oauthService, err := oauth.NewService(db.AuthDB, oauth.Config{
+		Google: oauth.GoogleConfig{
+			CallbackURL: "http://localhost:8080/oauth/callback",
+		},
+	})
+	if err != nil {
+		log.Printf("Warning: OAuth service not initialized: %v", err)
+		log.Println("Calendar features will be disabled. To enable, follow CALENDAR_SETUP.md")
+	}
+
+	// Create calendar service using OAuth service
+	var calendarService *calendar.Service
+	if oauthService != nil {
+		calendarService = calendar.New(oauthService, "kpcms-calendar")
+	}
+
 	server, err := api.NewServer(
 		*host,
 		*port,
@@ -75,6 +94,8 @@ func main() {
 		authService,
 		inhabitantService,
 		searchService,
+		oauthService,
+		calendarService,
 		db.AppDB,
 		appDBPath,
 	)

@@ -184,6 +184,73 @@ CREATE TABLE IF NOT EXISTS sessions (
 	expires_at TEXT NOT NULL,
 	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Generic OAuth tokens table (replaces calendar_tokens)
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id INTEGER NOT NULL,
+	provider TEXT NOT NULL DEFAULT 'google',
+	access_token TEXT NOT NULL,
+	refresh_token TEXT NOT NULL,
+	token_type TEXT DEFAULT 'Bearer',
+	scopes TEXT DEFAULT '["https://www.googleapis.com/auth/userinfo.email"]',
+	expiry DATETIME NOT NULL,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+	UNIQUE(user_id, provider)
+);
+
+-- Generic OAuth states table (replaces calendar_oauth_states)
+CREATE TABLE IF NOT EXISTS oauth_states (
+	state TEXT PRIMARY KEY,
+	user_id INTEGER NOT NULL,
+	provider TEXT NOT NULL DEFAULT 'google',
+	scopes TEXT,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	expires_at DATETIME NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_user 
+ON oauth_tokens(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_provider 
+ON oauth_tokens(provider);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry 
+ON oauth_states(expires_at);
+
+-- Legacy tables kept for migration compatibility
+CREATE TABLE IF NOT EXISTS calendar_tokens (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id INTEGER NOT NULL,
+	calendar_id TEXT,
+	access_token TEXT NOT NULL,
+	refresh_token TEXT NOT NULL,
+	token_type TEXT DEFAULT 'Bearer',
+	expiry DATETIME NOT NULL,
+	is_primary BOOLEAN DEFAULT FALSE,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+	UNIQUE(user_id, calendar_id)
+);
+
+CREATE TABLE IF NOT EXISTS calendar_oauth_states (
+	state TEXT PRIMARY KEY,
+	user_id INTEGER NOT NULL,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	expires_at DATETIME NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_tokens_user 
+ON calendar_tokens(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_oauth_states_expiry 
+ON calendar_oauth_states(expires_at);
 `); err != nil {
 		return fmt.Errorf("init auth schema: %w", err)
 	}
