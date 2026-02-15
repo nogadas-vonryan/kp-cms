@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"kpcms/server/core/web"
+
 	"github.com/Masterminds/semver/v3"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -23,7 +25,7 @@ type StartBackendServerResult struct {
 // App struct
 type App struct {
 	ctx           context.Context
-	server        *http.Server
+	server        *web.Server
 	backendServer *http.Server
 	logger        *Logger
 	frontendPort  int
@@ -110,11 +112,29 @@ func (a *App) GetExecutableDir() (string, error) {
 
 func (a *App) StartWebServer(host string, port int, backendHost string, backendPort int) error {
 	a.Log(fmt.Sprintf("Starting frontend web server on %s:%d...", host, port))
-	srv, err := StartWebServer(host, port, backendHost, backendPort)
+
+	cfg := web.Config{
+		FrontendHost:      host,
+		FrontendPort:      port,
+		BackendHost:       backendHost,
+		BackendPort:       backendPort,
+		UseEmbeddedAssets: true,
+		EmbeddedFS:        frontendAssets,
+		FrontendPath:      "frontend/dist",
+		Logger:            a.logger,
+	}
+
+	srv, err := web.NewServer(cfg)
 	if err != nil {
+		a.Log(fmt.Sprintf("Failed to create frontend server: %v", err))
+		return err
+	}
+
+	if err := srv.Start(); err != nil {
 		a.Log(fmt.Sprintf("Failed to start frontend server: %v", err))
 		return err
 	}
+
 	// Store server reference for shutdown later
 	a.server = srv
 	a.frontendPort = port
@@ -128,13 +148,10 @@ func (a *App) StopWebServer() error {
 	}
 
 	a.Log("Stopping frontend web server...")
-	// Create a timeout context for graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
-	if err := a.server.Shutdown(ctx); err != nil {
+	if err := a.server.Stop(); err != nil {
 		a.Log(fmt.Sprintf("Error stopping frontend server: %v", err))
-		return fmt.Errorf("failed to shutdown server: %v", err)
+		return fmt.Errorf("failed to stop server: %v", err)
 	}
 
 	a.server = nil

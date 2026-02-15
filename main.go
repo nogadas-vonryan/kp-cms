@@ -1,20 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"embed"
 	"fmt"
-	"io/fs"
 	"log"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"kpcms/server/core/api"
 	"kpcms/server/core/auth"
@@ -107,106 +102,6 @@ func main() {
 		logMessage(fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
 	}
-}
-
-func StartWebServer(host string, port int, backendHost string, backendPort int) (*http.Server, error) {
-	if host == "" {
-		host = "0.0.0.0"
-	}
-	if port == 0 {
-		port = 8081
-	}
-	if backendHost == "" {
-		backendHost = "127.0.0.1"
-	}
-	if backendPort == 0 {
-		backendPort = 8080
-	}
-
-	if port < 1 || port > 65535 {
-		return nil, fmt.Errorf("invalid frontend port %d (must be 1-65535)", port)
-	}
-	if backendPort < 1 || backendPort > 65535 {
-		return nil, fmt.Errorf("invalid backend port %d (must be 1-65535)", backendPort)
-	}
-
-	// 1. Setup Reverse Proxy
-	backendAddr := fmt.Sprintf("http://%s:%d", backendHost, backendPort)
-	target, err := url.Parse(backendAddr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid backend address: %v", err)
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	originalDirector := proxy.Director
-	proxy.Director = func(r *http.Request) {
-		originalDirector(r)
-		r.Host = target.Host
-		r.URL.Scheme = target.Scheme
-		r.URL.Host = target.Host
-		r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-	}
-
-	mux := http.NewServeMux()
-
-	// 2. Prepare Static Assets
-	staticPath := "frontend/dist"
-	distFS, err := fs.Sub(frontendAssets, staticPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load frontend assets: %v", err)
-	}
-	fileServer := http.FileServer(http.FS(distFS))
-
-	// 3. The "Smart" Catch-All Handler
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/")
-
-		// A. If it's a known API prefix, proxy it immediately
-		if strings.HasPrefix(path, "api/") || strings.HasPrefix(path, "auth/") {
-			proxy.ServeHTTP(w, r)
-			return
-		}
-
-		// B. Try to see if the file exists in the static dist folder (CSS, JS, Images)
-		f, err := distFS.Open(path)
-		if err == nil {
-			f.Close()
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-
-		// C. If it's not a file and not an explicit API path,
-		// it's likely a frontend route (SPA). Serve index.html.
-		data, readErr := fs.ReadFile(distFS, "index.html")
-		if readErr != nil {
-			// If we can't find index.html, maybe the user is calling an API
-			// we didn't explicitly list? Try proxying as a last resort.
-			proxy.ServeHTTP(w, r)
-			return
-		}
-
-		http.ServeContent(w, r, "index.html", time.Now(), bytes.NewReader(data))
-	})
-
-	srv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", host, port),
-		Handler: mux,
-	}
-
-	// Validate address binding
-	testListener, err := net.Listen("tcp", srv.Addr)
-	if err != nil {
-		return nil, err
-	}
-	testListener.Close()
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logMessage(fmt.Sprintf("Web server error: %v", err))
-		}
-	}()
-
-	return srv, nil
 }
 
 // GetPreferredIP returns the local IP address the host uses to communicate
@@ -339,9 +234,10 @@ func StartBackendServer(host string, port int, user, pass, dataPath string, back
 	searchService := search.NewAggregator(inhabitantService, document.NewDocumentService(documentRepository, documentRepository, documentRepository, documentRepository))
 
 	// Create OAuth service (optional - can be nil if credentials not configured)
+	// OAuth callback goes through frontend (port 8081) which proxies to backend
 	oauthService, err := oauth.NewService(db.AuthDB, oauth.Config{
 		Google: oauth.GoogleConfig{
-			CallbackURL: "http://localhost:8080/oauth/callback",
+			CallbackURL: "http://localhost:8081/oauth/callback",
 		},
 	})
 	if err != nil {
