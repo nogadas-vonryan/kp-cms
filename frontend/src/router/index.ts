@@ -2,21 +2,30 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/modules/auth/store';
 import { setApiRouter } from '@/core/api/client';
 import LoginPage from '@/pages/LoginPage.vue';
+import OAuthCallbackPage from '@/pages/OAuthCallbackPage.vue';
 import DocumentsPage from '@/modules/documents/pages/DocumentsPage.vue';
 import DocumentDetailPage from '@/modules/documents/pages/DocumentDetailPage.vue';
 import AdminDashboard from '@/pages/AdminDashboard.vue';
+import SettingsPage from '@/pages/SettingsPage.vue';
 import NotFound from '@/pages/NotFound.vue';
 import ReportExportPage from '@/modules/reports/pages/ReportExportPage.vue';
 import ImportPage from '@/modules/import/pages/ImportPage.vue';
 import BackupPage from '@/modules/backup/pages/BackupPage.vue';
 import InhabitantPage from '@/modules/inhabitants/pages/InhabitantPage.vue';
 import InhabitantDetailedPage from '@/modules/inhabitants/pages/InhabitantDetailedPage.vue';
+import CalendarPage from '@/modules/calendar/pages/CalendarPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
     component: LoginPage,
+    meta: { public: true },
+  },
+  {
+    path: '/oauth/callback',
+    name: 'oauth-callback',
+    component: OAuthCallbackPage,
     meta: { public: true },
   },
   {
@@ -70,6 +79,18 @@ const routes: RouteRecordRaw[] = [
     name: 'admin',
     component: AdminDashboard,
     meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: SettingsPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/calendar',
+    name: 'calendar',
+    component: CalendarPage,
+    meta: { requiresAuth: true },
   },
   {
     path: '/:pathMatch(.*)*',

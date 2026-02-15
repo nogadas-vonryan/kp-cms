@@ -97,3 +97,69 @@ export interface LoginRequest {
   username: string;
   password: string;
 }
+
+// OAuth Types
+export type OAuthProvider = 'google';
+
+export interface OAuthConnection {
+  username: string;
+  provider: string;
+  scopes: string[];
+  is_connected: boolean;
+  connected_at: string;
+}
+
+export interface OAuthStatusResponse {
+  is_connected: boolean;
+  connections: OAuthConnection[];
+}
+
+export interface OAuthAuthURLResponse {
+  auth_url: string;
+}
+
+export interface OAuthDisconnectResponse {
+  status: string;
+  message: string;
+}
+
+// Calendar Types
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time: string;
+  is_all_day?: boolean;
+  attendees?: string[];
+  created_by?: string;
+}
+
+export interface CreateCalendarEventRequest {
+  summary: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time: string;
+  is_all_day?: boolean;
+  attendees?: string[];
+  calendar_id?: string;
+}
+
+export interface ListCalendarEventsResponse {
+  events: CalendarEvent[];
+  next_page_token?: string;
+}
+
+export interface Calendar {
+  id: string;
+  summary: string;
+  description?: string;
+  primary: boolean;
+  access_role: string;
+}
+
+export interface ListCalendarsResponse {
+  calendars: Calendar[];
+}

@@ -34,7 +34,7 @@ const props = defineProps({
 
 const variantClasses = {
   default: 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50',
-  primary: 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700',
+  primary: 'border-gray-800 bg-gray-800 text-white hover:bg-gray-900',
   secondary: 'border-gray-800 bg-gray-800 text-white hover:bg-gray-900', // Or a Slate/Gray color
   danger: 'border-red-600 bg-red-500 text-white hover:bg-red-600',
   ghost: 'border-transparent bg-transparent text-gray-600 hover:bg-gray-100'
