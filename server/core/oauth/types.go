@@ -72,12 +72,13 @@ type CallbackRequest struct {
 
 // Scope constants for Google APIs
 const (
-	ScopeCalendar       = "https://www.googleapis.com/auth/calendar"
-	ScopeCalendarEvents = "https://www.googleapis.com/auth/calendar.events"
-	ScopeDrive          = "https://www.googleapis.com/auth/drive"
-	ScopeDriveFile      = "https://www.googleapis.com/auth/drive.file"
-	ScopeGmailSend      = "https://www.googleapis.com/auth/gmail.send"
-	ScopeUserInfo       = "https://www.googleapis.com/auth/userinfo.email"
+	ScopeCalendar           = "https://www.googleapis.com/auth/calendar"
+	ScopeCalendarEvents     = "https://www.googleapis.com/auth/calendar.events"
+	ScopeCalendarAppCreated = "https://www.googleapis.com/auth/calendar.app.created"
+	ScopeDrive              = "https://www.googleapis.com/auth/drive"
+	ScopeDriveFile          = "https://www.googleapis.com/auth/drive.file"
+	ScopeGmailSend          = "https://www.googleapis.com/auth/gmail.send"
+	ScopeUserInfo           = "https://www.googleapis.com/auth/userinfo.email"
 )
 
 // DefaultScopes returns default scopes for a provider

@@ -54,6 +54,15 @@ type ListEventsResponse struct {
 	NextPageToken string   `json:"next_page_token,omitempty"`
 }
 
+// Calendar represents a Google Calendar
+type Calendar struct {
+	ID          string `json:"id"`
+	Summary     string `json:"summary"`
+	Description string `json:"description"`
+	Primary     bool   `json:"primary"`
+	AccessRole  string `json:"access_role"`
+}
+
 // CalendarConfig represents the calendar module configuration
 type CalendarConfig struct {
 	CredentialsPath string

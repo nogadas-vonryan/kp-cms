@@ -11,20 +11,23 @@ import (
 	"kpcms/server/core/inhabitant"
 	"kpcms/server/core/oauth"
 	"kpcms/server/core/search"
+	"kpcms/server/core/web"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
-
-	"net/http"
+	"strconv"
 )
 
 func main() {
 	host := flag.String("host", "0.0.0.0", "Host address to bind the server to")
-	port := flag.String("port", "8080", "Port to run the server on")
+	port := flag.String("port", "8080", "Port to run the backend server on")
+	frontendPort := flag.String("frontend-port", "8081", "Port to run the frontend web server on")
 	user := flag.String("admin", "admin", "Admin username")
 	pass := flag.String("pass", "", "Admin password")
 	dataPath := flag.String("data", "./data", "Path to the data directory")
 	backupPath := flag.String("backup", "./backup", "Path to the backup directory")
+	frontendPath := flag.String("frontend", "./frontend/dist", "Path to the frontend build directory")
 	flag.Parse()
 
 	if *pass == "" {
@@ -69,9 +72,10 @@ func main() {
 	searchService := search.NewAggregator(inhabitantService, documentService)
 
 	// Create OAuth service (optional)
+	// OAuth callback goes through frontend (port 8081) which proxies to backend
 	oauthService, err := oauth.NewService(db.AuthDB, oauth.Config{
 		Google: oauth.GoogleConfig{
-			CallbackURL: "http://localhost:8080/oauth/callback",
+			CallbackURL: "http://localhost:" + *frontendPort + "/oauth/callback",
 		},
 	})
 	if err != nil {
@@ -103,11 +107,45 @@ func main() {
 		log.Fatalf("Failed to set up server: %v", err)
 	}
 
-	log.Printf("Server starting on %s", server.Addr())
+	// Start backend server in a goroutine
+	go func() {
+		log.Printf("Backend server starting on %s", server.Addr())
+		if err := http.ListenAndServe(server.Addr(), server.Router); err != nil {
+			log.Fatalf("Failed to start backend server: %v", err)
+		}
+	}()
+
+	// Start frontend web server
+	webCfg := web.Config{
+		FrontendHost:      *host,
+		FrontendPort:      0, // Will parse from string
+		BackendHost:       *host,
+		BackendPort:       0, // Will parse from string
+		UseEmbeddedAssets: false,
+		FrontendPath:      *frontendPath,
+	}
+
+	// Parse ports
+	if fp, err := strconv.Atoi(*frontendPort); err == nil {
+		webCfg.FrontendPort = fp
+	}
+	if bp, err := strconv.Atoi(*port); err == nil {
+		webCfg.BackendPort = bp
+	}
+
+	webServer, err := web.NewServer(webCfg)
+	if err != nil {
+		log.Fatalf("Failed to create web server: %v", err)
+	}
+
+	if err := webServer.Start(); err != nil {
+		log.Fatalf("Failed to start web server: %v", err)
+	}
+
 	log.Printf("Using data directory: %s", *dataPath)
 	log.Printf("Password generated: %s", *pass)
+	log.Printf("Access the application at http://localhost:%s", *frontendPort)
 
-	if err := http.ListenAndServe(server.Addr(), server.Router); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	// Keep main goroutine alive
+	select {}
 }

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -174,10 +175,39 @@ func loadGoogleCredentials(path string) (*oauth2.Config, error) {
 
 // getDefaultCredentialsPath returns the default path for credentials.json
 func getDefaultCredentialsPath() string {
-	exePath, err := os.Executable()
-	if err != nil {
-		return "./credentials.json"
+	// Look in the platform-specific config directory
+	configDir, err := getConfigDir()
+	if err == nil {
+		configPath := filepath.Join(configDir, "credentials.json")
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath
+		}
 	}
-	exeDir := filepath.Dir(exePath)
-	return filepath.Join(exeDir, "credentials.json")
+
+	// Fallback to current working directory
+	return "./credentials.json"
+}
+
+// getConfigDir returns the platform-specific config directory
+func getConfigDir() (string, error) {
+	var configDir string
+
+	switch runtime.GOOS {
+	case "windows":
+		appData := os.Getenv("APPDATA")
+		if appData == "" {
+			return "", fmt.Errorf("APPDATA environment variable not set")
+		}
+		configDir = filepath.Join(appData, "kpcms")
+	case "linux", "darwin":
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %v", err)
+		}
+		configDir = filepath.Join(homeDir, ".config", "kpcms")
+	default:
+		return "", fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+	}
+
+	return configDir, nil
 }

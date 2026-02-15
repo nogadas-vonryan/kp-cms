@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -86,9 +87,14 @@ func (h *CalendarHandler) handleCreateEvent() http.HandlerFunc {
 			return
 		}
 
+		if req.EndTime.Before(req.StartTime) {
+			http.Error(w, "End time must be after start time", http.StatusBadRequest)
+			return
+		}
+
 		event, err := h.service.CreateEvent(r.Context(), username, &req)
 		if err != nil {
-			if err == oauth.ErrTokenNotFound {
+			if errors.Is(err, oauth.ErrTokenNotFound) || errors.Is(err, calendar.ErrNotConnected) {
 				http.Error(w, "Calendar not connected. Please connect your calendar first.", http.StatusForbidden)
 				return
 			}
@@ -115,15 +121,27 @@ func (h *CalendarHandler) handleListEvents() http.HandlerFunc {
 		opts := calendar.ListOptions{}
 
 		if startStr := r.URL.Query().Get("start_time"); startStr != "" {
-			if t, err := time.Parse(time.RFC3339, startStr); err == nil {
-				opts.StartTime = t
+			t, err := time.Parse(time.RFC3339, startStr)
+			if err != nil {
+				http.Error(w, "Invalid start_time format. Use RFC3339.", http.StatusBadRequest)
+				return
 			}
+			opts.StartTime = t
 		}
 
 		if endStr := r.URL.Query().Get("end_time"); endStr != "" {
-			if t, err := time.Parse(time.RFC3339, endStr); err == nil {
-				opts.EndTime = t
+			t, err := time.Parse(time.RFC3339, endStr)
+			if err != nil {
+				http.Error(w, "Invalid end_time format. Use RFC3339.", http.StatusBadRequest)
+				return
 			}
+			opts.EndTime = t
+		}
+
+		// Validate that end_time is after start_time if both are provided
+		if !opts.StartTime.IsZero() && !opts.EndTime.IsZero() && opts.EndTime.Before(opts.StartTime) {
+			http.Error(w, "end_time must be after start_time", http.StatusBadRequest)
+			return
 		}
 
 		opts.CalendarID = r.URL.Query().Get("calendar_id")
@@ -140,7 +158,7 @@ func (h *CalendarHandler) handleListEvents() http.HandlerFunc {
 
 		response, err := h.service.ListEvents(r.Context(), username, opts)
 		if err != nil {
-			if err == oauth.ErrTokenNotFound {
+			if errors.Is(err, oauth.ErrTokenNotFound) || errors.Is(err, calendar.ErrNotConnected) {
 				http.Error(w, "Calendar not connected. Please connect your calendar first.", http.StatusForbidden)
 				return
 			}
@@ -153,6 +171,32 @@ func (h *CalendarHandler) handleListEvents() http.HandlerFunc {
 	}
 }
 
+// handleListCalendars lists all available calendars
+func (h *CalendarHandler) handleListCalendars() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username, ok := getUsernameFromContext(r)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		calendars, err := h.service.ListCalendars(r.Context(), username)
+		if err != nil {
+			if errors.Is(err, oauth.ErrTokenNotFound) || errors.Is(err, calendar.ErrNotConnected) {
+				http.Error(w, "Calendar not connected. Please connect your calendar first.", http.StatusForbidden)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"calendars": calendars,
+		})
+	}
+}
+
 // RegisterCalendarRoutes registers calendar routes with the router
 func (s *Server) RegisterCalendarRoutes(handler *CalendarHandler) {
 	// Protected calendar routes
@@ -161,6 +205,7 @@ func (s *Server) RegisterCalendarRoutes(handler *CalendarHandler) {
 		r.Use(auth.CSRFMiddleware())
 
 		r.Get("/status", handler.handleGetConnectionStatus())
+		r.Get("/calendars", handler.handleListCalendars())
 
 		r.Route("/events", func(events chi.Router) {
 			events.Get("/", handler.handleListEvents())
