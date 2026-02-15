@@ -135,7 +135,19 @@ func NewServer(cfg Config) (*Server, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/")
 
-		// API paths and OAuth callback go to backend
+		// OAuth callback needs special handling:
+		// - Browser navigation (Accept: text/html) → serve Vue app
+		// - AJAX call from Vue (Accept: application/json) → proxy to backend
+		if path == "oauth/callback" {
+			accept := r.Header.Get("Accept")
+			if accept != "" && !strings.Contains(accept, "text/html") {
+				proxy.ServeHTTP(w, r)
+				return
+			}
+			s.serveSPA(w, r, proxy)
+			return
+		}
+
 		if s.shouldProxyToBackend(path) {
 			proxy.ServeHTTP(w, r)
 			return
@@ -169,10 +181,6 @@ func NewServer(cfg Config) (*Server, error) {
 func (s *Server) shouldProxyToBackend(path string) bool {
 	// API endpoints
 	if strings.HasPrefix(path, "api/") || strings.HasPrefix(path, "auth/") {
-		return true
-	}
-	// OAuth callback
-	if path == "oauth/callback" {
 		return true
 	}
 	return false
