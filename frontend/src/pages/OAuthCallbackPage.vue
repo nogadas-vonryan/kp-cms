@@ -56,19 +56,17 @@ onMounted(async () => {
   const code = route.query.code as string;
   const error = route.query.error as string;
 
-  // Handle OAuth error from provider
   if (error) {
     status.value = 'error';
     errorMessage.value = `Authorization error: ${error}`;
-    notifyParent(false, error);
+    await notifyParent(false, error);
     return;
   }
 
-  // Validate required parameters
   if (!state || !code) {
     status.value = 'error';
     errorMessage.value = 'Missing authorization parameters. Please try again.';
-    notifyParent(false, 'Missing parameters');
+    await notifyParent(false, 'Missing parameters');
     return;
   }
 
@@ -79,28 +77,44 @@ onMounted(async () => {
     });
 
     status.value = 'success';
-    notifyParent(true);
+    await notifyParent(true);
 
-    // Close window after a short delay
     setTimeout(() => {
       closeWindow();
-    }, 2000);
+    }, 1500);
   } catch (err: any) {
     status.value = 'error';
     errorMessage.value = err.response?.data?.error || 'Failed to complete authorization. Please try again.';
-    notifyParent(false, errorMessage.value);
+    await notifyParent(false, errorMessage.value);
   }
 });
 
-function notifyParent(success: boolean, error?: string) {
-  // Notify parent window about OAuth result
-  if (window.opener) {
-    window.opener.postMessage({
+function notifyParent(success: boolean, error?: string): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new BroadcastChannel('oauth-callback');
+    let acknowledged = false;
+
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'oauth-ack') {
+        acknowledged = true;
+        channel.close();
+        resolve();
+      }
+    };
+
+    channel.postMessage({
       type: 'oauth-callback',
       success,
       error
-    }, window.location.origin);
-  }
+    });
+
+    setTimeout(() => {
+      if (!acknowledged) {
+        channel.close();
+        resolve();
+      }
+    }, 1000);
+  });
 }
 
 function closeWindow() {

@@ -59,13 +59,11 @@ export const OAuthService = {
    */
   openOAuthPopup(authUrl: string): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve) => {
-      // Calculate popup position for center of screen
       const width = 500;
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
 
-      // Open popup
       const popup = window.open(
         authUrl,
         'oauth-popup',
@@ -77,29 +75,49 @@ export const OAuthService = {
         return;
       }
 
-      // Listen for messages from popup
-      const handleMessage = (event: MessageEvent) => {
-        // Verify origin - in production, check against your backend URL
-        if (event.data && event.data.type === 'oauth-callback') {
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
-          
-          if (event.data.success) {
-            resolve({ success: true });
-          } else {
-            resolve({ success: false, error: event.data.error || 'OAuth failed' });
-          }
+      const channel = new BroadcastChannel('oauth-callback');
+      let resolved = false;
+
+      const doResolve = async (success: boolean, error?: string) => {
+        if (resolved) return;
+        resolved = true;
+        channel.close();
+        clearInterval(checkClosed);
+        
+        if (success) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error });
         }
       };
 
-      window.addEventListener('message', handleMessage);
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'oauth-callback') {
+          channel.postMessage({ type: 'oauth-ack' });
+          doResolve(event.data.success, event.data.error);
+        }
+      };
 
-      // Check if popup is closed manually
-      const checkClosed = setInterval(() => {
+      const checkClosed = setInterval(async () => {
         if (popup.closed) {
+          if (resolved) return;
+          resolved = true;
+          
           clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
-          resolve({ success: false, error: 'Popup closed before completion' });
+          channel.close();
+          
+          await new Promise(r => setTimeout(r, 500));
+          
+          try {
+            const connected = await this.isCalendarConnected();
+            if (connected) {
+              resolve({ success: true });
+            } else {
+              resolve({ success: false, error: 'Popup closed before completion' });
+            }
+          } catch {
+            resolve({ success: false, error: 'Failed to verify connection' });
+          }
         }
       }, 500);
     });
