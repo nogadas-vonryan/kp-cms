@@ -18,7 +18,7 @@
         </div>
         <div class="flex items-center shrink-0">
           <span 
-            v-if="isLoading"
+            v-if="calendarStore.isLoading"
             class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
           >
             <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@
             Checking...
           </span>
           <span 
-            v-else-if="isConnected"
+            v-else-if="calendarStore.isConnected"
             class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
           >
             <svg class="mr-1.5 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -52,7 +52,7 @@
       <div class="border-t border-gray-200 pt-4 mt-4">
         <div class="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
           <div class="text-xs text-gray-600">
-            <template v-if="isConnected">
+            <template v-if="calendarStore.isConnected">
               <p>Your calendar is connected. You can create events from documents.</p>
               <p v-if="lastConnected" class="text-xs text-gray-500 mt-1">
                 Connected since {{ formatDate(lastConnected) }}
@@ -64,7 +64,7 @@
           </div>
           <div class="shrink-0">
             <UiButton
-              v-if="isConnected"
+              v-if="calendarStore.isConnected"
               variant="danger"
               :loading="isDisconnecting"
               @click="handleDisconnect"
@@ -89,60 +89,40 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { OAuthService } from '@/modules/auth/services/oauthService';
-import { useAuthStore } from '@/modules/auth/store';
-import type { OAuthConnection } from '@/types';
+import { useCalendarStore } from '@/modules/calendar/store';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
 
-const authStore = useAuthStore();
+const emit = defineEmits<{
+  connected: [];
+  disconnected: [];
+}>();
 
-const isLoading = ref(true);
+const calendarStore = useCalendarStore();
+
 const isConnecting = ref(false);
 const isDisconnecting = ref(false);
 const error = ref('');
 
-const isConnected = computed(() => authStore.hasCalendarScope);
-const lastConnected = computed(() => {
-  const connections = authStore.oauthConnections ?? [];
-  const conn = connections.find((c: OAuthConnection) => c.provider === 'google');
-  return conn?.connected_at;
-});
+const lastConnected = computed(() => calendarStore.connection?.connected_at);
 
 onMounted(async () => {
-  await checkStatus();
+  await calendarStore.fetchConnectionStatus();
 });
-
-async function checkStatus() {
-  try {
-    isLoading.value = true;
-    error.value = '';
-    
-    const status = await OAuthService.getStatus('google');
-    authStore.setOAuthConnections(status.connections);
-  } catch (err: any) {
-    error.value = 'Failed to check connection status';
-    console.error('Failed to check OAuth status:', err);
-  } finally {
-    isLoading.value = false;
-  }
-}
 
 async function handleConnect() {
   try {
     isConnecting.value = true;
     error.value = '';
 
-    // Get the authorization URL with calendar scopes
-    // Don't pass scopes - let the backend use its default CalendarScopes()
     const authUrl = await OAuthService.getAuthURL('google');
 
-    // Open OAuth in popup
     const result = await OAuthService.openOAuthPopup(authUrl);
 
     if (result.success) {
-      // Refresh status after successful connection
-      await checkStatus();
+      await calendarStore.refreshConnectionStatus();
+      emit('connected');
     } else {
       error.value = result.error || 'Failed to connect Google Calendar';
     }
@@ -160,7 +140,8 @@ async function handleDisconnect() {
     error.value = '';
 
     await OAuthService.disconnect('google');
-    authStore.removeOAuthConnection('google');
+    calendarStore.clearConnection();
+    emit('disconnected');
   } catch (err: any) {
     error.value = 'Failed to disconnect Google Calendar';
     console.error('Failed to disconnect OAuth:', err);

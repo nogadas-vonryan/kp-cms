@@ -178,9 +178,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useAuthStore } from '@/modules/auth/store';
+import { useCalendarStore } from '@/modules/calendar/store';
 import { CalendarService } from '@/modules/calendar/services/calendarService';
-import type { CalendarEvent, Calendar } from '@/types';
+import type { Calendar } from '@/types';
 import UiCard from '@/core/ui/components/UiCard.vue';
 import UiButton from '@/core/ui/components/UiButton.vue';
 import UiAlert from '@/core/ui/components/UiAlert.vue';
@@ -196,20 +196,20 @@ const emit = defineEmits<{
   (e: 'connect'): void;
 }>();
 
-const authStore = useAuthStore();
+const calendarStore = useCalendarStore();
 
-const isLoading = ref(false);
-const isCreating = ref(false);
-const isLoadingCalendars = ref(false);
+const isLoading = computed(() => calendarStore.eventsLoading);
+const isLoadingCalendars = computed(() => calendarStore.calendarsLoading);
 const error = ref('');
-const events = ref<CalendarEvent[]>([]);
-const calendars = ref<Calendar[]>([]);
+const isCreating = ref(false);
+const events = computed(() => calendarStore.events);
+const calendars = computed(() => calendarStore.calendars);
 const showCreateModal = ref(false);
 const selectedCalendarId = ref<string>('');
 
 const LOCAL_STORAGE_KEY = 'kpcms_selected_calendar_id';
 
-const isConnected = computed(() => authStore.hasCalendarScope);
+const isConnected = computed(() => calendarStore.isConnected);
 
 const selectedCalendar = computed(() => {
   return calendars.value.find(cal => cal.id === selectedCalendarId.value);
@@ -258,109 +258,58 @@ const newEvent = ref({
 
 onMounted(async () => {
   if (isConnected.value) {
-    await initializeCalendars();
+    await calendarStore.fetchCalendars();
     if (props.autoLoad !== false) {
-      await loadEvents();
+      await calendarStore.fetchEvents(selectedCalendarId.value || undefined);
     }
+    initializeSelectedCalendar();
   }
 });
 
 watch(() => isConnected.value, async (connected) => {
   if (connected) {
-    await initializeCalendars();
+    await calendarStore.fetchCalendars();
     if (props.autoLoad !== false) {
-      await loadEvents();
+      await calendarStore.fetchEvents(selectedCalendarId.value || undefined);
     }
+    initializeSelectedCalendar();
   }
 });
 
-async function initializeCalendars() {
-  try {
-    isLoadingCalendars.value = true;
-    calendars.value = await CalendarService.listCalendars();
-    
-    // Try to load from localStorage first
-    const savedCalendarId = loadSelectedCalendarFromStorage();
-    
-    if (savedCalendarId && calendars.value.some(cal => cal.id === savedCalendarId)) {
-      // Use saved calendar if it still exists
-      selectedCalendarId.value = savedCalendarId;
-    } else {
-      // Find default calendar (Katarungang Pambarangay or primary)
-      const defaultCalendar = findDefaultCalendar();
-      if (defaultCalendar) {
-        selectedCalendarId.value = defaultCalendar.id;
-        saveSelectedCalendarToStorage(defaultCalendar.id);
-      }
+function initializeSelectedCalendar() {
+  const savedCalendarId = loadSelectedCalendarFromStorage();
+  
+  if (savedCalendarId && calendars.value.some(cal => cal.id === savedCalendarId)) {
+    selectedCalendarId.value = savedCalendarId;
+  } else {
+    const defaultCalendar = findDefaultCalendar();
+    if (defaultCalendar) {
+      selectedCalendarId.value = defaultCalendar.id;
+      saveSelectedCalendarToStorage(defaultCalendar.id);
     }
-  } catch (err: any) {
-    console.error('Failed to load calendars:', err);
-  } finally {
-    isLoadingCalendars.value = false;
+  }
+  
+  // Sync with store for refresh functionality
+  if (selectedCalendarId.value) {
+    calendarStore.selectedCalendarId = selectedCalendarId.value;
   }
 }
 
 watch(selectedCalendarId, (newCalendarId) => {
   if (newCalendarId) {
     saveSelectedCalendarToStorage(newCalendarId);
-    loadEvents();
+    calendarStore.fetchEvents(newCalendarId || undefined);
   }
 });
-
-async function loadEvents() {
-  if (!isConnected.value) return;
-
-  try {
-    isLoading.value = true;
-    error.value = '';
-
-    const response = await CalendarService.listEvents({
-      maxResults: 10,
-      startTime: new Date(),
-      calendarId: selectedCalendarId.value || undefined,
-    });
-
-    events.value = response.events;
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Failed to load events';
-    console.error('Failed to load calendar events:', err);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-async function loadCalendars() {
-  if (!isConnected.value) return;
-
-  try {
-    isLoadingCalendars.value = true;
-
-    // Only fetch if we don't have calendars yet
-    if (calendars.value.length === 0) {
-      calendars.value = await CalendarService.listCalendars();
-    }
-
-    // Set the create modal's calendar to the currently selected one
-    if (selectedCalendarId.value) {
-      newEvent.value.calendar_id = selectedCalendarId.value;
-    } else {
-      // Fallback to default
-      const defaultCalendar = findDefaultCalendar();
-      if (defaultCalendar) {
-        newEvent.value.calendar_id = defaultCalendar.id;
-      }
-    }
-  } catch (err: any) {
-    console.error('Failed to load calendars:', err);
-  } finally {
-    isLoadingCalendars.value = false;
-  }
-}
 
 async function openCreateModal() {
   error.value = '';
   showCreateModal.value = true;
-  await loadCalendars();
+  await calendarStore.fetchCalendars();
+  const defaultCalendar = findDefaultCalendar();
+  if (defaultCalendar) {
+    newEvent.value.calendar_id = defaultCalendar.id;
+  }
 }
 
 function closeCreateModal() {
@@ -420,7 +369,7 @@ async function handleCreate() {
     showCreateModal.value = false;
 
     // Reload events
-    await loadEvents();
+    await calendarStore.fetchEvents(newEvent.value.calendar_id || undefined);
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to create event';
     console.error('Failed to create calendar event:', err);
