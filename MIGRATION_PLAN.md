@@ -28,6 +28,7 @@ Move document metadata from per-folder JSON files into a single SQLite DB at {da
   - `documents`: uuid, code, folder_name, title, fields_json, created_at, updated_at
   - `files`: id, document_uuid, filename, description, note, tags_json, type, size, created_at
 - Add indexes on uuid, code, and folder_name.
+- Status: implemented in `server/core/document/store/metadata_sql.go` (no existing metadata DB layer was found).
 
 ### Phase 3: Dual-Read and Dual-Write
 - Reads: check data.db first; if missing, read legacy meta.json/files.json.
