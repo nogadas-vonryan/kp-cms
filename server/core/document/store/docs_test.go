@@ -1,7 +1,9 @@
 package store
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"kpcms/server/core/document"
 	"os"
 	"path/filepath"
@@ -68,5 +70,72 @@ func TestFileDocumentRepository_Create_IgnoresUserFolderName(t *testing.T) {
 	metaPath := filepath.Join(tmpBase, doc.FolderName, "meta.json")
 	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
 		t.Errorf("expected meta.json to exist at %s", metaPath)
+	}
+}
+
+func TestFileDocumentRepository_RestartReload_CurrentBehavior(t *testing.T) {
+	tmpBase := t.TempDir()
+
+	strategy := document.NewNamingStrategyCaseDDDD("case")
+	repo, err := New(tmpBase, "", strategy)
+	if err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	ctx := context.Background()
+	doc := &document.Document{Title: "Restart Smoke Test"}
+	createdDoc, err := repo.Create(ctx, doc)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	fileName := "phase1-verification.txt"
+	fileContent := []byte("phase 1 verification content")
+	if err := repo.UploadFile(ctx, createdDoc.UUID, fileName, bytes.NewReader(fileContent)); err != nil {
+		t.Fatalf("UploadFile failed: %v", err)
+	}
+
+	metaPath := filepath.Join(tmpBase, createdDoc.FolderName, "meta.json")
+	if _, err := os.Stat(metaPath); err != nil {
+		t.Fatalf("expected meta.json to exist: %v", err)
+	}
+
+	filesPath := filepath.Join(tmpBase, createdDoc.FolderName, "files.json")
+	if _, err := os.Stat(filesPath); err != nil {
+		t.Fatalf("expected files.json to exist: %v", err)
+	}
+
+	// Simulate a restart by constructing a new repository from the same folder.
+	reloadedRepo, err := New(tmpBase, "", strategy)
+	if err != nil {
+		t.Fatalf("failed to reload repo: %v", err)
+	}
+
+	reloaded, err := reloadedRepo.GetByUUID(ctx, createdDoc.UUID)
+	if err != nil {
+		t.Fatalf("GetByUUID after restart failed: %v", err)
+	}
+	if reloaded.Title != doc.Title {
+		t.Fatalf("expected title %q after restart, got %q", doc.Title, reloaded.Title)
+	}
+	if len(reloaded.Files) != 1 {
+		t.Fatalf("expected 1 file after restart, got %d", len(reloaded.Files))
+	}
+	if reloaded.Files[0].FileName != fileName {
+		t.Fatalf("expected file %q after restart, got %q", fileName, reloaded.Files[0].FileName)
+	}
+
+	rc, err := reloadedRepo.DownloadFile(ctx, createdDoc.UUID, fileName)
+	if err != nil {
+		t.Fatalf("DownloadFile after restart failed: %v", err)
+	}
+	defer rc.Close()
+
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		t.Fatalf("failed to read downloaded file: %v", err)
+	}
+	if string(data) != string(fileContent) {
+		t.Fatalf("expected downloaded content %q, got %q", string(fileContent), string(data))
 	}
 }
